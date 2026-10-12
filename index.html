@@ -1,0 +1,1813 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>משלים החתמות</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1C2541">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&family=Assistant:wght@400;600;700&family=Secular+One&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ===== הגדרות ענן: מדביקים כאן את הפרטים מ-Supabase (Project Settings → API) =====
+   אם משאירים ריק, האפליקציה עובדת בלי ענן ושומרת הכול בטלפון בלבד. */
+const SUPABASE_URL = "https://pznpibrlcbjpcoxagxns.supabase.co";       // לדוגמה: https://abcdefgh.supabase.co
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6bnBpYnJsY2JqcGNveGFneG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NjEzMjUsImV4cCI6MjEwMjUzNzMyNX0.dvfKlGyI1U_E7G5POQJkLn28gky7cTyJbQqT3Mie_YU";  // המפתח הציבורי (anon public)
+/* ===== Google Drive: מזהה ההתחברות (Client ID) מ-Google Cloud. ריק = בלי כפתור דרייב ===== */
+const GOOGLE_CLIENT_ID = "263320563771-rfj4nveccqd00uc5cu72ckkgtonid1v7.apps.googleusercontent.com";
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --paper:#F4F6FA; --card:#FFFFFF; --ink:#0F172A; --soft:#64748B; --rule:#E2E8F0;
+  --stamp:#DC2626; --stamp-bg:#FEE2E2; --mark:#FEF08A; --ok:#059669; --ok-bg:#D1FAE5;
+  --btn:#1E40AF; --btn-ink:#FFFFFF; --focus:#3B82F6;
+  --blue-soft:#EFF6FF; --amber:#D97706; --amber-bg:#FEF3C7; --violet:#7C3AED; --violet-bg:#EDE9FE;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#0F172A; --card:#1E293B; --ink:#F1F5F9; --soft:#94A3B8; --rule:#334155;
+  --stamp:#F87171; --stamp-bg:#450A0A; --mark:#854D0E; --ok:#34D399; --ok-bg:#064E3B;
+  --btn:#3B82F6; --btn-ink:#FFFFFF; --focus:#60A5FA;
+  --blue-soft:#1E3A5F; --amber:#FBBF24; --amber-bg:#78350F; --violet:#A78BFA; --violet-bg:#4C1D95;
+}}
+:root[data-theme="dark"]{
+  --paper:#0F172A; --card:#1E293B; --ink:#F1F5F9; --soft:#94A3B8; --rule:#334155;
+  --stamp:#F87171; --stamp-bg:#450A0A; --mark:#854D0E; --ok:#34D399; --ok-bg:#064E3B;
+  --btn:#3B82F6; --btn-ink:#FFFFFF; --focus:#60A5FA;
+  --blue-soft:#1E3A5F; --amber:#FBBF24; --amber-bg:#78350F; --violet:#A78BFA; --violet-bg:#4C1D95;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 "Assistant",Arial,"Segoe UI",sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px 16px 72px}
+h1,h2{font-family:"Assistant",Arial,sans-serif;font-weight:700;margin:0}
+header{position:relative;padding:20px 4px 16px;text-align:center}
+header h1{font-size:clamp(26px,7vw,34px);line-height:1.15;letter-spacing:-.3px;color:var(--ink)}
+header p{margin:8px auto 0;color:var(--soft);max-width:28em;font-size:14px;line-height:1.5}
+.stamp{display:none}
+section.step{background:var(--card);border:1px solid var(--rule);border-radius:18px;margin:14px 0;padding:20px 18px;
+  position:relative;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.punch{display:none}
+section.step h2{font-size:18px;margin-bottom:6px;font-weight:700}
+.hint{color:var(--soft);font-size:13.5px;margin:0 0 14px;line-height:1.5}
+label.f{display:block;font-weight:600;font-size:13.5px;margin:12px 0 5px;color:var(--ink)}
+input[type=text],input[type=time],input[type=date],input[type=email],input[type=password],input[type=tel],input[type=number],textarea,select{
+  font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--rule);
+  border-radius:12px;padding:11px 14px;width:100%;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--focus);box-shadow:0 0 0 3px rgba(59,130,246,.15);outline:none;background:var(--card)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+button,.filebtn{font:600 14.5px "Assistant",Arial,sans-serif;border-radius:12px;border:1.5px solid var(--rule);background:var(--card);color:var(--ink);
+  padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s,transform .1s}
+button:active{transform:scale(.98)}
+button.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn);box-shadow:0 2px 8px rgba(30,64,175,.25)}
+button.primary:hover{filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.filebtn{position:relative}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.status{font-size:13.5px;margin-top:10px;min-height:1.2em}
+.status.err{color:var(--stamp)} .status.ok{color:var(--ok)}
+#sigPad{width:100%;height:150px;background:var(--paper);border:1.5px dashed var(--rule);border-radius:14px;touch-action:none;display:block}
+#sigPreview{max-height:70px;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:4px;display:none}
+.photoWrap{margin-top:10px;overflow:hidden;border-radius:14px;border:1px solid var(--rule);background:var(--paper)}
+#photoCanvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.tablewrap{overflow-x:auto;margin-top:10px;border-radius:12px;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--rule);padding:8px 8px;text-align:start;vertical-align:middle;font-size:14px}
+th{font-weight:700;color:var(--soft);font-size:12.5px;background:var(--paper)}
+td input[type=time]{width:7.2em;padding:5px 6px}
+td input.note{width:100%;min-width:10em;padding:5px 6px}
+.src{font-size:12px;color:var(--soft);display:block}
+.miss{color:var(--stamp);font-weight:700}
+input.fromx{background:var(--mark)}
+.empty{color:var(--soft);font-size:14px;padding:12px 0}
+.x{border:none;padding:4px 8px;color:var(--soft);background:transparent}
+.chip{display:inline-block;font-size:11.5px;padding:3px 10px;border-radius:99px;background:var(--stamp-bg);color:var(--stamp);font-weight:700}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.new{background:var(--blue-soft);color:var(--btn)}
+.chip.pending{background:var(--amber-bg);color:var(--amber)}
+
+.bar h3{font-family:"Secular One",Arial,sans-serif;font-weight:400;font-size:19px;margin:0;min-width:8em;text-align:center}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.cal .dow{font-size:12px;color:var(--soft);text-align:center;font-weight:700}
+.cal button{justify-content:center;flex-direction:column;gap:0;padding:8px 0 6px;border:1px solid var(--rule);background:var(--paper);font-variant-numeric:tabular-nums;min-height:46px}
+.cal button .dot{width:5px;height:5px;border-radius:50%;background:var(--soft);margin-top:3px;visibility:hidden}
+.cal button.hasx .dot{visibility:visible}
+.cal button.sat{opacity:.55}
+.cal button[aria-pressed="true"]{background:var(--stamp-bg);border-color:var(--stamp);color:var(--stamp);box-shadow:inset 0 0 0 1px var(--stamp)}
+.cal button[aria-pressed="true"] .dot{background:var(--stamp)}
+.prompt{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:10px;color:var(--ink);font-size:14px;user-select:all}
+details summary{cursor:pointer;color:var(--ink);font-weight:600}
+.check{margin-top:12px;font-size:14px;padding:10px 12px;border-radius:8px;background:var(--stamp-bg);color:var(--ink);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.check button{padding:3px 10px;font-size:14px}
+td select{font:inherit;font-size:13px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px}
+.acct{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1.5px solid var(--rule);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:8px}
+.acct button{padding:4px 10px;font-size:14px}
+body.locked section.step:not(#auth){display:none}
+input[type=email],input[type=password]{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:8px 10px;width:100%}
+.month{border-top:1px solid var(--rule);padding:10px 0}
+.month:first-child{border-top:none}
+.month h3{font-family:"Secular One",Arial,sans-serif;font-weight:400;font-size:17px;margin:0 0 6px}
+.month .bar{margin-top:0}
+.month .bar button{font-size:14px;padding:5px 10px}
+.month .bar button.del{border-color:var(--stamp);color:var(--stamp)}
+.modes{display:grid !important;grid-template-columns:repeat(3,1fr);gap:4px;margin:0 0 18px;border:none;border-radius:999px;overflow:visible;background:var(--rule);padding:4px}
+.modes button{flex:1;justify-content:center;border:none;border-radius:999px;padding:11px 6px;font-size:14px;line-height:1.25;white-space:nowrap;font-family:inherit;font-weight:600;cursor:pointer;background:transparent;color:var(--soft);transition:all .2s}
+.modes button[aria-selected="true"]{background:var(--btn);color:var(--btn-ink);box-shadow:0 2px 10px rgba(30,64,175,.3)}
+
+/* mode visibility – forms list + individual forms */
+body[data-mode="dash"] .tab:not(.m-dash),
+body[data-mode="forms"] .tab:not(.m-forms),
+body[data-mode="files"] .tab:not(.m-files),
+body[data-mode="work"] .tab:not(.m-work),
+body[data-mode="gefen"] .tab:not(.m-gefen),
+body[data-mode="maanak"] .tab:not(.m-maanak),
+body[data-mode="tazkir"] .tab:not(.m-tazkir){display:none}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.dcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:22px 12px;text-align:center;min-height:104px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.dcard:hover,.dcard:focus-visible{border-color:var(--focus);box-shadow:0 6px 20px rgba(59,130,246,.12);outline:none}
+.dcard .dv{font-family:"Assistant",Arial,sans-serif;font-size:34px;line-height:1.05;color:var(--btn);font-weight:700}
+.dcard .dv.ok{color:var(--ok)} .dcard .dv.warn{color:var(--amber)} .dcard .dv.info{color:var(--violet)}
+.dcard .dt{font-weight:500;font-size:13px;color:var(--soft);margin-top:6px}
+.dcard .ds{font-size:12px;color:var(--soft);margin-top:2px;opacity:.85}
+.ricon{font-size:20px;display:none}
+.activity-list{margin-top:4px}
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:14px 6px;border-bottom:1px solid var(--rule)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.activity-dot.ok{background:var(--ok)} .activity-dot.warn{background:var(--amber)} .activity-dot.info{background:var(--focus)}
+.activity-text{font-size:14.5px;font-weight:600;color:var(--ink)}
+.activity-time{font-size:12.5px;color:var(--soft);margin-top:2px}
+.ftitle{font-family:"Assistant",Arial,sans-serif;font-weight:700;font-size:15px;margin:20px 0 6px;color:var(--soft)}
+/* Cloud folders */
+.folder-grid{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.folder{border:1.5px solid var(--rule);border-radius:16px;background:var(--card);overflow:hidden;transition:box-shadow .2s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.folder.open{box-shadow:0 6px 20px rgba(15,23,42,.08)}
+.folder-head{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px;width:100%;font-family:inherit;color:var(--ink)}
+.folder-head:hover{background:var(--paper)}
+.folder-icon{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:24px;flex-shrink:0;background:linear-gradient(145deg,#fef3c7,#fde68a)}
+.folder-icon.blue{background:linear-gradient(145deg,#dbeafe,#93c5fd)}
+.folder-icon.green{background:linear-gradient(145deg,#d1fae5,#6ee7b7)}
+.folder-icon.purple{background:linear-gradient(145deg,#ede9fe,#c4b5fd)}
+.folder-meta{flex:1;min-width:0;text-align:start}
+.folder-meta h3{font-size:15.5px;font-weight:700;margin:0 0 2px}
+.folder-meta p{font-size:12.5px;color:var(--soft);margin:0}
+.folder-chevron{font-size:18px;color:var(--soft);transition:transform .2s;flex-shrink:0;opacity:.5}
+.folder.open .folder-chevron{transform:rotate(-90deg)}
+.folder-body{display:none;padding:0 14px 14px;border-top:1px solid var(--rule);background:var(--paper)}
+.folder.open .folder-body{display:block}
+.folder-body .month{border-top:1px solid var(--rule);padding:12px 0}
+.folder-body .month:first-child{border-top:none;padding-top:14px}
+.folder-empty{color:var(--soft);font-size:13.5px;padding:18px 4px;text-align:center}
+.acct{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1.5px solid var(--rule);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:8px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+
+
+body.locked .modes{display:none !important}
+.ftitle{font-family:"Assistant",Arial,sans-serif;font-weight:700;font-size:15px;margin:20px 0 6px;color:var(--soft)}
+.cal button{border-radius:12px !important}
+
+tfoot td{border-bottom:none;padding-top:10px}
+td input[type=date]{font:inherit;font-size:13px;padding:5px 4px;width:9.5em}
+.drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
+.status a{color:inherit;font-weight:700}
+a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
+  padding:8px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+details{margin-top:12px;font-size:14px;color:var(--soft)}
+/* Forms list cards – modern rounded */
+.forms-list{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.form-card-btn{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px 16px;background:var(--card);border:1.5px solid var(--rule);border-radius:16px;transition:border-color .15s,box-shadow .15s,transform .1s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.form-card-btn:hover,.form-card-btn:focus-visible{border-color:var(--focus);box-shadow:0 4px 16px rgba(59,130,246,.12);outline:none}
+.form-card-btn:active{transform:scale(.99)}
+.form-card-btn .ficon{width:48px;height:48px;border-radius:14px;background:var(--blue-soft);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.form-card-btn .finfo{flex:1;min-width:0}
+.form-card-btn .finfo h3{font-size:15.5px;font-weight:700;margin:0 0 3px;color:var(--ink)}
+.form-card-btn .finfo p{font-size:13px;color:var(--soft);margin:0 0 6px}
+.form-card-btn .farrow{color:var(--soft);font-size:18px;flex-shrink:0;opacity:.5}
+.form-card-btn .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.form-card-btn .badge.pending{background:var(--amber-bg);color:var(--amber)}
+.form-card-btn .badge.done{background:var(--ok-bg);color:var(--ok)}
+.form-card-btn .badge.new{background:var(--blue-soft);color:var(--btn)}
+/* Back button */
+.back-row{display:none;align-items:center;gap:8px;margin:0 0 12px;padding:0}
+body[data-mode="work"] .back-row,
+body[data-mode="gefen"] .back-row,
+body[data-mode="maanak"] .back-row,
+body[data-mode="tazkir"] .back-row{display:flex}
+.back-row button{font:600 14px "Assistant",Arial,sans-serif;background:var(--card);border:1.5px solid var(--rule);border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.back-row button:hover{border-color:var(--btn);color:var(--btn)}
+
+@media (prefers-reduced-motion:no-preference){ .stamp{animation:thunk .5s ease-out both} @keyframes thunk{from{transform:rotate(-9deg) scale(1.6);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:.85}} }
+</style>
+
+</head>
+<body>
+<main>
+<header>
+  <h1>משלים החתמות</h1>
+  <p>טפסים להשלמת חתימות, דיווח גפ"ן, בקשה למענק השתלמות ועוד. כל טופס נשמר כקובץ עם הפרטים והחתימה שלך, ובענן בתקיות נפרדות.</p>
+  <span class="stamp">טפסים</span>
+</header>
+
+<nav class="modes" role="tablist" aria-label="לשוניות">
+  <button role="tab" data-mode="dash" aria-selected="true">לוח בקרה</button>
+  <button role="tab" data-mode="forms" aria-selected="false">טפסים</button>
+  <button role="tab" data-mode="files" aria-selected="false">קבצים בענן</button>
+</nav>
+<div class="acct" id="acct" hidden><span>מחובר: <b id="acctEmail"></b></span><span id="syncState" class="src"></span><button id="logout">התנתק</button></div>
+
+<!-- Back button – visible only when inside a specific form -->
+<div class="back-row" id="backRow">
+  <button type="button" id="backToForms" aria-label="חזרה לכל הטפסים">← חזרה לכל הטפסים</button>
+</div>
+
+
+<section class="step authbox" id="auth" hidden><span class="punch">☁</span>
+  <h2 id="authTitle">כניסה לחשבון</h2>
+  <p class="hint">הפרטים, החתימה והדוחות נשמרים בענן, וזמינים מכל מכשיר שנכנסים ממנו.</p>
+  <div id="authForm">
+    <label class="f" for="email">מייל</label><input type="email" id="email" autocomplete="email" dir="ltr">
+    <label class="f" for="pass">סיסמה</label><input type="password" id="pass" autocomplete="current-password" dir="ltr">
+    <div class="bar"><button class="primary" id="login">כניסה</button><button id="signup">הרשמה</button><button class="x" id="forgot">שכחתי סיסמה</button></div>
+  </div>
+  <div id="newPassForm" hidden>
+    <label class="f" for="newPass">סיסמה חדשה</label><input type="password" id="newPass" autocomplete="new-password" dir="ltr">
+    <div class="bar"><button class="primary" id="setPass">שמור סיסמה</button></div>
+  </div>
+  <div class="status" id="authStatus"></div>
+</section>
+
+<section class="step tab m-dash" id="dash"><span class="punch">📊</span>
+  <h2>לוח בקרה</h2>
+  <p class="hint">מבט מהיר על המצב. לחיצה על כרטיס עוברת לטופס הרלוונטי.</p>
+  <div class="dgrid" id="dgrid"></div>
+  <h3 class="ftitle" id="recentTitle" style="margin-top:22px">פעילות אחרונה</h3>
+  <div class="activity-list" id="recent"></div>
+</section>
+
+
+<section class="step tab m-dash" id="s1"><span class="punch">👤</span>
+  <h2>הפרטים שלי</h2>
+  <p class="hint">נשמרים בדפדפן הזה בלבד, כדי שלא תצטרך למלא אותם כל חודש.</p>
+  <div class="row2">
+    <div><label class="f" for="name">שם מלא</label><input type="text" id="name" autocomplete="name"></div>
+    <div><label class="f" for="tz">ת.ז.</label><input type="text" id="tz" inputmode="numeric"></div>
+  </div>
+  <label class="f">חתימה</label>
+  <img id="sigPreview" alt="החתימה השמורה">
+  <canvas id="sigPad" aria-label="משטח חתימה – חתום עם האצבע או העכבר"></canvas>
+  <div class="bar">
+    <button id="sigSave">שמור חתימה</button>
+    <button id="sigClear">נקה</button>
+    <label class="filebtn">העלה תמונת חתימה<input type="file" id="sigFile" accept="image/*"></label>
+    <button id="sigRedo" hidden>חתום מחדש</button>
+  </div>
+  <div class="status" id="s1status"></div>
+</section>
+
+<!-- ========== רשימת טפסים ========== -->
+<section class="step tab m-forms" id="formsList"><span class="punch">📋</span>
+  <h2>כל הטפסים</h2>
+  <p class="hint">בחרו טופס למילוי. אפשר להוסיף טפסים נוספים בעתיד.</p>
+  <div class="forms-list">
+    <button type="button" class="form-card-btn" data-open="maanak">
+      <span class="ficon">📄</span>
+      <span class="finfo"><h3>בקשה למענק השתלמות</h3><p>פרטים אישיים + חתימה</p><span class="badge pending">ממתין למילוי</span></span>
+      <span class="farrow">‹</span>
+    </button>
+    <button type="button" class="form-card-btn" data-open="gefen">
+      <span class="ficon">📋</span>
+      <span class="finfo"><h3>דוח גפ"ן</h3><p>דיווח שעות והשתתפות</p><span class="badge new">חדש</span></span>
+      <span class="farrow">‹</span>
+    </button>
+    <button type="button" class="form-card-btn" data-open="work">
+      <span class="ficon">✅</span>
+      <span class="finfo"><h3>נוכחות</h3><p>רישום נוכחות + השלמת חתימות</p><span class="badge pending">ממתין למילוי</span></span>
+      <span class="farrow">‹</span>
+    </button>
+    <button type="button" class="form-card-btn" data-open="tazkir">
+      <span class="ficon">📝</span>
+      <span class="finfo"><h3>תזכיר משרדי</h3><p>הפניה / המלצה לוועדה</p><span class="badge pending">ממתין למילוי</span></span>
+      <span class="farrow">‹</span>
+    </button>
+  </div>
+
+</section>
+
+<section class="step tab m-work" id="s3"><span class="punch">1</span>
+
+  <h2>קובץ דיווחי השעות</h2>
+  <p class="hint">קובץ אקסל עם עמודות תאריך, כניסה ויציאה (למשל Date, Check-In, Check-Out).</p>
+  <div class="bar"><label class="filebtn">בחר קובץ אקסל<input type="file" id="xlsFile" accept=".xlsx,.xls,.csv"></label></div>
+  <div class="status" id="s3status"></div>
+</section>
+
+<section class="step tab m-work" id="s2"><span class="punch">2</span>
+  <h2>הימים שחסרה בהם החתמה</h2>
+  <p class="hint">הדרך המדויקת: מעלים קובץ אקסל של דוח השעון, והימים החסרים מסומנים לבד יחד עם ההחתמה שכן נקלטה. אפשר גם לסמן ימים ידנית בלוח. נקודה מתחת לתאריך אומרת שיש לו דיווח בקובץ השעות.</p>
+  <div class="bar"><label class="filebtn">העלה אקסל של דוח השעון<input type="file" id="clockFile" accept=".xlsx,.xls,.csv"></label></div>
+  <div class="status" id="clockStatus"></div>
+  <details><summary>איך יוצרים את הקובץ ב-Claude מהצילום</summary>
+    <p>שולחים ל-Claude את צילום דוח השעון עם ההנחיה הזאת, ומורידים את קובץ האקסל שהוא יוצר:</p>
+    <p id="clockPrompt" class="prompt">צור קובץ Excel מצילום דוח הנוכחות המצורף, עם ארבע עמודות בדיוק: תאריך (DD/MM/YYYY), כניסה (HH:MM), יציאה (HH:MM), סטטוס (הטקסט שבעמודת פעילות/חריגה, למשל "יום לא נסגר", "העדרות ללא דיווח" או "מנוחה בתשלום"). שורה אחת לכל תאריך שמופיע בדוח. כשאין החתמה, השאר את התא ריק. שים לב: בגלל זווית הצילום השעות עשויות להיראות מוזזות בחצי שורה מהתאריך, אז ודא שכל כניסה ויציאה משויכות לתאריך הנכון.</p>
+    <button id="copyPrompt">העתק את ההנחיה</button>
+  </details>
+  <div class="bar"><button id="calPrev" aria-label="חודש קודם">›</button><h3 id="calTitle"></h3><button id="calNext" aria-label="חודש הבא">‹</button></div>
+  <div class="cal" id="cal" role="grid"></div>
+  <div class="check" id="check" hidden></div>
+</section>
+<section class="step tab m-work" id="s4"><span class="punch">3</span>
+  <h2>הימים להשלמה</h2>
+  <p class="hint">ההחתמה שנקלטה נשארת כמו בשעון, והשעה החסרה נלקחת מקובץ השעות ומסומנת בצהוב. בהערות מופיעות ה-Work unit notes מהאקסל. יום שבאקסל רשום בלי משך (למשל 08:00 עד 08:00 עם "מחלת ילד") מסומן אוטומטית כיום מחלה או חופשה, בלי שעות. אפשר גם לבחור את זה ידנית ביום שאין בו שום החתמה. אפשר לתקן כל שדה.</p>
+  <div class="row2"><div><label class="f" for="month">חודש בכותרת</label><input type="text" id="month" placeholder="למשל ספטמבר 2026"></div><div></div></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>תאריך</th><th>מה חסר / סוג יום</th><th>כניסה</th><th>יציאה</th><th>הערות</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <div class="empty" id="noRows">עדיין אין ימים. העלה את קובץ דוח השעון או סמן ימים בלוח בשלב 3.</div>
+</section>
+
+<section class="step tab m-work" id="s5"><span class="punch">4</span>
+  <h2>כרטיס הנוכחות בוורד</h2>
+  <p class="hint">הקובץ נבנה על תבנית "כרטיס נוכחות חודשי" שצורפה. אפשר להחליף לתבנית וורד אחרת עם טבלה שיש בה עמודות תאריך, כניסה, יציאה והערות.</p>
+  <div class="bar">
+    <button class="primary" id="make">הפק קובץ וורד</button>
+    <label class="filebtn">החלף תבנית<input type="file" id="tplFile" accept=".docx"></label>
+    <button id="tplReset" hidden>חזור לתבנית המקורית</button>
+    <button id="share" hidden>שתף PDF</button>
+    <a id="shareOpen" class="btnlink" hidden>הורד PDF</a>
+    <button id="driveBtn" class="drivebtn" hidden>שמור בדרייב</button>
+  </div>
+  <div class="status" id="s5status"></div>
+  <div class="status" id="s5pdf"></div>
+  <a id="dl" hidden></a>
+</section>
+
+<section class="step tab m-gefen" id="g1"><span class="punch">1</span>
+  <h2>פרטי דיווח הגפ"ן</h2>
+  <p class="hint">שם בית הספר נשמר, כדי שלא תצטרך למלא אותו כל חודש.</p>
+  <div class="row2">
+    <div><label class="f" for="school">שם בית הספר</label><input type="text" id="school"></div>
+    <div><label class="f" for="gMonth">חודש ושנה</label><input type="text" id="gMonth" placeholder="למשל ינואר 2026"></div>
+  </div>
+</section>
+
+<section class="step tab m-gefen" id="g2"><span class="punch">2</span>
+  <h2>שעות הגפ"ן</h2>
+  <p class="hint">מעלים את קובץ האקסל של שעות הגפ"ן (עמודות תאריך, כניסה, יציאה). כל שורה בקובץ הופכת לשורה בדוח, והסה"כ מחושב לבד. אפשר לתקן, להוסיף ולמחוק שורות.</p>
+  <div class="bar"><label class="filebtn">בחר קובץ אקסל של גפ"ן<input type="file" id="gFile" accept=".xlsx,.xls,.csv"></label></div>
+  <div class="status" id="gStatus"></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>תאריך</th><th>יום</th><th>התחלה</th><th>סיום</th><th>סה"כ</th><th></th></tr></thead>
+    <tbody id="gRows"></tbody>
+    <tfoot><tr><td colspan="4"><b>סה"כ</b></td><td><b id="gTotal">0:00</b></td><td></td></tr></tfoot>
+  </table></div>
+  <div class="empty" id="gNoRows">עדיין אין שורות. העלה את קובץ הגפ"ן או הוסף שורה.</div>
+  <div class="bar"><input type="date" id="gAddDate" style="width:auto"><button id="gAdd">הוסף שורה</button></div>
+</section>
+
+<section class="step tab m-gefen" id="g3"><span class="punch">3</span>
+  <h2>דוח הגפ"ן בוורד</h2>
+  <p class="hint">נבנה על הטופס "דיווח שעות עבודה בבתי הספר במסגרת הגפ"ן". החתימה שלך נכנסת לשורת הפסיכולוג.ית. חתימות מנהל.ת ביה"ס ומנהלת השפ"ח נשארות ריקות.</p>
+  <div class="bar"><button class="primary" id="gMake">הפק דוח גפ"ן</button><button id="gShare" hidden>שתף PDF</button><a id="gShareOpen" class="btnlink" hidden>הורד PDF</a><button id="gDriveBtn" class="drivebtn" hidden>שמור בדרייב</button></div>
+  <div class="status" id="gMakeStatus"></div>
+  <div class="status" id="gPdf"></div>
+</section>
+
+<!-- ========== בקשה למענק השתלמות ========== -->
+<section class="step tab m-maanak" id="ma1"><span class="punch">1</span>
+  <h2>בקשה למענק השתלמות – פרטים אישיים</h2>
+  <p class="hint">חלק מהשדות מתמלאים מהפרטים השמורים (שם, ת.ז., חתימה). אפשר להשלים את השאר כאן.</p>
+  <div class="row2">
+    <div><label class="f" for="mLast">שם משפחה</label><input type="text" id="mLast"></div>
+    <div><label class="f" for="mFirst">שם פרטי</label><input type="text" id="mFirst"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mTz">מספר תעודת זהות</label><input type="text" id="mTz" inputmode="numeric"></div>
+    <div><label class="f" for="mBirth">שנת לידה</label><input type="text" id="mBirth" inputmode="numeric" placeholder="למשל 1985"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mUnit">יחידה</label><input type="text" id="mUnit"></div>
+    <div><label class="f" for="mRole">תפקיד</label><input type="text" id="mRole"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mEmail">דוא"ל</label><input type="email" id="mEmail" dir="ltr"></div>
+    <div><label class="f" for="mMobile">נייד</label><input type="text" id="mMobile" inputmode="tel" dir="ltr"></div>
+  </div>
+  <label class="f">סוג העסקה</label>
+  <div class="bar" style="margin-top:4px">
+    <label><input type="checkbox" id="mEmpKavua"> קבוע/ה</label>
+    <label><input type="checkbox" id="mEmpZmani"> זמני/ת</label>
+    <label><input type="checkbox" id="mEmpHoze"> חוזה</label>
+    <label><input type="checkbox" id="mEmpArai"> ארעי</label>
+  </div>
+</section>
+
+<section class="step tab m-maanak" id="ma2"><span class="punch">2</span>
+  <h2>פרטי ההשתלמות</h2>
+  <p class="hint">מלאו את פרטי הקורס / הלימודים.</p>
+  <div class="row2">
+    <div><label class="f" for="mSubject">הנושא</label><input type="text" id="mSubject"></div>
+    <div><label class="f" for="mInstitution">המוסד</label><input type="text" id="mInstitution"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mPlace">המקום</label><input type="text" id="mPlace"></div>
+    <div><label class="f" for="mCost">גובה שכר הלימוד</label><input type="text" id="mCost"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mFrom">מתאריך</label><input type="date" id="mFrom"></div>
+    <div><label class="f" for="mTo">עד תאריך</label><input type="date" id="mTo"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mDay">היום בשבוע</label><input type="text" id="mDay" placeholder="למשל יום ג'"></div>
+    <div><label class="f" for="mHours">משעה – עד שעה</label><input type="text" id="mHours" placeholder="למשל 16:00–20:00"></div>
+  </div>
+  <label class="f" for="mNotes">נימוקי העובד/ת</label>
+  <textarea id="mNotes" rows="4" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)"></textarea>
+  <div class="bar" style="margin-top:14px">
+    <button class="primary" id="mMake">הפק קובץ וורד</button>
+    <button id="mShare" hidden>שתף PDF</button>
+    <a id="mShareOpen" class="btnlink" hidden>הורד PDF</a>
+    <button id="mDriveBtn" class="drivebtn" hidden>שמור בדרייב</button>
+    <button id="mSave">שמור פרטים</button>
+  </div>
+  <div class="status" id="mStatus"></div>
+  <div class="status" id="mPdf"></div>
+</section>
+
+
+<!-- ========== תזכיר משרדי ========== -->
+<section class="step tab m-tazkir" id="tz1"><span class="punch">1</span>
+  <h2>תזכיר משרדי – פרטי התלמיד/ה</h2>
+  <p class="hint">טופס הפניה / המלצה לוועדה באגף לחינוך.</p>
+  <div class="row2">
+    <div><label class="f" for="tFirst">שם פרטי</label><input type="text" id="tFirst"></div>
+    <div><label class="f" for="tLast">שם משפחה</label><input type="text" id="tLast"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tTz">ת"ז</label><input type="text" id="tTz" inputmode="numeric"></div>
+    <div><label class="f" for="tBirth">תאריך לידה</label><input type="date" id="tBirth"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tMother">שם האם</label><input type="text" id="tMother"></div>
+    <div><label class="f" for="tFather">שם האב</label><input type="text" id="tFather"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tAddress">כתובת פרטית</label><input type="text" id="tAddress"></div>
+    <div><label class="f" for="tPhone">מס' טלפון</label><input type="text" id="tPhone" inputmode="tel" dir="ltr"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tSchool">שם המוסד בו התלמיד לומד</label><input type="text" id="tSchool"></div>
+    <div><label class="f" for="tClass">סוג / דרגת הכתה</label><input type="text" id="tClass"></div>
+  </div>
+</section>
+
+<section class="step tab m-tazkir" id="tz2"><span class="punch">2</span>
+  <h2>המלצות והערות</h2>
+  <label class="f" for="tRecommend">המלצה לשיבוץ</label>
+  <textarea id="tRecommend" rows="3" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)" placeholder="בהתאם לממצאינו אנו ממליצים לשבץ את הנ&quot;ל בביה&quot;ס..."></textarea>
+  <label class="f" for="tNotes">הערות</label>
+  <textarea id="tNotes" rows="3" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)"></textarea>
+  <div class="bar" style="margin-top:14px">
+    <button class="primary" id="tMake">הפק קובץ וורד</button>
+    <button id="tShare" hidden>שתף PDF</button>
+    <a id="tShareOpen" class="btnlink" hidden>הורד PDF</a>
+    <button id="tDriveBtn" class="drivebtn" hidden>שמור בדרייב</button>
+    <button id="tSave">שמור תזכיר</button>
+  </div>
+  <div class="status" id="tStatus"></div>
+  <div class="status" id="tPdf"></div>
+</section>
+
+
+<section class="step tab m-files" id="filesOff"><span class="punch">☁</span>
+  <h2>קבצים בענן</h2>
+  <p class="hint">כדי לשמור דוחות בענן ולראות אותם כאן, צריך להיות מחובר לחשבון.</p>
+</section>
+
+<section class="step tab m-files cloudonly" id="files" hidden><span class="punch">☁</span>
+  <h2>קבצים בענן</h2>
+  <p class="hint">לחיצה על תיקייה פותחת את הקבצים שבתוכה. "טען לעריכה" מחזיר את קבצי החודש לאפליקציה.</p>
+  <div class="folder-grid" id="folderGrid">
+    <div class="folder" id="folderWork" data-folder="work">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon">📁</span>
+        <span class="folder-meta"><h3>שעות עבודה</h3><p id="folderWorkCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListWork"><div class="folder-empty">טוען…</div></div>
+    </div>
+    <div class="folder" id="folderGefen" data-folder="gefen">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon blue">📁</span>
+        <span class="folder-meta"><h3>גפ"ן</h3><p id="folderGefenCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListGefen"><div class="folder-empty">טוען…</div></div>
+    </div>
+    <div class="folder" id="folderForms" data-folder="forms">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon purple">📁</span>
+        <span class="folder-meta"><h3>טפסים נוספים</h3><p id="folderFormsCount">מענק · תזכירים</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListForms"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
+    </div>
+  </div>
+  <div class="status" id="filesStatus"></div>
+</section>
+
+</main>
+
+<script>
+const TEMPLATE_B64 = "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";
+const GEFEN_B64 = "UEsDBBQABgAIAAAAIQDfpNJsWgEAACAFAAATAAgCW0NvbnRlbnRfVHlwZXNdLnhtbCCiBAIooAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC0lMtuwjAQRfeV+g+Rt1Vi6KKqKgKLPpYtUukHGHsCVv2Sx7z+vhMCUVUBkQpsIiUz994zVsaD0dqabAkRtXcl6xc9loGTXmk3K9nX5C1/ZBkm4ZQw3kHJNoBsNLy9GUw2ATAjtcOSzVMKT5yjnIMVWPgAjiqVj1Ykeo0zHoT8FjPg973eA5feJXApT7UHGw5eoBILk7LXNX1uSCIYZNlz01hnlUyEYLQUiep86dSflHyXUJBy24NzHfCOGhg/mFBXjgfsdB90NFEryMYipndhqYuvfFRcebmwpCxO2xzg9FWlJbT62i1ELwGRztyaoq1Yod2e/ygHpo0BvDxF49sdDymR4BoAO+dOhBVMP69G8cu8E6Si3ImYGrg8RmvdCZFoA6F59s/m2NqciqTOcfQBaaPjP8ber2ytzmngADHp039dm0jWZ88H9W2gQB3I5tv7bfgDAAD//wMAUEsDBBQABgAIAAAAIQAekRq37wAAAE4CAAALAAgCX3JlbHMvLnJlbHMgogQCKKAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArJLBasMwDEDvg/2D0b1R2sEYo04vY9DbGNkHCFtJTBPb2GrX/v082NgCXelhR8vS05PQenOcRnXglF3wGpZVDYq9Cdb5XsNb+7x4AJWFvKUxeNZw4gyb5vZm/cojSSnKg4tZFYrPGgaR+IiYzcAT5SpE9uWnC2kiKc/UYySzo55xVdf3mH4zoJkx1dZqSFt7B6o9Rb6GHbrOGX4KZj+xlzMtkI/C3rJdxFTqk7gyjWop9SwabDAvJZyRYqwKGvC80ep6o7+nxYmFLAmhCYkv+3xmXBJa/ueK5hk/Nu8hWbRf4W8bnF1B8wEAAP//AwBQSwMEFAAGAAgAAAAhANZks1H0AAAAMQMAABwACAF3b3JkL19yZWxzL2RvY3VtZW50LnhtbC5yZWxzIKIEASigAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArJLLasMwEEX3hf6DmH0tO31QQuRsSiHb1v0ARR4/qCwJzfThv69ISevQYLrwcq6Yc8+ANtvPwYp3jNR7p6DIchDojK971yp4qR6v7kEQa1dr6x0qGJFgW15ebJ7Qak5L1PWBRKI4UtAxh7WUZDocNGU+oEsvjY+D5jTGVgZtXnWLcpXndzJOGVCeMMWuVhB39TWIagz4H7Zvmt7ggzdvAzo+UyE/cP+MzOk4SlgdW2QFkzBLRJDnRVZLitAfi2Myp1AsqsCjxanAYZ6rv12yntMu/rYfxu+wmHO4WdKh8Y4rvbcTj5/oKCFPPnr5BQAA//8DAFBLAwQUAAYACAAAACEAKNDODDUIAADBwQAAEQAAAHdvcmQvZG9jdW1lbnQueG1s7J3dTttIFMfvV9p3sHwPSUigEJVU5aNspe0KlW73snJsJ3GxPdZ4QqBPsbSwKFvaLRUXhRea19kz43E+nDQ1iQGnnFaN47HnzJnfOT7/cQzN4yeHnqsd2DR0iL+ulxaLumb7JrEcv7mu//nq2cKqroXM8C3DJb69rh/Zof6k9usvjztVi5htz/aZBib8sNoJzHW9xVhQLRRCs2V7RrjoOSYlIWmwRZN4BdJoOKZd6BBqFZaKpaJ8F1Bi2mEI420a/oER6sqceZjOmkWNDnQWBisFs2VQZh/GNrxRj0hg+3CwQahnMNilzYJn0P12sAA2A4M5dcd12BGYK67EZsi63qZ+VZlY6LkhulQjN9Qm7kHTjBt12VIU5YgFarvgA/HDlhP0UHjTWoODrdjIwaRJHHhufF4nKFVmi+NWFJG+wTTuqzB6buT5ZIulYoqICBO9HmlcGB4z9sQzHL8/8FRoBuCWlm9mYGnEwEpo38zEsjJRCI+8/qXRCZqzRXmHknbQt+bMZu25v9+zJcrMDWypbBnM4HA2Z/ZaRgCXsmdWnzd9Qo26Cx5B7DUInyYjoImrRK9BEawT60hsA61ThSJqvVzXi8XKs2Lx6ZYeN23ZDaPtstEjuwNN0sguFRujzcheYMDVvA0nHhgunKYXho/8kTxivW2H7KXTbLHnvpU4GEIXmBe0Gg1mU9EO711HkF6q9HZetsVExRhRt7dmbMeEkmLTqJVGTtJnxGehMBmaDkT/KXUMd2GDuNaLV8KgGSbaZOd69LoZRn69iwcoryhP320Km0NtlLmwLaiRCz1M0cuU3kBby/EhJmaYlWedKqvxD7zLT0UTiw5EOUL2hcjsMVAnsOFYKgK+4QHwNztkwzD3lRvq3G0ZxOjMaKw8zvaUnyXmOpObU7o24JIoATLdgWtA7dCmB7Ze07J08rZYXvGvwPMaeWbE8ys/Bp4f+AkSzYjoMfy95l3kmRHPE37BL/k35JlZfn4Gou/5t/msorAAJY1tSsEMOwrg1DCwXVcuGtSU8wj9BIBfppoJLGkymMfs0ajp85DM/w05Ca+BJAs9f7bbjDvOhCRtgTbeIuJML7aHjjZBNQbaR7hUGUUYt03OUlZ31UZVjDooxZFrx1aMsgqeYzmvnbBtCGPytL/glI6aXVSd+5OBw7/DDWiPTOWpPK3hUMBGoFdJYjDUXv/gJnHbnvgAOT4eN0T3ueS3DcPv3fWS19FeSeXK4CR2qGOJt03Ygo3I19Ja+VHk4FDzUqUkYxeZiHsyITvfybJXIqyDycTM6FWNbyo4csAeH+vQiIdRJ05K5F05xupyubT0LD/ZfUtpmkxP2B3L4eYuaEldneaqkUp6xT8lBT8jH2+MKf36OncUj3l39Fb6HjmOruJyh+xizBJOFhF5fHzlkTVNm67y/KxFJgl3WAsVUbGJUGL9x/o/eBli/c+C4gm/5BegAR/5KT+Hf+/zpAWLCWd+/FFK7vh2Rz60mvgpCqrJtHmTpI9qgmqSLlPkdTry0XJGHmZS9/KH65/84sISOi3TZKSnL6EqDbCuPvi6eiYf1l/lqFzM60r9FO54viQ+q8FaN21CJBFPqnViE30uj086MgKMKBFlhii1LKpsEuvDeha3WlTTmaV5pSwHHHnO9yh+fpz1Az3hRw+yUjaIdauXhYHJIvEziUuoCoRE6ooQqrDcaHU53wqppf3BlptfOJ3kqmlg8vfupFxDXfO/+Tfe5f9OsYrCXLtxGB9cfnVhlf5J48ewVBc/pfwV0wzT7BbSTPxOwbXGT6CenfHzqe4JpVRjmmGa/TjNxOPB08TD1pRJJhZ+mGSYZBOS7IKf6PyjFv+elPadX/AZSjixifr3Zjca35nuIVJm3IP+dAyJItH5JTpu/YNEZyE6TuyR6F3/UApWCqy9SBTVDImimqGaYV4jUSSKaoZqhmqGaoa1F4kiUVQzVDNUs+8iQjXD2otEkSiq2R0RRTVDNcPai0SRKKrZ/BNFNUM1w9qLRJEoqtn8E0U1QzXD2otEkSiq2fwTRTVDNcPai0SRKKrZ/BNFNUM1w9qLRJEoqtn8E0U1QzXD2otEkSiq2fwTRTVDNcPai0SRKKrZ/BNFNUM1w9qLRJEoqtn8E0U1QzXD2otEkWg+1Ewc3yDUsmkoduqEMeLFo4aO33Rt0Sd8t65X5BsBQ8xTzGHgv82Pg9OzhaHKWiYxVD+L/i5Ximtjwiu+twyw+LF78lvOMDgTgoNMMpMB/F6UH0SmHr0+oO9FkSGOjswoXJhcd5Zc41RLbPA7hB+S8iBKRIkocyfPUwvyGb/mXf6ZXw9pcnaepvZuwCvt0HPjm8yA2qFND2y9pt2Sh9mxPOGX8msFP/JTfg7/3ueIaW0x4UxACWlsU+FTtKYKA9t195hBmZpg7vh2R7J0/CS2fSvbKWSYxG+G/wzNJ02pzefCNF/1FyUMJSxDTzO8+nMvYZ/5F5Cx8zwLV/6gYeLNzvAYLuHh78a957TTc4/sIv9pl1jt4JLnXpc8G5WVrY3tbLmq+UzjYx6vKVxLZMdSrSXmkOUc3htf8ctUk8jFvfEciOsZFoAMimmXX+ZqVZd2mTLkstAradk22W7P+5SCugedROvaUrG8vCmnGTT3hNfioWZprSifarbE0/PV8mo0haD5wpCXLQmgvRItJqhYhvR3ox/S6e+7dmPgaMs2LLEmeVRcFbsNQuQSRe0220ytWORwJnEFMYVFnCOb647lxJHdkT3knkXMHeqI1ZBY3uw6zATnyyvSViGGJN/WiXUk30CXtmf7rPY/AAAA//8DAFBLAwQUAAYACAAAACEAdV2eZEAGAACbGgAAFQAAAHdvcmQvdGhlbWUvdGhlbWUxLnhtbOxZ3YobNxS+L/QdxNw7Htsz/lniDfbYTtrsJiG7ScmlPCPPKNaMzEjeXRMCJbnqTWkhKYU2EHrTP0oDDTT0po/hB1hIaNOHqEYzY49suUu7DoSSNaz1852jT+dInzSei5dOQgKOUMwwjdpG5YJpABS51MOR3zZuHQ5KTQMwDiMPEhqhtjFDzLi0+/57F+EOD1CIgLCP2A5sGwHnk51ymbmiGbILdIIi0TeicQi5qMZ+2YvhsfAbknLVNOvlEOLIABEMhdv5N/Pv5l/NfwDzp/PH8+/nn4HroxF2kbGbD9Qn4l/EWdLgkvggGQZl1gWsN64kX2zGHBKDI0jahhjTo8eH6IQbgEDGRUfbMOWfUd69WF4YEb7BtmA3kH+ZXWbgjavSLvaHC0PLsq16Z+FfAghfx/Ub/Xq/vvAnAdB1xUxTLkWs3W11e3aGLYDSosZ3r9GrVRR8wX9tDd+xk4+Cl6C0aK3hBwNnGcMCKC3ampg0qo6l4CUoLdbX8A2z07MaCl6CAoKj8RratOs1J5/tAjKi5IoW3rKtQaOawZeocmF1pfYR37TWQniXxgMBkMmFHEeAzyZoBF2BcyDBwxiDPewHYuFNYESZaDar5sCsif/Jx5IlGRG4g2DBOm1y2VpTwgcwN8YT3jY+FF6NAuTlixenD56fPvj19OHD0wc/Z2Ov212BkV+0e/3t5389+Rj8+cvT148e6/GsiH/10yevfvv9n9xzhdYXz149f/byy0//+PGRBt6J4bAIP8QhYuAaOgY3aSgmqBkADeN/Z3EYQFy06EQ+gxFMbDToPg8U9LUZJFCD6yI1jrdjIRc64OXpXYXwQRBPOdYArwahAtynlHRprJ3T1WSsYhSmka8fPJ4WcTchPNKN7axkuT+diHWPdS6dACk0bxCRcuijCHGQ9NExQhqzOxgrcd3HbkwZHXFwB4MuxNqQHOKhspqWRldwKPIy0xEU+VZis38bdCnRue+hIxUp9gYkOpeIKGG8DKcchlrGMCRF5B7kgY7kwSx2lYAzLjLtI0JB30OM6WyuxzOF7lUhM/q075NZqCJjjsc65B6ktIjs0bETwHCi5YyjoIj9gI3FEoXgBuVaElTdIUld5AFGG9N9GyMl3Wfv7VtChvQLJOmZxrotgai6H2dkBJF0Xl7R9RBHZ4r8irzbb07ehYi+/PqJXnO3IOl64HnEvBNj7W5alfBNuFXhdmjs4bdft3twGt1AYqtooO9k+51s/+9le9N+3r5YL/VZXuTz67p0E268u48wIQd8RtAek8rOxPS8gWiUFWm0eFSYBKKYDafg/BjKMogp/wjz4CCAEzFMRY7gs8y1z8CEMnE2yGat76SDTMN96qWtlUr+dCoMIF+2i7MlbxcnEU9b643lY9jCvaz58nE5J5DY/hsShcFUEjUNiUbeeAYJObOtsGhpWDQT9xtZyK8sK2L/AZj8yGFbKSOx3iBBXpKn1D7P7tYzvSmY6rSrmum1Eq7bybRCorDcVBKFZRhAD602bznXrWVKFXpJKNZpNJpvIteJiKxoA4nUGjgWe65mCzcunLSNkbgVimI4Ef5YopuQ+FHbcHkW6P+iLJOY8R5kQQqTXen8Q8xRDAgOxVovpoFES26VaiOZ41tKrmW+fZGTX8Uko9EIuXxDy7Iq+lIn2t5zgpMKnQrSB4F3DIZkGt+EIlB2o5IE0MOML6Lp4biwuJdRXJGrbCsqv5ottygkkwBmJ0pRzFO4LC/oFOYhma7OSq1nkxn6SZLOfeqebZR0FERzwwGSnJp6/Xhzh3yB1VL3FVapdK9qXSvXuk2nxPkPhAK15WAKtYSxhtqyVaW2xQtBYbjF0tx0Rmz7NFhdtckBkd8rZW3t9QQd3hUrvyeuq1PCmaSKTsQzgpP/sJwqgWzN1eWEg2mM28Y90+5YTtV2SmbT7pesmmWWmnanVurYdq3Stytmr1u9L4LCg7Bip2MPxPMMmWVvYmT72tuYML9mX3BpWKbyHlyWxvJtTKWqvI1J78ngMOk3ABaRuVevDlq1VrdeatU6g5LV6zZLLafeLfXqTqM36Dl2szW4b4AjCbY6Nceq95ulesVxSlbdTOg3W6WGVa12rEan2bc697NYi5nn33l4Ja/dvwEAAP//AwBQSwMEFAAGAAgAAAAhAH3Y6NjbAwAARAoAABEAAAB3b3JkL3NldHRpbmdzLnhtbLRWbY/aOBD+ftL9B5TPlyUBQnejshUL5brVcq0a+gOc2AFr/SbbgaWn++83duINdHsVvaqfmMwz88x4PDPm9ZsnzgZ7og2VYhalV0k0IKKSmIrtLPq8WcXX0cBYJDBiUpBZdCQmenP7+2+vD7kh1oKZGQCFMDmvZtHOWpUPh6baEY7MlVREAFhLzZGFT70dcqQfGxVXkitkaUkZtcfhKEmmUUcjZ1GjRd5RxJxWWhpZW+eSy7qmFel+goe+JG7rspRVw4mwPuJQEwY5SGF2VJnAxv8vG4C7QLL/3iH2nAW7Q5pccNyD1PjZ45L0nIPSsiLGwAVxFhKkog88eUH0HPsKYndH9FTgniZeOs08+zGC0QuCqSE/RpF1FENz5OQpEBl2SUla6IGWGum24bp68Cq/3wqpUckgHajLAI428NlFt9DlX6Tkg0OuiK7gqmFEkiQaOgAKLOvCIksANoow5memYgQB7SHfasSh24PG+2BSo4bZDSoLKxUY7RFk/2rUUVY7pFFliS4UqoBtIYXVkgU7LP+SdgGTo+FiOw8/R71UtDMJHgJxOM/ZnK0lJi6zRtPLC+8cfPQ0Ow35dSAJO0RTTDaujoU9MrKC5Av6hcwFft8YS4HRT9tPZPC9BIhwkT/AzW+OiqwIsg2U6RcF8zexYlStqdZS3wsMvfHLgtG6JhoCUOi1NbQP1fLg6/yOIAyr+yfjDk/bCB4CbILwSUobTJNkskqS+bLN1KE9kt5lb5fdGc6R//a5GSXjbNHF76Ly3C3RjzpIroUGvPVYIF5qigZrt2aHzqLUj3dUBLwkMO7kFCmaMoBx3AKGI8ZWMGMB8IPHc0yNWpLay2yN9Lbn7Sz0N7Uwz++fudx+IPpPLRvVogeNVNsawSSdTDpPKuwD5UFvmrIIXgIW1AnUCPxhr32d+vIccgtX7EfsAflW8bZExJ8Ld7klxa4dSHz/0HUW04XrCrJGSrXNVW7TWcTodmdT52LhC8Pj7D/K7ajDRh4btZj/QJU7KFh3Qq8bBd2J3Tjoxr1uEnSTXpcFXdbrpkE3dbodjLWGHfsIBwui09eSMXkg+F2Pv1C1RTA7pMiyXcHQbbJVdDvZDPY5eYIFTzC18J9HUczRk9v3o6lz76wZOsrGntk6zBmrcwaMLAoTdubsO/6rXNzTUFHozuLIy37jX7WJM2pgKyh4HKzUAfvDY+kkx7K6h8ECyesnN8tFOp+OWzjzj4rdQM8/wr1/IvUdMgR3WHDNWte/x9l1Mh4n43h8naXxZJKO4/nNYh4vsvTt4tVosbjOVv90Mxv+/t3+CwAA//8DAFBLAwQUAAYACAAAACEAua1NfhwCAADBCAAAEgAAAHdvcmQvZm9udFRhYmxlLnhtbOyUbavaMBSAvw/2H0q+a9Oq9zq59TK3Kwy2+2G4HxBjasPyUnJSvf77nSbVgVW4DjbYWAolPSd5cvI05OHxRatkJxxIawqSDSlJhOF2I822IN9Wy8GUJOCZ2TBljSjIQQB5nL9987CfldZ4SHC+gZnmBam8r2dpCrwSmsHQ1sJgsrROM4+fbptq5r439YBbXTMv11JJf0hzSu9Ih3GvodiylFx8tLzRwvgwP3VCIdEaqGQNR9r+NbS9dZvaWS4AcM9aRZ5m0pww2bgH0pI7C7b0Q9xMV1FA4fSMhp5WPwGT2wB5D3AH4jbEpEOkcNDihSSazz5tjXVsrZCEW0qwqiSAybz7mcl+ZpjG9Aem5NrJkKiZsSAyzO2YKgjN6ZJO8N0+Yzpq3yRtB/KKORAtJA6kMVwyLdXhGIW9BIiJWnpeHeM75mRbWkyB3GKigTUtyNOY0vxpuSQxkmF1FCPj+0UXydu1QnvXRUanCG0jPHDCZxY5PHBOY3DNNBromXiPZakrHhb0Dg1EE8HG7/XQ7rrn4X46+SMeVlILSJ7FPvlqNTNXjORoZISnYxxOyOgmIy5w/x4j4WQMFlZtvqyCDqb8M2aOdZ8bizs7U3ahXVS2yC4pY423MW6sX7lGrA616BvciJI1yvcFhvWmUUUUeCriXOAxcl0g/vBfEPjfXWi3uusu6OSz3Fb+6jXdXs7/6DXddWD+AwAA//8DAFBLAwQUAAYACAAAACEAk3bWSRgBAABAAgAAFAAAAHdvcmQvd2ViU2V0dGluZ3MueG1slNHBSgMxEAbgu+A7hNzbbIstsnRbEKl4EUF9gDSdbYOZTMikbuvTO65VES/tLZNkPuZnZos9BvUGmT3FRo+GlVYQHa193DT65Xk5uNaKi41rGyhCow/AejG/vJh1dQerJyhFfrISJXKNrtHbUlJtDLstoOUhJYjy2FJGW6TMG4M2v+7SwBEmW/zKB18OZlxVU31k8ikKta13cEtuhxBL328yBBEp8tYn/ta6U7SO8jplcsAseTB8eWh9/GFGV/8g9C4TU1uGEuY4UU9J+6jqTxh+gcl5wPgfMGU4j5gcCcMHhL1W6Or7TaRsV0EkiaRkKtXDei4rpVQ8+ndYUr7J1DFk83ltQ6Du8eFOCvNn7/MPAAAA//8DAFBLAwQUAAYACAAAACEAuYBhKnIBAADFAgAAEAAIAWRvY1Byb3BzL2FwcC54bWwgogQBKKAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcUstuwjAQvFfqP0S5gwOIilaLUQWqeuhLIpSz5WwSq45t2QbB33fT0DRVb73tzHrHs2PD6tTo5Ig+KGuW6WScpQkaaQtlqmW6yx9GizQJUZhCaGtwmZ4xpCt+fQVv3jr0UWFISMKEZVrH6O4YC7LGRoQxtQ11SusbEQn6itmyVBI3Vh4aNJFNs+yG4SmiKbAYuV4w7RTvjvG/ooWVrb/wnp8d6XHIsXFaROQv7aQG1hOQ2yh0rhrkC6J7AG+iwsAnwLoC9tYXgc9vgXUVrGvhhYyUHZ9lGbABhnvntJIiUqr8WUlvgy1j8vplNWnngQ2PANnfojx4Fc+cpIYQnpSh+6fAuoKMeVF54eqLux7BVgqNa1qcl0IHBPZDwNo2ThiSY31Feh9h53K7aYO4jPwmB0vuVay3TkiyMJsvhusOOrAlFgvy31voCXikx/C61adZU2HxfeZvow3wvfuVfHIzzrI24AFHe/ffhX8CAAD//wMAUEsDBBQABgAIAAAAIQBnlqrHgAEAAPUCAAARAAgBZG9jUHJvcHMvY29yZS54bWwgogQBKKAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMkrFOwzAQQHck/iHyntpJBUJRkkqAOlEJiSIQm7GvrWniWLbbtJ/BgBASGxNflN/BSdqUqAxsd753L5ez49Emz7w1aCMKmaBgQJAHkhVcyHmC7qdj/wJ5xlLJaVZISNAWDBqlpycxUxErNNzqQoG2AoznTNJETCVoYa2KMDZsATk1A0dIV5wVOqfWpXqOFWVLOgccEnKOc7CUU0txLfRVZ0Q7JWedUq101gg4w5BBDtIaHAwCfGAt6Nz82dBUfpG5sFsFf6L7YkdvjOjAsiwH5bBB3fwBfpzc3DW/6gtZ74oBSmPOIitsBmmMD6GLzOr5BZhtj7vExUwDtYVOq4/qrXqtPr3qu3qvvhpuX6u3voRtWWhunKGXOYyDYVoo6+6y9fcOHJ1RYyfucmcC+OX2+FPHSN2lYS3q95EGDdGl8W7Z7XjAPbekqF3pvvIwvLqejlEaknDok8AfkmlwFgVhRMhTPWGv/yDMdwP82xiSvnEvaJfUf6jpDwAAAP//AwBQSwMEFAAGAAgAAAAhAPRF7IKlCwAAxXIAAA8AAAB3b3JkL3N0eWxlcy54bWy8ndty2zgShu+3at+Bpavdi0SSj4lrnCnbideutRNP5EyuIRKysCYJLQ+xPU+/AEhKkJug2GCvr2wd+gOIv38QzYP42+/PSRz84lkuZHo6mr6fjAKehjIS6cPp6Mf95bsPoyAvWBqxWKb8dPTC89Hvn/7+t9+eTvLiJeZ5oABpfpKEp6NlUaxOxuM8XPKE5e/liqfqw4XMElaol9nDOGHZY7l6F8pkxQoxF7EoXsZ7k8nRqMZkfShysRAh/yzDMuFpYeLHGY8VUab5UqzyhvbUh/Yks2iVyZDnudroJK54CRPpGjM9AKBEhJnM5aJ4rzam7pFBqfDpxPyXxBvAIQ6wBwBHOcchDmvEOH9J+PMoSMKT64dUZmweK5LapED1KjDg0SelZiTDz3zByrjI9cvsLqtf1q/Mn0uZFnnwdMLyUIh71QuFSoSiXp2luRipTzjLi7NcsNYPl/qf1k/CvLDePheRGI11i/lf6sNfLD4d7e0171zoHmy9F7P0oXmPp+9+zOyeWG/NFVeNIn93faMDx/WGVX+tzV29fmUaXrFQmHbYouAqUadHEw2NhfbF3uHH5sX3Uo8wKwtZN2IA1d81dgxGXOWvyuZZZSr1KV/cyPCRR7NCfXA6Mm2pN39c32VCZso4p6OPpk315own4kpEEU+tL6ZLEfGfS57+yHm0ef+PS5P89RuhLFP1//7x1GRBnEdfnkO+0lZSn6ZMa/JVB8T626XYNG7C/9vAprUSbfFLzvR8EkxfI0z3UYg9HZFbW9vOLF9tu/kWqqH9t2ro4K0aOnyrho7eqqHjt2row1s1ZDD/z4ZEGvHnyoiwGUDdxXG4Ec1xmA3NcXgJzXFYBc1xOAHNcSQ6muPIYzTHkaYITiFDVxZayb7vyPZu7u59hB939y7Bj7t7D+DH3T3h+3F3z+9+3N3TuR939+ztx909WeO51VIruFY2S4vBLltIWaSy4EHBn4fTWKpYpsii4emdHs9INpIAU81s9Y54MC1k5vXuDDEm9d+fF7qcC+QiWIiHMlO1+dCO8/QXj1WVHLAoUjxCYMaLMnOMiE9OZ3zBM56GnDKx6aC6EgzSMpkT5OaKPZCxeBoRD19DJJkU1gmt6uelNokgSOqEhZkc3jXJyOaHG5EPHysNCc7LOOZErK80KWZYw2sDgxleGhjM8MrAYIYXBpZmVENU04hGqqYRDVhNIxq3Kj+pxq2mEY1bTSMat5o2fNzuRRGbKd5edUz7H7u7iKU+LD64HzPxkDK1ABi+u6mPmQZ3LGMPGVstA31Uuh1rbzO2nXMZvQT3FPu0NYlqXW9S5EJttUjL4QO6RaMy15pHZK81j8hga95wi92qZbJeoF3R1DOzcl60mtaQepl2xuKyWtAOdxsrhmfYxgCXIsvJbNCOJcjgr3o5q+WkmPk2vRzesQ1ruK1ez0qk3auRBL2MZfhIMw1fvax4psqyx8GkSxnH8olHdMRZkckq12zL7xlJeln+S7JaslyYWmkL0X9X35xQD27ZavAG3cVMpDS6fXmXMBEHdCuIq/vbm+BernSZqQeGBngui0ImZMz6SOA/fvL5P2k6eKaK4PSFaGvPiA4PGdiFINjJVCQZEZHUMlOkgmQfanj/5i9zybKIhnaX8eoaloITEWcsWVWLDgJvqXnxSc0/BKshw/uTZUIfF6Iy1T0JzDpsmJfz//Bw+FT3VQYkR4a+lYU5/miWuiaaDjd8mbCFG75EMGqq3YPOX4KN3cIN39gtHNXGXsQsz4XzFKo3j2pzGx719g4v/mqejGW2KGO6AWyAZCPYAMmGUMZlkuaUW2x4hBtseNTbS5gyhkdwSM7w/pWJiEwMA6NSwsCoZDAwKg0MjFSA4VfoWLDhl+lYsOHX6lQwoiWABaPKM9LdP9FZHgtGlWcGRpVnBkaVZwZGlWf7nwO+WKhFMN0uxkJS5ZyFpNvRpAVPVjJj2QsR8kvMHxjBAdKKdpfJhb65QabVRdwESH2MOiZcbFc4KpF/8jlZ1zSLsl8ER0RZHEtJdGxts8MxkdvXru0KM3dyDO7CXcxCvpRxxDPHNrljVb08q27LeN19041ehz1vxMOyCGbL9dF+G3M02RnZFOxbYbsbbBvzo+Z+lrawWx6JMmk6Cm+mONrvH2wyeiv4YHfwZiWxFXnYMxK2ebQ7crNK3oo87hkJ2/zQM9L4dCuyyw+fWfbYmgjHXfmzrvEcyXfclUXr4NZmuxJpHdmWgsddWbRlleAsDPXZAqhOP8+44/uZxx2PcZGbgrGTm9LbV25El8G+819C79kxk6Zpb331BJj3zSK618z5Rymr4/ZbJ5z639R1rRZOac6DVs5+/xNXW7OMexx7TzduRO95x43oPQG5Eb1mImc4akpyU3rPTW5E70nKjUDPVnCPgJutYDxutoLxPrMVpPjMVgNWAW5E7+WAG4E2KkSgjTpgpeBGoIwKwr2MCiloo0IE2qgQgTYqXIDhjArjcUaF8T5GhRQfo0IK2qgQgTYqRKCNChFoo0IE2qiea3tnuJdRIQVtVIhAGxUi0EY168UBRoXxOKPCeB+jQoqPUSEFbVSIQBsVItBGhQi0USECbVSIQBkVhHsZFVLQRoUItFEhAm3U6lZDf6PCeJxRYbyPUSHFx6iQgjYqRKCNChFoo0IE2qgQgTYqRKCMCsK9jAopaKNCBNqoEIE2qjlZOMCoMB5nVBjvY1RI8TEqpKCNChFoo0IE2qgQgTYqRKCNChEoo4JwL6NCCtqoEIE2KkR05Wd9itJ1mf0Uf9TTecV+/1NXdae+27dy26j9/qimV25W/3sRzqV8DFpvPNw39UY/iJjHQppD1I7T6jbXXBKBOvH57aL7Dh+bPvBHl+p7Icw5UwA/6BsJjqkcdKW8HQmKvIOuTLcjwarzoGv2tSPBbvCga9I1vmwuSlG7IxDcNc1YwVNHeNdsbYXDIe6ao61AOMJdM7MVCAe4az62Ag8DPTm/jj7sOU5H6+tLAaErHS3CsZvQlZZQq2Y6hsboK5qb0Fc9N6GvjG4CSk8nBi+sG4VW2I3ykxraDCu1v1HdBKzUkOAlNcD4Sw1R3lJDlJ/UcGLESg0JWKn9J2c3wUtqgPGXGqK8pYYoP6nhrgwrNSRgpYYErNQDd8hOjL/UEOUtNUT5SQ0Xd1ipIQErNSRgpYYEL6kBxl9qiPKWGqL8pAZVMlpqSMBKDQlYqSHBS2qA8Zcaorylhqguqc1RlC2pUQpb4bhFmBWI2yFbgbjJ2Qr0qJasaM9qySJ4VktQq0ZzXLVki+Ym9FXPTegro5uA0tOJwQvrRqEVdqP8pMZVS21S+xvVTcBKjauWnFLjqqVOqXHVUqfUuGrJLTWuWmqTGlcttUntPzm7CV5S46qlTqlx1VKn1LhqyS01rlpqkxpXLbVJjauW2qQeuEN2YvylxlVLnVLjqiW31LhqqU1qXLXUJjWuWmqTGlctOaXGVUudUuOqpU6pcdWSW2pctdQmNa5aapMaVy21SY2rlpxS46qlTqlx1VKn1I5qafy09QAmzTbPN1NfLl5WXP8Gt3XDTFT9Bml9EtB88To6HTHzDCXdiaB+GlX96CTT1/pcofm/fqbUXESiarx5RpRhwdbDpWo+rH9QydX6BDTv+K1U04XNGDTfrsd0cy60+t7Wec+qt45eFnrMu3pYPWQKDlCllqtfH+v029Ux1Y15XA2s+uc6jRTgqX5QVdXB6JlVKPX5BY/jW1Z9W67cX435oqg+nU7MzfKvPp9Xv/vmjM/MBOEEjLc7U73sTobql+DrM9euod5rGWpzCcXQUe4h/6YX+6AXlS/1AY16+JjCftPmNR+zOglh/5obkrNcaGHNe5PJweVkcva5+sT1oDb7MW0H6xftj2nbzqFzmUU8M7NBlSOmVf2DyPWG/qUmR/OPapOvH6mmZpwNeZ1BXrHr7PKKbnLPK1ikaqT51bDwP/3CKxush7/NFc1/+af/AQAA//8DAFBLAQItABQABgAIAAAAIQDfpNJsWgEAACAFAAATAAAAAAAAAAAAAAAAAAAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAi0AFAAGAAgAAAAhAB6RGrfvAAAATgIAAAsAAAAAAAAAAAAAAAAAkwMAAF9yZWxzLy5yZWxzUEsBAi0AFAAGAAgAAAAhANZks1H0AAAAMQMAABwAAAAAAAAAAAAAAAAAswYAAHdvcmQvX3JlbHMvZG9jdW1lbnQueG1sLnJlbHNQSwECLQAUAAYACAAAACEAKNDODDUIAADBwQAAEQAAAAAAAAAAAAAAAADpCAAAd29yZC9kb2N1bWVudC54bWxQSwECLQAUAAYACAAAACEAdV2eZEAGAACbGgAAFQAAAAAAAAAAAAAAAABNEQAAd29yZC90aGVtZS90aGVtZTEueG1sUEsBAi0AFAAGAAgAAAAhAH3Y6NjbAwAARAoAABEAAAAAAAAAAAAAAAAAwBcAAHdvcmQvc2V0dGluZ3MueG1sUEsBAi0AFAAGAAgAAAAhALmtTX4cAgAAwQgAABIAAAAAAAAAAAAAAAAAyhsAAHdvcmQvZm9udFRhYmxlLnhtbFBLAQItABQABgAIAAAAIQCTdtZJGAEAAEACAAAUAAAAAAAAAAAAAAAAABYeAAB3b3JkL3dlYlNldHRpbmdzLnhtbFBLAQItABQABgAIAAAAIQC5gGEqcgEAAMUCAAAQAAAAAAAAAAAAAAAAAGAfAABkb2NQcm9wcy9hcHAueG1sUEsBAi0AFAAGAAgAAAAhAGeWqseAAQAA9QIAABEAAAAAAAAAAAAAAAAACCIAAGRvY1Byb3BzL2NvcmUueG1sUEsBAi0AFAAGAAgAAAAhAPRF7IKlCwAAxXIAAA8AAAAAAAAAAAAAAAAAvyQAAHdvcmQvc3R5bGVzLnhtbFBLBQYAAAAACwALAMECAACRMAAAAAA=";
+const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const HEB_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const $ = s => document.querySelector(s);
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v,quiet){ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} if(!quiet&&window.cloudOnChange) cloudOnChange(k,v); }
+};
+function setStatus(id,msg,kind){ const el=$(id); el.textContent=msg||""; el.className="status"+(kind?" "+kind:""); }
+const pad2 = n => String(n).padStart(2,"0");
+
+/* ---------- time & date helpers ---------- */
+function normTime(v){
+  if(v==null) return "";
+  if(typeof v==="number"){
+    if(v>=1 && v<24){ // written as H.MM, e.g. 8.2 or 9.56
+      const h=Math.floor(v); const mi=Math.round((v-h)*100); if(mi>59) return ""; return pad2(h)+":"+pad2(mi); }
+    const frac = v - Math.floor(v); let mins = Math.round(frac*1440); if(mins===1440) mins=0;
+    return pad2(Math.floor(mins/60))+":"+pad2(mins%60);
+  }
+  const s=String(v).trim(); if(!s) return "";
+  const m=s.match(/(\d{1,2})\s*[:.]\s*(\d{1,2})/); if(!m) return "";
+  let h=+m[1], mi=+m[2]; if(m[2].length===1) mi*=10; if(h>23||mi>59) return "";
+  return pad2(h)+":"+pad2(mi);
+}
+function normDate(v,yearHint){ // -> YYYY-MM-DD
+  if(v==null||v==="") return "";
+  if(typeof v==="number" && window.XLSX){ if(v<1000) return ""; const d=XLSX.SSF.parse_date_code(v); if(d&&d.y) return d.y+"-"+pad2(d.m)+"-"+pad2(d.d); return ""; }
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+"-"+pad2(v.getMonth()+1)+"-"+pad2(v.getDate());
+  const s=String(v).trim();
+  let m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return m[1]+"-"+pad2(m[2])+"-"+pad2(m[3]);
+  m=s.match(/(\d{1,2})\s*[.\/-]\s*(\d{1,2})(?:\s*[.\/-]\s*(\d{1,4}))?/);
+  if(!m) return "";
+  const d=+m[1], mo=+m[2]; if(d<1||d>31||mo<1||mo>12) return "";
+  let y = m[3]&&m[3].length===4 ? +m[3] : m[3]&&m[3].length===2 ? 2000+(+m[3]) : (yearHint||new Date().getFullYear()); // "202" = cut-off year
+  return y+"-"+pad2(mo)+"-"+pad2(d);
+}
+const fmtDate = iso => { const [y,m,d]=iso.split("-"); return d+"/"+m+"/"+y; };
+const dayName = iso => ["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"][new Date(iso+"T12:00:00").getDay()];
+
+/* ---------- state ---------- */
+const S = { clock:[], excel:{}, rows:[], monthAuto:true, tpl:null };
+
+/* ---------- step 1: details & signature ---------- */
+$("#name").value = store.get("att_name")||"";
+$("#tz").value = store.get("att_tz")||"";
+$("#name").addEventListener("input",e=>store.set("att_name",e.target.value));
+$("#tz").addEventListener("input",e=>{ store.set("att_tz",e.target.value); renderDash(); });
+
+const pad=$("#sigPad"), pctx=pad.getContext("2d"); let drawing=false, inked=false;
+function sizePad(){ const r=pad.getBoundingClientRect(); if(!r.width) return; const dpr=window.devicePixelRatio||1;
+  pad.width=Math.round(r.width*dpr); pad.height=Math.round(r.height*dpr); pctx.setTransform(dpr,0,0,dpr,0,0);
+  pctx.lineCap="round"; pctx.lineJoin="round"; pctx.lineWidth=2.4; pctx.strokeStyle="#16245c"; inked=false; }
+function pt(e){ const r=pad.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; }
+pad.addEventListener("pointerdown",e=>{ drawing=true; pad.setPointerCapture(e.pointerId); const [x,y]=pt(e); pctx.beginPath(); pctx.moveTo(x,y); pctx.lineTo(x+.01,y+.01); pctx.stroke(); inked=true; });
+pad.addEventListener("pointermove",e=>{ if(!drawing) return; const [x,y]=pt(e); pctx.lineTo(x,y); pctx.stroke(); });
+["pointerup","pointercancel"].forEach(t=>pad.addEventListener(t,()=>drawing=false));
+$("#sigClear").onclick=()=>{ pctx.clearRect(0,0,pad.width,pad.height); inked=false; };
+
+function trimCanvas(src){
+  const w=src.width,h=src.height,d=src.getContext("2d").getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(d[(y*w+x)*4+3]>20){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+  if(x1<0) return null;
+  const m=6, out=document.createElement("canvas"); out.width=x1-x0+1+2*m; out.height=y1-y0+1+2*m;
+  out.getContext("2d").drawImage(src,x0,y0,x1-x0+1,y1-y0+1,m,m,x1-x0+1,y1-y0+1); return out;
+}
+function showSig(){
+  const s=store.get("att_sig");
+  $("#sigPreview").style.display = s ? "block" : "none"; if(s) $("#sigPreview").src=s;
+  pad.style.display = s ? "none" : "block";
+  ["#sigSave","#sigClear"].forEach(q=>$(q).hidden=!!s); $("#sigRedo").hidden=!s;
+  if(!s) requestAnimationFrame(sizePad);
+  markDone();
+}
+$("#sigSave").onclick=()=>{ if(!inked){ setStatus("#s1status","קודם חתום במשבצת.","err"); return; }
+  const t=trimCanvas(pad); if(!t){ setStatus("#s1status","לא נמצאה חתימה.","err"); return; }
+  store.set("att_sig",t.toDataURL("image/png")); setStatus("#s1status","החתימה נשמרה.","ok"); showSig(); };
+$("#sigRedo").onclick=()=>{ store.set("att_sig",null); showSig(); setStatus("#s1status",""); };
+$("#sigFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  const img=await loadImg(URL.createObjectURL(f)); const c=document.createElement("canvas");
+  const sc=Math.min(1,600/img.width); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+  const cx=c.getContext("2d"); cx.drawImage(img,0,0,c.width,c.height);
+  // make near-white transparent
+  const id=cx.getImageData(0,0,c.width,c.height); for(let i=0;i<id.data.length;i+=4){ const v=(id.data[i]+id.data[i+1]+id.data[i+2])/3; if(v>215) id.data[i+3]=0; }
+  cx.putImageData(id,0,0); const t=trimCanvas(c)||c;
+  store.set("att_sig",t.toDataURL("image/png")); showSig(); setStatus("#s1status","החתימה נשמרה מהתמונה.","ok"); e.target.value=""; };
+window.addEventListener("resize",()=>{ if(pad.style.display!=="none") sizePad(); });
+
+function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+
+/* ---------- spreadsheet reading ---------- */
+function readSheets(buf){ const wb=XLSX.read(buf,{type:"array",cellDates:false});
+  return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""})); }
+// find a header row; spec = {key:[regex, required]}
+function findHeader(rows,spec){
+  for(let i=0;i<Math.min(rows.length,40);i++){
+    const r=rows[i].map(x=>String(x).trim().toLowerCase()); const idx={}; let ok=true;
+    for(const [k,[re,req]] of Object.entries(spec)){ const j=r.findIndex((x,jj)=>re.test(x)&&!Object.values(idx).includes(jj)); idx[k]=j; if(req&&j<0) ok=false; }
+    if(ok) return {row:i,idx};
+  }
+  return null;
+}
+const COL={
+  date:[/^(date|תאריך)\b|^תאריך/,true],
+  in:[/check[\s-]?in|^כניסה|^שעת כניסה|^in$/,true],
+  out:[/check[\s-]?out|^יציאה|^שעת יציאה|^out$/,true],
+};
+function yearIn(rows){ for(const r of rows) for(const c of r){ const m=String(c).match(/\b(20\d{2})\b/); if(m) return +m[1]; } return null; }
+
+/* hours report (step 2) */
+function parseHours(buf){
+  const map={};
+  for(const rows of readSheets(buf)){
+    const h=findHeader(rows,{...COL, unit:[/work\s*unit\s*notes|הערות\s*יחיד/,false], day:[/day\s*notes|הערות\s*יום/,false]});
+    if(!h) continue; const {idx}=h; const yh=yearIn(rows);
+    for(const r of rows.slice(h.row+1)){
+      const iso=normDate(r[idx.date],yh); if(!iso) continue;
+      const tin=normTime(r[idx.in]), tout=normTime(r[idx.out]);
+      const notes=[idx.unit>=0?r[idx.unit]:"", idx.day>=0?r[idx.day]:""].map(x=>String(x||"").trim()).filter(Boolean);
+      if(!tin&&!tout&&!notes.length) continue;
+      const p=map[iso]||(map[iso]={in:"",out:"",notes:[]});
+      if(tin&&(!p.in||tin<p.in)) p.in=tin; if(tout&&(!p.out||tout>p.out)) p.out=tout;
+      notes.forEach(n=>{ if(!p.notes.includes(n)) p.notes.push(n); });
+    }
+  }
+  for(const p of Object.values(map)){ p.zero = !!p.in && p.in===p.out; if(p.zero){ p.in=""; p.out=""; } }
+  return map;
+}
+const unitOf = iso => ((S.excel[iso]||{}).notes||[]).join("; ");
+
+/* clock report (step 3) */
+function parseClock(buf){
+  const out=[];
+  for(const rows of readSheets(buf)){
+    const h=findHeader(rows,{...COL, status:[/סטטוס|פעילות|חריגה|status|סיבה|הער/,false]});
+    if(!h) continue; const {idx}=h;
+    const yh=yearIn(rows)||+(Object.keys(S.excel).sort()[0]||"").slice(0,4)||null;
+    for(const r of rows.slice(h.row+1)){
+      const iso=normDate(r[idx.date],yh); if(!iso) continue;
+      out.push({date:iso,in:normTime(r[idx.in]),out:normTime(r[idx.out]),status:idx.status>=0?String(r[idx.status]||"").trim():""});
+    }
+    if(out.length) break;
+  }
+  return out;
+}
+// statuses that already account for the day (holiday, paid rest, internal training...) - nothing to report
+const COVERED=/מנוחה|חג|חוה"?מ|ח\.\s*פנימית|פנימית|השתלמות|מילואים|שבתון|ערב\s*חג|מוכרז/;
+// statuses meaning "you should have worked but there is no punch"
+const ABSENT=/העדרות|היעדרות|ללא\s*דיווח|חסר\s*כל|לא\s*דווח/;
+function clockMissing(c){
+  if(!!c.in!==!!c.out) return !c.in?"in":"out";
+  if(c.in&&c.out) return null;
+  // no punch at all
+  if(ABSENT.test(c.status)||/לא\s*נסגר|חסר/.test(c.status)) return "both";
+  if(!c.status.trim()) return "both";      // a listed work day with no punch and no explanation
+  if(COVERED.test(c.status)) return null;
+  return null;
+}
+const isOff = m => m==="sick"||m==="vac"||m==="off";
+// which kind of day-off an hours entry with no duration is, judging by its note
+function offKind(iso){ const x=S.excel[iso]; if(!x||!x.zero) return null; const n=(x.notes||[]).join(" ");
+  return /חופש/.test(n)?"vac": /מחל/.test(n)?"sick":"off"; }
+const rowDone = r => isOff(r.miss) || (r.in && r.out);
+
+function loadHoursBytes(bytes){
+  S.excel=parseHours(bytes);
+  const n=Object.keys(S.excel).length;
+  if(!n) setStatus("#s3status","לא נמצאו בקובץ עמודות תאריך, כניסה ויציאה.","err");
+  else setStatus("#s3status",`נטענו ${n} ימי דיווח מהקובץ.`,"ok");
+  if(!S.clock.length) jumpToMonth(Object.keys(S.excel));
+  refreshFromExcel(); autoMonth(); renderCal(); renderRows(); renderCheck(); markDone();
+  return Object.keys(S.excel);
+}
+function loadClockBytes(bytes){
+  const rows=parseClock(bytes);
+  if(!rows.length){ setStatus("#clockStatus","לא מצאתי בקובץ עמודות תאריך, כניסה ויציאה.","err"); return []; }
+  S.clock=rows; buildFromClock(); jumpToMonth(rows.map(r=>r.date));
+  const n=S.rows.length;
+  setStatus("#clockStatus",`נקראו ${rows.length} ימים מדוח השעון. ${n?`ב-${n} מהם חסרה החתמה, והם סומנו בלוח.`:"לא נמצא אף יום עם החתמה חסרה."}`,"ok");
+  S.monthAuto=true; autoMonth(); renderCal(); renderRows(); renderCheck(); markDone();
+  return rows.map(r=>r.date);
+}
+$("#xlsFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  try{ if(!window.XLSX) throw new Error("nolib"); const bytes=new Uint8Array(await f.arrayBuffer());
+    const dates=loadHoursBytes(bytes); if(dates.length) cloudSaveSource(bytes,"hours",dates,f.name);
+  }catch(err){ setStatus("#s3status","לא הצלחתי לקרוא את הקובץ.","err"); }
+  e.target.value=""; };
+$("#clockFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  try{ if(!window.XLSX) throw new Error("nolib"); const bytes=new Uint8Array(await f.arrayBuffer());
+    const dates=loadClockBytes(bytes); if(dates.length) cloudSaveSource(bytes,"clock",dates,f.name);
+  }catch(err){ setStatus("#clockStatus","לא הצלחתי לקרוא את הקובץ.","err"); }
+  e.target.value=""; };
+$("#copyPrompt").onclick=async()=>{ try{ await navigator.clipboard.writeText($("#clockPrompt").textContent.trim()); $("#copyPrompt").textContent="הועתק ✓"; }catch(e){ $("#copyPrompt").textContent="סמן והעתק ידנית"; } setTimeout(()=>$("#copyPrompt").textContent="העתק את ההנחיה",2000); };
+
+/* ---------- step 3: calendar ---------- */
+const MISS={in:"חסרה החתמת כניסה",out:"חסרה החתמת יציאה",both:"חסרה החתמת כניסה ויציאה"};
+const OFF_NOTE={sick:"יום מחלה",vac:"יום חופשה",off:""};
+const autoNote = r => r.unit || (isOff(r.miss) ? OFF_NOTE[r.miss] : "");
+const noteOf = r => r.noteEdited ? r.note : autoNote(r);
+let calY, calM; // month 1-12
+(function initCal(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); calY=d.getFullYear(); calM=d.getMonth()+1; })();
+function newRow(iso,miss,c){ // c = clock row or null
+  const x=S.excel[iso]||{}; const cin=c?c.in:"", cout=c?c.out:"";
+  if(!cin&&!cout&&!isOff(miss)&&offKind(iso)) miss=offKind(iso);
+  if(isOff(miss)) return {date:iso, miss, cin:"", cout:"", in:"", out:"", inX:false, outX:false, unit:unitOf(iso), note:"", noteEdited:false, absent:!!(c&&!c.in&&!c.out)};
+  const keepIn = miss==="out" && cin, keepOut = miss==="in" && cout;   // the punch that DID register
+  return {date:iso, miss, cin:keepIn?cin:"", cout:keepOut?cout:"",
+    in: keepIn?cin:(x.in||""), out: keepOut?cout:(x.out||""),
+    inX: !keepIn && !!x.in, outX: !keepOut && !!x.out, unit:unitOf(iso), note:"", noteEdited:false, absent:!!(c&&!c.in&&!c.out)};
+}
+function buildFromClock(){
+  S.rows=S.clock.map(c=>{ const m=clockMissing(c); return m?newRow(c.date,m,c):null; }).filter(Boolean)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+function renderCal(){
+  $("#calTitle").textContent=HEB_MONTHS[calM-1]+" "+calY;
+  const c=$("#cal"); c.innerHTML="";
+  ["א","ב","ג","ד","ה","ו","ש"].forEach(d=>{ const e=document.createElement("div"); e.className="dow"; e.textContent=d; c.appendChild(e); });
+  const first=new Date(calY,calM-1,1).getDay(), days=new Date(calY,calM,0).getDate();
+  for(let i=0;i<first;i++) c.appendChild(document.createElement("div"));
+  for(let d=1;d<=days;d++){
+    const iso=calY+"-"+pad2(calM)+"-"+pad2(d); const b=document.createElement("button");
+    const on=S.rows.some(r=>r.date===iso);
+    b.setAttribute("aria-pressed",on); b.setAttribute("aria-label",d+" "+HEB_MONTHS[calM-1]);
+    b.className=(S.excel[iso]&&(S.excel[iso].in||S.excel[iso].out)?"hasx ":"")+(new Date(calY,calM-1,d).getDay()===6?"sat":"");
+    b.innerHTML=`<span>${d}</span><span class="dot"></span>`;
+    b.onclick=()=>toggleDay(iso); c.appendChild(b);
+  }
+}
+$("#calPrev").onclick=()=>{ if(--calM<1){calM=12;calY--;} renderCal(); };
+$("#calNext").onclick=()=>{ if(++calM>12){calM=1;calY++;} renderCal(); };
+function toggleDay(iso){
+  const i=S.rows.findIndex(r=>r.date===iso);
+  if(i>=0) S.rows.splice(i,1);
+  else { const c=S.clock.find(x=>x.date===iso)||null; const m=(c&&clockMissing(c))||(c&&c.in&&!c.out?"out":c&&c.out&&!c.in?"in":"in");
+    S.rows.push(newRow(iso,m,c)); S.rows.sort((a,b)=>a.date.localeCompare(b.date)); }
+  autoMonth(); renderCal(); renderRows(); renderCheck();
+}
+function jumpToMonth(isos){ if(!isos.length) return;
+  const counts={}; isos.forEach(k=>counts[k.slice(0,7)]=(counts[k.slice(0,7)]||0)+1);
+  const best=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]; calY=+best.slice(0,4); calM=+best.slice(5,7); }
+function refreshFromExcel(){ S.rows.forEach(r=>{ const x=S.excel[r.date]||{};
+  if(!r.cin&&!r.cout&&!isOff(r.miss)&&offKind(r.date)){ r.miss=offKind(r.date); r.in=r.out=""; r.inX=r.outX=false; r.unit=unitOf(r.date); return; }
+  if(isOff(r.miss)){ r.unit=unitOf(r.date); return; }
+  if(!r.cin){ r.in = x.in||(r.inX?"":r.in); r.inX=!!x.in; }
+  if(!r.cout){ r.out = x.out||(r.outX?"":r.out); r.outX=!!x.out; }
+  r.unit=unitOf(r.date); }); }
+// days the hours file reports work, but the clock shows no punch at all and they aren't marked
+function renderCheck(){
+  const box=$("#check"); box.innerHTML="";
+  if(!S.clock.length||!Object.keys(S.excel).length){ box.hidden=true; return; }
+  const cl={}; S.clock.forEach(c=>cl[c.date]=c);
+  const months=new Set(S.clock.map(c=>c.date.slice(0,7)));
+  const odd=Object.keys(S.excel).filter(d=>months.has(d.slice(0,7)) && (S.excel[d].in||S.excel[d].out) && !S.rows.some(r=>r.date===d)
+    && (!cl[d] || (!cl[d].in&&!cl[d].out))).sort();
+  if(!odd.length){ box.hidden=true; return; }
+  box.hidden=false;
+  box.innerHTML=`<b>שווה לבדוק:</b> באקסל יש דיווח שעות בימים האלה, אבל בדוח השעון אין להם שום החתמה. אם השעון לא קלט אותם, לחץ כדי להוסיף: `;
+  odd.forEach(d=>{ const b=document.createElement("button"); b.textContent=fmtDate(d).slice(0,5); b.onclick=()=>{ const r=newRow(d,"both",null); S.rows.push(r); S.rows.sort((a,b)=>a.date.localeCompare(b.date)); renderCal(); renderRows(); renderCheck(); }; box.appendChild(b); });
+}
+
+/* ---------- step 4: rows ---------- */
+function autoMonth(){ if(!S.monthAuto) return; const d=(S.rows[0]||{}).date||(calY+"-"+pad2(calM));
+  const [y,m]=d.split("-"); $("#month").value=HEB_MONTHS[+m-1]+" "+y; }
+$("#month").addEventListener("input",()=>S.monthAuto=false);
+function renderRows(){
+  const tb=$("#rows"); tb.innerHTML="";
+  $("#noRows").hidden=S.rows.length>0;
+  S.rows.forEach((r,i)=>{
+    r.note=noteOf(r);
+    const tr=document.createElement("tr");
+    const lacking=!rowDone(r);
+    const chip = isOff(r.miss) ? '<span class="chip ok">ללא שעות</span>'
+      : lacking ? (r.absent&&!r.in&&!r.out ? '<span class="chip">אין החתמה ואין שעות באקסל: הזן שעות או בחר מחלה/חופשה</span>' : '<span class="chip">חסרה שעה</span>')
+      : '<span class="chip ok">מלא</span>';
+    const src=(c,x,v)=>c?"שעון":x?"אקסל":v?"ידני":"";
+    tr.innerHTML=`<td><b>${fmtDate(r.date)}</b> <span class="src">יום ${dayName(r.date)}</span></td>
+      <td><select aria-label="מה חסר"><option value="in">כניסה</option><option value="out">יציאה</option><option value="both">שתיהן</option><option value="sick">יום מחלה</option><option value="vac">יום חופשה</option><option value="off">יום ללא שעות</option></select></td>
+      <td><input type="time" data-k="in" ${isOff(r.miss)?"disabled":""} value="${r.in}" class="${r.inX?"fromx":""}" aria-label="כניסה"><span class="src">${src(r.cin,r.inX,r.in)}</span></td>
+      <td><input type="time" data-k="out" ${isOff(r.miss)?"disabled":""} value="${r.out}" class="${r.outX?"fromx":""}" aria-label="יציאה"><span class="src">${src(r.cout,r.outX,r.out)}</span></td>
+      <td><input type="text" class="note" data-k="note" value="${esc(r.note)}" aria-label="הערות">${chip}</td>
+      <td><button class="x" aria-label="הסר יום">✕</button></td>`;
+    const sel=tr.querySelector("select"); sel.value=r.miss;
+    sel.onchange=()=>{ const c=S.clock.find(x=>x.date===r.date)||null; const fresh=newRow(r.date,sel.value,c);
+      fresh.note=r.note; fresh.noteEdited=r.noteEdited; S.rows[i]=fresh; renderRows(); };
+    tr.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{ const k=inp.dataset.k; r[k]=inp.value;
+      if(k==="in"){ r.inX=false; r.cin=""; } if(k==="out"){ r.outX=false; r.cout=""; } if(k==="note") r.noteEdited=true; renderRows(); }));
+    tr.querySelector(".x").onclick=()=>{ S.rows.splice(i,1); renderRows(); renderCal(); renderCheck(); };
+    tb.appendChild(tr);
+  });
+  markDone();
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function markDone(){
+  $("#s1").classList.toggle("done", !!($("#name").value&&store.get("att_sig")));
+  $("#s3").classList.toggle("done", Object.keys(S.excel).length>0);
+  $("#s2").classList.toggle("done", S.rows.length>0);
+  $("#s4").classList.toggle("done", S.rows.length>0 && S.rows.every(rowDone));
+  renderDash();
+}
+$("#name").addEventListener("input",markDone);
+
+/* ---------- step 5: docx ---------- */
+function b64ToBytes(b){ const s=atob(b), a=new Uint8Array(s.length); for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a; }
+function bytesToB64(a){ let s=""; for(let i=0;i<a.length;i+=0x8000) s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000)); return btoa(s); }
+function loadTpl(){ const c=store.get("att_tpl"); $("#tplReset").hidden=!c; return b64ToBytes(c||TEMPLATE_B64); }
+$("#tplFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  const bytes=new Uint8Array(await f.arrayBuffer());
+  try{ const z=await JSZip.loadAsync(bytes); if(!z.file("word/document.xml")) throw 0; store.set("att_tpl",bytesToB64(bytes)); loadTpl(); setStatus("#s5status","התבנית הוחלפה.","ok"); }
+  catch(err){ setStatus("#s5status","זה לא נראה כמו קובץ וורד תקין.","err"); } e.target.value=""; };
+$("#tplReset").onclick=()=>{ store.set("att_tpl",null); loadTpl(); setStatus("#s5status","חזרנו לתבנית המקורית.","ok"); };
+
+const elsW=(n,tag)=>Array.from(n.getElementsByTagNameNS(W,tag));
+const textOf=n=>elsW(n,"t").map(t=>t.textContent).join("");
+function directChildren(n,tag){ return Array.from(n.childNodes).filter(c=>c.nodeType===1&&c.namespaceURI===W&&c.localName===tag); }
+function mk(doc,tag){ return doc.createElementNS(W,"w:"+tag); }
+function setT(t,txt){ t.textContent=txt; t.setAttributeNS("http://www.w3.org/XML/1998/namespace","xml:space","preserve"); }
+const RPR_AFTER_U=["effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath"];
+function ensureRPr(doc,r){ let rp=directChildren(r,"rPr")[0]; if(!rp){ rp=mk(doc,"rPr"); r.insertBefore(rp,r.firstChild); } return rp; }
+function insertOrdered(rp,el,afterNames){ // insert el before the first child whose name is in afterNames
+  const ref=Array.from(rp.childNodes).find(c=>c.nodeType===1&&afterNames.includes(c.localName)); rp.insertBefore(el,ref||null); }
+function setUnderline(doc,r){ const rp=ensureRPr(doc,r); if(directChildren(rp,"u").length) return; const u=mk(doc,"u"); u.setAttributeNS(W,"w:val","single"); insertOrdered(rp,u,RPR_AFTER_U); }
+function setBold(doc,r){ const rp=ensureRPr(doc,r);
+  if(!directChildren(rp,"b").length) insertOrdered(rp,mk(doc,"b"),["bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u",...RPR_AFTER_U]);
+  if(!directChildren(rp,"bCs").length) insertOrdered(rp,mk(doc,"bCs"),["i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u",...RPR_AFTER_U]); }
+function centerPara(doc,p){ let pp=directChildren(p,"pPr")[0]; if(!pp){ pp=mk(doc,"pPr"); p.insertBefore(pp,p.firstChild); }
+  directChildren(pp,"jc").forEach(j=>pp.removeChild(j)); const jc=mk(doc,"jc"); jc.setAttributeNS(W,"w:val","center");
+  insertOrdered(pp,jc,["textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"]); }
+function fillBlank(doc,p,value,opts){
+  opts=opts||{};
+  const runs=elsW(p,"r"); let r=runs.find(x=>/_{2,}/.test(textOf(x)));
+  if(!r){ r=mk(doc,"r"); const t=mk(doc,"t"); setT(t," "+value); r.appendChild(t); p.appendChild(r); if(opts.underline) setUnderline(doc,r); return r; }
+  const t=elsW(r,"t").find(t=>/_{2,}/.test(t.textContent));
+  if(opts.underline&&value){
+    // split: text before the blank stays as is, the value goes in its own underlined run
+    const before=t.textContent.replace(/_{2,}.*$/,""); setT(t,before+" ");
+    const vr=r.cloneNode(true); elsW(vr,"t").forEach((x,i)=>{ if(i) x.parentNode.removeChild(x); }); setT(elsW(vr,"t")[0],"  "+value+"    ");
+    setUnderline(doc,vr); r.parentNode.insertBefore(vr,r.nextSibling);
+  } else setT(t,t.textContent.replace(/_{2,}/,value?" "+value:""));
+  let after=false; runs.forEach(x=>{ if(x===r){after=true;return;} if(after) elsW(x,"u").forEach(u=>u.parentNode.removeChild(u)); });
+  return r;
+}
+function _unused_fillBlank(doc,p,value){
+  const runs=elsW(p,"r"); const r=runs.find(x=>/_{2,}/.test(textOf(x)));
+  if(!r){ const nr=mk(doc,"r"); const t=mk(doc,"t"); setT(t," "+value); nr.appendChild(t); p.appendChild(nr); return nr; }
+  const t=elsW(r,"t").find(t=>/_{2,}/.test(t.textContent)); setT(t,t.textContent.replace(/_{2,}/,value?" "+value:""));
+  let after=false; runs.forEach(x=>{ if(x===r){after=true;return;} if(after) elsW(x,"u").forEach(u=>u.parentNode.removeChild(u)); });
+  return r;
+}
+function setCell(doc,tc,text,rprTpl){
+  let p=directChildren(tc,"p")[0]; if(!p){ p=mk(doc,"p"); tc.appendChild(p); }
+  directChildren(p,"r").forEach(r=>p.removeChild(r));
+  if(!text) return;
+  const r=mk(doc,"r");
+  if(rprTpl){ const rp=rprTpl.cloneNode(true); elsW(rp,"rtl").forEach(x=>x.parentNode.removeChild(x));
+    if(/[\u0590-\u05FF]/.test(text)) rp.appendChild(mk(doc,"rtl")); r.appendChild(rp); }
+  else if(/[\u0590-\u05FF]/.test(text)){ const rp=mk(doc,"rPr"); rp.appendChild(mk(doc,"rtl")); r.appendChild(rp); }
+  const t=mk(doc,"t"); setT(t,text); r.appendChild(t); p.appendChild(r);
+}
+function findCol(cells,re){ return cells.findIndex(c=>re.test(textOf(c).trim())); }
+
+const SIG_LINE=22; // underscores under the signature
+// write into a cell using the paragraph's own formatting
+function setCellP(doc,tc,text){
+  const p=directChildren(tc,"p")[0]; if(!p) return;
+  directChildren(p,"r").forEach(r=>p.removeChild(r));
+  if(!text) return;
+  const r=mk(doc,"r"); const pp=directChildren(p,"pPr")[0]; const mark=pp&&directChildren(pp,"rPr")[0];
+  const rp=mark?mark.cloneNode(true):mk(doc,"rPr");
+  elsW(rp,"rtl").forEach(x=>x.parentNode.removeChild(x)); if(/[\u0590-\u05FF]/.test(text)) rp.appendChild(mk(doc,"rtl"));
+  r.appendChild(rp); const t=mk(doc,"t"); setT(t,text); r.appendChild(t); p.appendChild(r);
+}
+function fillGefen(doc,data){
+  const tbls=elsW(doc,"tbl");
+  for(const t of tbls) for(const tr of directChildren(t,"tr")){
+    const tcs=directChildren(tr,"tc"); if(tcs.length!==2) continue; const lab=textOf(tcs[0]);
+    const v=/שם\s*ביה/.test(lab)?data.school:/שם\s*ה?פסיכולוג/.test(lab)?data.name:/ת\.?\s*ז/.test(lab)?data.tz:/חודש/.test(lab)?data.month:null;
+    if(v!=null) setCellP(doc,tcs[1],v);
+  }
+  const tbl=tbls.find(t=>{ const tr=directChildren(t,"tr")[0]; return tr&&/התחלה/.test(textOf(tr)); });
+  if(!tbl) throw new Error("לא נמצאה בתבנית טבלת שעות.");
+  const trs=directChildren(tbl,"tr"), head=directChildren(trs[0],"tc");
+  const col=re=>findCol(head,re);
+  const cD=col(/תאריך/), cW=col(/^יום/), cS=col(/התחלה/), cE=col(/סיום/), cT=col(/סה/);
+  const totalTr=trs.slice(1).find(tr=>/סה"?כ/.test(textOf(tr)));
+  const dataTrs=trs.slice(1,totalTr?trs.indexOf(totalTr):trs.length);
+  while(dataTrs.length<data.rows.length){ // more sessions than lines on the form: add lines
+    const c=dataTrs[dataTrs.length-1].cloneNode(true);
+    elsW(c,"r").forEach(r=>r.parentNode.removeChild(r)); tbl.insertBefore(c,totalTr||null); dataTrs.push(c); }
+  let sum=0;
+  data.rows.forEach((r,i)=>{ const tcs=directChildren(dataTrs[i],"tc"); const m=gDur(r); sum+=m;
+    if(cD>=0) setCellP(doc,tcs[cD],fmtDate(r.date)); if(cW>=0) setCellP(doc,tcs[cW],dayFull(r.date));
+    if(cS>=0) setCellP(doc,tcs[cS],r.in); if(cE>=0) setCellP(doc,tcs[cE],r.out); if(cT>=0) setCellP(doc,tcs[cT],fmtHM(m)); });
+  if(totalTr){ const tcs=directChildren(totalTr,"tc"); setCellP(doc,tcs[tcs.length-1],fmtHM(sum)); }
+  return data.rows.length;
+}
+async function buildDocx(data,kind){
+  let sigPos=null;
+  const zip=await JSZip.loadAsync(kind==="gefen"?b64ToBytes(GEFEN_B64):loadTpl());
+  const xml=await zip.file("word/document.xml").async("string");
+  const doc=new DOMParser().parseFromString(xml,"application/xml");
+  const body=elsW(doc,"body")[0];
+  const topPs=directChildren(body,"p");
+  const warn=[];
+  for(const p of topPs){
+    const tx=textOf(p);
+    if(/כרטיס\s*נוכחות/.test(tx)){ fillBlank(doc,p,data.month); centerPara(doc,p);
+      // drop trailing blank runs so centering isn't skewed, bold everything (bCs = bold for Hebrew)
+      elsW(p,"r").forEach(r=>{ if(!textOf(r).trim() && !elsW(r,"drawing").length) r.parentNode.removeChild(r); else setBold(doc,r); }); }
+    else if(/^\s*שם\s*:/.test(tx)) fillBlank(doc,p,data.name,{underline:true});
+    else if(/^\s*ת\.?\s*ז/.test(tx)) fillBlank(doc,p,data.tz,{underline:true});
+    else if(/חתימת\s*ה?פסיכולוג|חתימת\s*העובד|חתימת\s*עובד/.test(tx) && data.sig){
+      // drop old drawings in this paragraph, put signature after the colon
+      elsW(p,"drawing").forEach(d=>{ const r=d.parentNode; r.parentNode.removeChild(r); });
+      const runs=elsW(p,"r"); const ur=runs.find(x=>/_{2,}/.test(textOf(x)));
+      if(ur){ const t=elsW(ur,"t").find(t=>/_{2,}/.test(t.textContent)); setT(t,t.textContent.replace(/_{2,}/,"_".repeat(SIG_LINE))); }
+      else { const nr=mk(doc,"r"); const t=mk(doc,"t"); setT(t,"_".repeat(SIG_LINE)); nr.appendChild(t); p.appendChild(nr); }
+      const label=textOf(p).replace(/_+/g,"");
+      const sp=elsW(p,"spacing").find(x=>x.parentNode.localName==="pPr");
+      const szEl=elsW(p,"sz").find(x=>x.parentNode&&x.parentNode.parentNode&&x.parentNode.parentNode.localName==="r");
+      const pt=szEl?(+(szEl.getAttributeNS(W,"val")||szEl.getAttribute("w:val"))/2||11):11;
+      sigPos={labelChars:label.length, pt, before:sp?+(sp.getAttributeNS(W,"before")||sp.getAttribute("w:before")||0):0};
+      const mr=mk(doc,"r"); const mt=mk(doc,"t"); mt.textContent="@@SIGNATURE@@"; mr.appendChild(mt); p.appendChild(mr);
+    }
+  }
+  // table
+  let filled=0;
+  if(kind==="gefen") filled=fillGefen(doc,data); else {
+  const tbl=elsW(doc,"tbl").find(t=>{ const tr=directChildren(t,"tr")[0]; const x=tr?textOf(tr):""; return /תאריך/.test(x)&&/כניסה/.test(x); });
+  if(!tbl) throw new Error("לא נמצאה בתבנית טבלה עם עמודות תאריך וכניסה.");
+  const trs=directChildren(tbl,"tr"); const head=directChildren(trs[0],"tc");
+  const cD=findCol(head,/תאריך/), cI=findCol(head,/כניסה/), cO=findCol(head,/יציאה/), cN=findCol(head,/הערות/);
+  const byDay={}; data.rows.forEach(r=>byDay[+r.date.split("-")[2]]=r);
+  for(const tr of trs.slice(1)){
+    const tcs=directChildren(tr,"tc"); if(!tcs[cD]) continue;
+    const m=textOf(tcs[cD]).match(/\d+/); if(!m) continue; const r=byDay[+m[0]]; if(!r) continue;
+    const rpr=elsW(tcs[cD],"rPr").find(x=>x.parentNode.localName==="r")||null;
+    if(cI>=0) setCell(doc,tcs[cI],r.in,rpr);
+    if(cO>=0) setCell(doc,tcs[cO],r.out,rpr);
+    if(cN>=0) setCell(doc,tcs[cN],r.note,rpr);
+    filled++;
+  }
+  }
+  let out=new XMLSerializer().serializeToString(doc);
+  if(!/^<\?xml/.test(out)) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+out;
+  if(data.sig){
+    const rid="rIdAttSig1"; const {bytes,w,h}=data.sig;
+    const CM=360000;
+    const A="http://schemas.openxmlformats.org/drawingml/2006/main", PIC="http://schemas.openxmlformats.org/drawingml/2006/picture";
+    let cx=Math.round(3.6*CM), cy2=Math.round(cx*h/w); if(cy2>1.1*CM){ cy2=Math.round(1.1*CM); cx=Math.round(cy2*w/h); }
+    // page text width from the section properties (twips -> EMU)
+    const sect=elsW(doc,"pgSz")[0], mar=elsW(doc,"pgMar")[0]; const ga=(el,n)=>el?+(el.getAttributeNS(W,n)||el.getAttribute("w:"+n)||0):0;
+    const textW=((ga(sect,"w")||11906)-(ga(mar,"left")||1800)-(ga(mar,"right")||1800))*635;
+    const PT=sigPos?sigPos.pt:11; const CHAR=0.01727*PT*CM; // average glyph width at the form's body size
+    const labelW=(sigPos?sigPos.labelChars:20)*CHAR, lineW=SIG_LINE*CHAR;
+    const lineCenterFromLeft=textW-labelW-lineW/2;              // paragraph is right-aligned (RTL)
+    const posH=Math.round(lineCenterFromLeft-cx/2);
+    const baseline=((sigPos?sigPos.before:120)*635)+Math.round(0.0382*PT*CM); // top of paragraph -> text baseline
+    const posV=Math.round(baseline-cy2+0.05*CM);                 // signature bottom just above the line
+    const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="251660288" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>${posH}</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>${posV}</wp:posOffset></wp:positionV><wp:extent cx="${cx}" cy="${cy2}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="9101" name="Signature"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="${A}" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="${A}"><a:graphicData uri="${PIC}"><pic:pic xmlns:pic="${PIC}"><pic:nvPicPr><pic:cNvPr id="0" name="signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
+    const re=/<w:r(?:\s[^>]*)?>\s*<w:t(?:\s[^>]*)?>@@SIGNATURE@@<\/w:t>\s*<\/w:r>/;
+    if(re.test(out)){
+      out=out.replace(re,drawing);
+      const rootEnd=out.indexOf(">",out.indexOf("<w:document"));
+      let root=out.slice(0,rootEnd);
+      if(!/xmlns:wp=/.test(root)) root+=' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+      if(!/xmlns:r=/.test(root)) root+=' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+      out=root+out.slice(rootEnd);
+      zip.file("word/media/att_signature.png",bytes);
+      const relPath="word/_rels/document.xml.rels"; let rels=await zip.file(relPath).async("string");
+      rels=rels.replace("</Relationships>",`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`);
+      zip.file(relPath,rels);
+      let ct=await zip.file("[Content_Types].xml").async("string");
+      if(!/Extension="png"/i.test(ct)) ct=ct.replace("<Types ",'<Types ').replace(/(<Types[^>]*>)/,'$1<Default Extension="png" ContentType="image/png"/>');
+      zip.file("[Content_Types].xml",ct);
+    } else warn.push("sig");
+  }
+  zip.file("word/document.xml",out);
+  const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
+  return {blob,filled,warn};
+}
+function sigData(){ const s=store.get("att_sig"); if(!s) return Promise.resolve(null);
+  return loadImg(s).then(img=>({bytes:b64ToBytes(s.split(",")[1]),w:img.naturalWidth,h:img.naturalHeight})); }
+
+let lastFile=null;
+$("#make").onclick=async()=>{
+  const btn=$("#make"); btn.disabled=true; setStatus("#s5status","בונה את הקובץ…");
+  try{
+    if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
+    if(!S.rows.length) throw new Error("עדיין לא סומנו ימים בלוח בשלב 3.");
+    const data={month:$("#month").value.trim(),name:$("#name").value.trim(),tz:$("#tz").value.trim(),rows:S.rows,sig:await sigData()};
+    const {blob,filled,warn}=await buildDocx(data);
+    const ym=(S.rows[0].date||"").slice(0,7);
+    const fname=`כרטיס_נוכחות_${data.month.replace(/\s+/g,"_")||ym}.docx`;
+    const a=$("#dl"); if(a.href) URL.revokeObjectURL(a.href); a.href=URL.createObjectURL(blob); a.download=fname; a.click();
+    lastFile=new File([blob],fname,{type:blob.type}); renderDash(); $("#driveBtn").hidden=!driveOn();
+    preparePdf("work",{month:data.month,name:data.name,tz:data.tz,rows:S.rows.map(r=>({date:r.date,in:r.in,out:r.out,note:r.note}))},fname);
+    const missing=S.rows.filter(r=>!rowDone(r)).length;
+    let msg=`הקובץ מוכן: ${filled} ימים מולאו.`;
+    if(cloud.user){ const ok=await cloudSaveReport(blob,ym,"work"); msg+= ok?" נשמר גם בענן.":" השמירה בענן נכשלה."; } if(missing) msg+=` שים לב: ב-${missing} ימים עדיין חסרה שעה.`;
+    if(!data.sig) msg+=" לא נוספה חתימה כי אין חתימה שמורה."; if(warn.includes("sig")) msg+=" לא מצאתי בתבנית שורת חתימה.";
+    setStatus("#s5status",msg,missing?"err":"ok");
+  }catch(e){ setStatus("#s5status",e.message||"יצירת הקובץ נכשלה.","err"); }
+  finally{ btn.disabled=false; }
+};
+
+/* ================= Gefen report ================= */
+const G={rows:[],monthAuto:true};
+const dayFull = iso => ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"][new Date(iso+"T12:00:00").getDay()];
+const toMin = t => { const m=/^(\d{1,2}):(\d{2})$/.exec(t||""); return m?+m[1]*60+ +m[2]:null; };
+const fmtHM = m => Math.floor(m/60)+":"+pad2(m%60);
+function gDur(r){ const a=toMin(r.in), b=toMin(r.out); if(a==null||b==null) return 0; return Math.max(0,b-a-(r.brk||0)); }
+function brkMin(v){ if(v==null||v==="") return 0; if(typeof v==="number") return v<1?Math.round(v*1440):0; const t=normTime(v); return t?toMin(t):0; }
+function parseGefen(bytes){
+  const out=[];
+  for(const rows of readSheets(bytes)){
+    const h=findHeader(rows,{...COL, brk:[/^break$|הפסק/,false]}); if(!h) continue; const {idx}=h; const yh=yearIn(rows);
+    for(const r of rows.slice(h.row+1)){
+      const iso=normDate(r[idx.date],yh); if(!iso) continue;
+      const tin=normTime(r[idx.in]), tout=normTime(r[idx.out]);
+      if(!tin||!tout||tin===tout) continue;              // no duration = not a work session
+      out.push({date:iso,in:tin,out:tout,brk:idx.brk>=0?brkMin(r[idx.brk]):0});
+    }
+    if(out.length) break;
+  }
+  return out.sort((a,b)=>(a.date+a.in).localeCompare(b.date+b.in));
+}
+function gAutoMonth(){ if(!G.monthAuto||!G.rows.length) return; const ym=monthOf(G.rows.map(r=>r.date)); $("#gMonth").value=monthLabel(ym); }
+$("#gMonth").addEventListener("input",()=>G.monthAuto=false);
+function renderG(){
+  const tb=$("#gRows"); tb.innerHTML=""; $("#gNoRows").hidden=G.rows.length>0; let sum=0;
+  G.rows.forEach((r,i)=>{ const m=gDur(r); sum+=m; const tr=document.createElement("tr");
+    tr.innerHTML=`<td><input type="date" data-k="date" value="${r.date}" aria-label="תאריך"></td><td>${dayFull(r.date)}</td>
+      <td><input type="time" data-k="in" value="${r.in}" aria-label="שעת התחלה"></td><td><input type="time" data-k="out" value="${r.out}" aria-label="שעת סיום"></td>
+      <td><b>${fmtHM(m)}</b>${r.brk?`<span class="src">כולל הפסקה ${fmtHM(r.brk)}</span>`:""}</td><td><button class="x" aria-label="מחק שורה">✕</button></td>`;
+    tr.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{ r[inp.dataset.k]=inp.value;
+      if(inp.dataset.k==="date") G.rows.sort((a,b)=>(a.date+a.in).localeCompare(b.date+b.in)); gAutoMonth(); renderG(); }));
+    tr.querySelector(".x").onclick=()=>{ G.rows.splice(i,1); renderG(); };
+    tb.appendChild(tr); });
+  $("#gTotal").textContent=fmtHM(sum);
+  $("#g2").classList.toggle("done",G.rows.length>0);
+  $("#g1").classList.toggle("done",!!($("#school").value.trim()&&$("#gMonth").value.trim()));
+  renderDash();
+}
+function loadGefenBytes(bytes){
+  G.rows=parseGefen(bytes);
+  if(!G.rows.length) setStatus("#gStatus","לא מצאתי בקובץ שורות עם תאריך, כניסה ויציאה.","err");
+  else setStatus("#gStatus",`נטענו ${G.rows.length} שורות, סה"כ ${fmtHM(G.rows.reduce((a,r)=>a+gDur(r),0))} שעות.`,"ok");
+  G.monthAuto=true; gAutoMonth(); renderG(); return G.rows.map(r=>r.date);
+}
+$("#gFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+  try{ const bytes=new Uint8Array(await f.arrayBuffer()); const d=loadGefenBytes(bytes); if(d.length) cloudSaveSource(bytes,"gefen",d,f.name); }
+  catch(err){ setStatus("#gStatus","לא הצלחתי לקרוא את הקובץ.","err"); } e.target.value=""; };
+$("#gAdd").onclick=()=>{ const d=$("#gAddDate").value; if(!d) return; G.rows.push({date:d,in:"",out:"",brk:0});
+  G.rows.sort((a,b)=>(a.date+a.in).localeCompare(b.date+b.in)); gAutoMonth(); renderG(); };
+$("#school").value=store.get("att_school")||"";
+$("#school").addEventListener("input",e=>{ store.set("att_school",e.target.value); renderG(); });
+let gLast=null;
+$("#gMake").onclick=async()=>{
+  const btn=$("#gMake"); btn.disabled=true; setStatus("#gMakeStatus","בונה את הקובץ…");
+  try{
+    if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
+    const rows=G.rows.filter(r=>r.date);
+    if(!rows.length) throw new Error("אין שורות בדוח. העלה את קובץ הגפ\"ן או הוסף שורה.");
+    const bad=rows.filter(r=>toMin(r.in)==null||toMin(r.out)==null).length;
+    const data={school:$("#school").value.trim(),name:$("#name").value.trim(),tz:$("#tz").value.trim(),month:$("#gMonth").value.trim(),rows,sig:await sigData()};
+    const {blob,filled,warn}=await buildDocx(data,"gefen");
+    const ym=monthOf(rows.map(r=>r.date));
+    const fname=`דיווח_גפן_${(data.month||ym).replace(/\s+/g,"_")}.docx`;
+    const a=$("#dl"); if(a.href) URL.revokeObjectURL(a.href); a.href=URL.createObjectURL(blob); a.download=fname; a.click();
+    gLast=new File([blob],fname,{type:blob.type}); renderDash(); $("#gDriveBtn").hidden=!driveOn(); preparePdf("gefen",{school:data.school,name:data.name,tz:data.tz,month:data.month,rows},fname);
+    let msg=`הדוח מוכן: ${filled} שורות, סה"כ ${fmtHM(rows.reduce((s,r)=>s+gDur(r),0))} שעות.`;
+    if(cloud.user){ const ok=await cloudSaveReport(blob,ym,"gefen"); msg+= ok?" נשמר גם בענן.":" השמירה בענן נכשלה."; }
+    if(bad) msg+=` שים לב: ב-${bad} שורות חסרה שעה.`; if(!data.school) msg+=" שם בית הספר ריק."; if(!data.sig) msg+=" לא נוספה חתימה כי אין חתימה שמורה.";
+    setStatus("#gMakeStatus",msg,bad||!data.school?"err":"ok");
+  }catch(e){ setStatus("#gMakeStatus",e.message||"יצירת הקובץ נכשלה.","err"); }
+  finally{ btn.disabled=false; }
+};
+/* ================= PDF, drawn in the browser =================
+   The form is drawn straight onto a canvas (A4) and wrapped in a PDF with jsPDF.
+   No Google, no network: it's ready a moment after "הפק". */
+const A4W=794, A4H=1123, PDF_SCALE=2.5;
+const PDF_FONT='Arimo, Arial, "Noto Sans Hebrew", "Assistant", sans-serif';
+let jsPdfP=null;
+function loadJsPdf(){
+  if(window.jspdf) return Promise.resolve(window.jspdf);
+  return jsPdfP||(jsPdfP=new Promise((res,rej)=>{ const sc=document.createElement("script");
+    sc.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    sc.onload=()=>window.jspdf?res(window.jspdf):rej(new Error("jspdf")); sc.onerror=()=>{ jsPdfP=null; rej(new Error("jspdf")); };
+    document.head.appendChild(sc); }));
+}
+async function pdfFonts(){ try{ await Promise.all(["400 16px Arimo","700 16px Arimo"].map(f=>document.fonts.load(f,"אבג 123"))); }catch(e){} }
+function pdfCanvas(){
+  const c=document.createElement("canvas"); c.width=A4W*PDF_SCALE; c.height=A4H*PDF_SCALE;
+  const x=c.getContext("2d"); x.scale(PDF_SCALE,PDF_SCALE);
+  x.fillStyle="#fff"; x.fillRect(0,0,A4W,A4H); x.fillStyle="#000"; x.strokeStyle="#000"; x.lineWidth=1;
+  x.direction="rtl"; x.textBaseline="middle"; return {c,x};
+}
+const pf=(bold,size)=>`${bold?"700 ":""}${size}px ${PDF_FONT}`;
+function ptext(x,str,px,py,o){ o=o||{}; x.font=pf(o.bold,o.size||13); x.textAlign=o.align||"right"; x.fillText(String(str==null?"":str),px,py); return x.measureText(String(str==null?"":str)).width; }
+// text inside a cell [x0,x1]: shrink if needed, then split into two lines
+function pcell(x,str,x0,x1,y0,h,o){
+  o=o||{}; str=String(str==null?"":str); if(!str) return;
+  const pad=5, w=x1-x0-2*pad, ax=o.align==="center"?(x0+x1)/2:x1-pad, mid=y0+h/2;
+  let size=o.size||13;
+  for(;size>=9;size-=0.5){ x.font=pf(o.bold,size); if(x.measureText(str).width<=w) return ptext(x,str,ax,mid,{...o,size}); }
+  size=Math.max(9,(o.size||13)-2); x.font=pf(o.bold,size);
+  const words=str.split(" "); let l1="";
+  while(words.length && x.measureText((l1?l1+" ":"")+words[0]).width<=w) l1+=(l1?" ":"")+words.shift();
+  ptext(x,l1,ax,mid-size*0.55,{...o,size}); ptext(x,words.join(" "),ax,mid+size*0.55,{...o,size});
+}
+function pfill(x,x0,y0,w,h,col){ x.save(); x.fillStyle=col; x.fillRect(x0,y0,w,h); x.restore(); }
+function pline(x,x0,y0,x1,y1){ x.beginPath(); x.moveTo(x0,y0); x.lineTo(x1,y1); x.stroke(); }
+// grid: column edges (left to right) and row tops
+function pgrid(x,edges,tops){
+  const L=edges[0], R=edges[edges.length-1], T=tops[0], B=tops[tops.length-1];
+  tops.forEach(t=>pline(x,L,t,R,t)); edges.forEach(e=>pline(x,e,T,e,B));
+}
+// "label: value" with the value underlined, right-aligned at xr
+function plabelValue(x,label,value,xr,y,size){
+  const lw=ptext(x,label,xr,y,{size}); const vx=xr-lw-8;
+  const txt="  "+(value||"")+"    "; x.font=pf(false,size); const vw=x.measureText(txt).width;
+  ptext(x,txt,vx,y,{size}); pline(x,vx-vw,y+size*0.62,vx,y+size*0.62);
+}
+// signature line: label, then a line to its left with the signature image sitting on it
+function psign(x,label,xr,y,lineLen,sig,size){
+  const lw=ptext(x,label,xr,y,{size}); const x1=xr-lw-6, x0=x1-lineLen, ly=y+size*0.55;
+  pline(x,x0,ly,x1,ly);
+  if(sig){ const bw=Math.min(lineLen-10,150), bh=48; const k=Math.min(bw/sig.width,bh/sig.height);
+    const w=sig.width*k, h=sig.height*k; x.drawImage(sig,(x0+x1)/2-w/2,ly-h+4,w,h); }
+}
+function drawWork(x,d,sig){
+  ptext(x,"כרטיס נוכחות חודשי - "+(d.month||""),A4W/2,98,{bold:true,size:16,align:"center"});
+  const R=675, L=119, W=R-L;
+  plabelValue(x,"שם:",d.name,R,140,15); plabelValue(x,"ת.ז:",d.tz,R,174,15);
+  // columns right to left: date, in, out, notes, on-call
+  const fr=[0.148,0.128,0.121,0.415,0.188]; const ed=[R]; fr.forEach(f=>ed.push(ed[ed.length-1]-f*W)); ed[ed.length-1]=L;
+  const cols=ed.slice(0,-1).map((r,i)=>[ed[i+1],r]);
+  const top=205, hh=34, rh=23; const tops=[top,top+hh]; for(let i=0;i<31;i++) tops.push(top+hh+rh*(i+1));
+  pgrid(x,ed.slice().reverse(),tops);
+  ["תאריך","כניסה","יציאה","הערות","כוננות 18-23"].forEach((t,i)=>pcell(x,t,cols[i][0],cols[i][1],top,hh,{size:14,align:i===0?"right":"center"}));
+  const byDay={}; d.rows.forEach(r=>byDay[+r.date.split("-")[2]]=r);
+  for(let i=1;i<=31;i++){ const y=top+hh+rh*(i-1), r=byDay[i];
+    pcell(x,String(i),cols[0][0],cols[0][1],y,rh,{size:13});
+    if(r){ pcell(x,r.in,cols[1][0],cols[1][1],y,rh,{size:13,align:"center"}); pcell(x,r.out,cols[2][0],cols[2][1],y,rh,{size:13,align:"center"}); pcell(x,r.note,cols[3][0],cols[3][1],y,rh,{size:12}); } }
+  const by=tops[tops.length-1]+48;
+  psign(x,"חתימת הפסיכולוג/ית:",R,by,170,sig,15); psign(x,"חתימת המנהלת:",R,by+40,140,null,15);
+}
+function drawGefen(x,d,sig){
+  ptext(x,'דיווח שעות עבודה בבתי הספר במסגרת הגפ"ן',A4W/2,112,{bold:true,size:21,align:"center"});
+  // details table
+  const dR=705, dL=390, dSplit=dR-(dR-dL)*0.38, dTop=170, dh=24;
+  const dt=[dTop]; for(let i=1;i<=4;i++) dt.push(dTop+dh*i);
+  pgrid(x,[dL,dSplit,dR],dt);
+  [['שם ביה"ס',d.school],["שם הפסיכולוג.ית",d.name],["ת.ז.",d.tz],["חודש ושנה",d.month]].forEach(([l,v],i)=>{
+    pcell(x,l,dSplit,dR,dTop+dh*i,dh,{size:15}); pcell(x,v,dL,dSplit,dTop+dh*i,dh,{size:15}); });
+  // hours table, columns right to left: date, weekday, start, end, total
+  const R=705, wd=[121,121,121,109,136]; const ed=[R]; wd.forEach(w=>ed.push(ed[ed.length-1]-w)); const L=ed[ed.length-1];
+  const cols=ed.slice(0,-1).map((r,i)=>[ed[i+1],r]);
+  const top=300, hh=42, n=Math.max(14,d.rows.length), totH=36;
+  const rh=Math.min(24,(A4H-top-hh-totH-200)/n);
+  pfill(x,L,top,R-L,hh,"#e6e6e6");
+  const tops=[top,top+hh]; for(let i=0;i<n;i++) tops.push(top+hh+rh*(i+1));
+  const tb=tops[tops.length-1];
+  pfill(x,cols[4][0],tb,cols[3][1]-cols[4][0],totH,"#e6e6e6");
+  pgrid(x,ed.slice().reverse(),tops);
+  pline(x,L,tb+totH,R,tb+totH); [L,cols[4][1],cols[3][1],R].forEach(e=>pline(x,e,tb,e,tb+totH));
+  ["תאריך","יום בשבוע","שעת התחלה","שעת סיום",'סה"כ שעות עבודה'].forEach((t,i)=>pcell(x,t,cols[i][0],cols[i][1],top,hh,{size:15,bold:true}));
+  let sum=0;
+  d.rows.forEach((r,i)=>{ const y=top+hh+rh*i, m=gDur(r); sum+=m; const fs=Math.min(15,rh*0.62);
+    pcell(x,fmtDate(r.date),cols[0][0],cols[0][1],y,rh,{size:fs}); pcell(x,dayFull(r.date),cols[1][0],cols[1][1],y,rh,{size:fs});
+    pcell(x,r.in,cols[2][0],cols[2][1],y,rh,{size:fs}); pcell(x,r.out,cols[3][0],cols[3][1],y,rh,{size:fs}); pcell(x,fmtHM(m),cols[4][0],cols[4][1],y,rh,{size:fs}); });
+  pcell(x,'סה"כ',cols[3][0],cols[3][1],tb,totH,{size:15,bold:true}); pcell(x,fmtHM(sum),cols[4][0],cols[4][1],tb,totH,{size:15,bold:true});
+  const sy=tb+totH+60;
+  psign(x,"חתימת הפסיכולוג.ית",R,sy,175,sig,15); psign(x,'חתימת מנהל.ת ביה"ס',R,sy+44,150,null,15); psign(x,'חתימת מנהלת שפ"ח חיפה',R,sy+88,150,null,15);
+}
+function drawMaanak(x,d,sig){
+  const R=A4W-48, L=48, y0=56;
+  ptext(x,"בקשה למענק השתלמות",A4W/2,y0,{bold:true,size:22,align:"center"});
+  ptext(x,"הכשרות ארוכות טווח / לימודים אקדמיים / לימודי תעודה",A4W/2,y0+28,{size:13,align:"center"});
+  let y=y0+70;
+  const line=(label,val)=>{ ptext(x,label+":",R,y,{bold:true,size:14}); ptext(x,val||"—",R-ptext(x,label+":",R,y,{bold:true,size:14})-12,y,{size:14}); y+=26; };
+  ptext(x,"א. פרטים אישיים",R,y,{bold:true,size:16}); y+=30;
+  line("שם משפחה",d.last); line("שם פרטי",d.first); line("ת.ז.",d.tz); line("שנת לידה",d.birth);
+  line("יחידה",d.unit); line("תפקיד",d.role); line("דוא\"ל",d.email); line("נייד",d.mobile);
+  y+=12; ptext(x,"ב. פרטי ההשתלמות",R,y,{bold:true,size:16}); y+=30;
+  line("הנושא",d.subject); line("המוסד",d.institution); line("המקום",d.place); line("שכר לימוד",d.cost);
+  line("מתאריך",d.from); line("עד תאריך",d.to); line("יום בשבוע",d.day); line("שעות",d.hours);
+  if(d.notes){ y+=12; ptext(x,"ג. נימוקים",R,y,{bold:true,size:16}); y+=28;
+    const words=String(d.notes).split(/\s+/); let row=""; 
+    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
+    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
+  }
+  y+=30; ptext(x,"חתימת העובד/ת: ________________",R,y,{size:14});
+  if(sig){ try{ x.drawImage(sig,R-160,y+8,140,50); }catch(e){} }
+  y+=70; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:13});
+}
+function drawTazkir(x,d,sig){
+  const R=A4W-48, L=48;
+  let y=56;
+  ptext(x,"תזכיר משרדי",A4W/2,y,{bold:true,size:22,align:"center"}); y+=36;
+  ptext(x,"אל: האגף לחינוך",R,y,{size:14}); y+=28;
+  ptext(x,"מאת: "+(d.fromName||""),R,y,{size:14}); y+=36;
+  const line=(label,val)=>{ ptext(x,label+":",R,y,{bold:true,size:14}); ptext(x,val||"—",R-ptext(x,label+":",R,y,{bold:true,size:14})-12,y,{size:14}); y+=26; };
+  line("שם פרטי",d.first); line("שם משפחה",d.last); line("ת\"ז",d.tz); line("תאריך לידה",d.birth);
+  line("שם האם",d.mother); line("שם האב",d.father); line("כתובת",d.address); line("טלפון",d.phone);
+  line("מוסד לימודים",d.school); line("כתה",d.cls);
+  if(d.recommend){ y+=14; ptext(x,"המלצות לשיבוץ",R,y,{bold:true,size:15}); y+=26;
+    const words=String(d.recommend).split(/\s+/); let row="";
+    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
+    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
+  }
+  if(d.notes){ y+=12; ptext(x,"הערות",R,y,{bold:true,size:15}); y+=26;
+    const words=String(d.notes).split(/\s+/); let row="";
+    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
+    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
+  }
+  y+=36; ptext(x,"חתימת המנהל: ________________",R,y,{size:14});
+  if(sig){ try{ x.drawImage(sig,R-160,y+8,140,50); }catch(e){} }
+  y+=70; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:13});
+}
+
+async function buildPdf(kind,d){
+  const [{jsPDF}]=await Promise.all([loadJsPdf(),pdfFonts()]);
+  const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
+  const {c,x}=pdfCanvas();
+  if(kind==="gefen") drawGefen(x,d,sig);
+  else if(kind==="maanak") drawMaanak(x,d,sig);
+  else if(kind==="tazkir") drawTazkir(x,d,sig);
+  else drawWork(x,d,sig);
+  const pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+  pdf.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",0,0,210,297);
+  return pdf.output("blob");
+}
+// buttons: "שתף PDF" (only where the browser can share files) and "הורד PDF" (a plain link, works everywhere)
+const PDF_UI={
+  work:{share:"#share",dl:"#shareOpen",status:"#s5pdf"},
+  gefen:{share:"#gShare",dl:"#gShareOpen",status:"#gPdf"},
+  maanak:{share:"#mShare",dl:"#mShareOpen",status:"#mPdf"},
+
+  tazkir:{share:"#tShare",dl:"#tShareOpen",status:"#tPdf"}
+};
+const pdfFiles={};
+async function preparePdf(kind,data,docName){
+  const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF…");
+  try{
+    const blob=await buildPdf(kind,data);
+    const name=docName.replace(/\.docx$/i,".pdf"); const file=new File([blob],name,{type:"application/pdf"});
+    if(pdfFiles[kind]) URL.revokeObjectURL(pdfFiles[kind].url);
+    const url=URL.createObjectURL(file); pdfFiles[kind]={file,url};
+    const a=$(ui.dl); a.href=url; a.download=name; a.hidden=false;
+    let can=false; try{ can=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
+    $(ui.share).hidden=!can;
+    setStatus(ui.status,can?'ה-PDF מוכן. "שתף PDF" לשליחה בוואטסאפ או במייל, או "הורד PDF" לשמירה בטלפון.':'ה-PDF מוכן. לחץ "הורד PDF", ואז פתח אותו מההורדות כדי לשתף.',"ok");
+  }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה (צריך חיבור לאינטרנט בפעם הראשונה). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
+}
+["work","gefen","maanak","tazkir"].forEach(kind=>{
+  const ui=PDF_UI[kind]; if(!ui) return;
+  const shareEl=$(ui.share); if(shareEl) shareEl.onclick=async()=>{
+    const st=pdfFiles[kind]; if(!st) return;
+    try{ await navigator.share({files:[st.file]}); }
+    catch(e){
+      if(e&&e.name==="AbortError") return;
+      $(ui.share).hidden=true;
+      setStatus(ui.status,'הדפדפן הזה לא מאפשר לשתף קבצים. לחץ "הורד PDF", פתח את הקובץ מההורדות ושתף משם.',"err");
+    }
+  };
+  const dlEl=$(ui.dl); if(dlEl) dlEl.addEventListener("click",()=>setTimeout(()=>setStatus(ui.status,"ה-PDF ירד לטלפון, לתיקיית ההורדות. משם אפשר לפתוח ולשתף אותו.","ok"),400));
+});
+
+
+
+/* ================= dashboard ================= */
+var cloudIndex=null;
+function renderDash(){
+  try{
+    const box=$("#dgrid"); if(!box) return;
+    const name=$("#name").value.trim(), tz=$("#tz").value.trim(), sig=store.get("att_sig");
+    const profileOk=!!(name&&tz&&sig);
+    const n=S.rows.length, open=S.rows.filter(r=>!rowDone(r)).length;
+    const workDone=n>0&&open===0&&!!lastFile;
+    const gefenDone=G.rows.length>0&&!!gLast;
+    const maanahSaved=!!store.get("maanak_form");
+    const tazkirSaved=!!store.get("tazkir_form");
+    // counts matching the mockup style
+    let done=0, pending=0, neu=0, total=4; // 4 main forms
+    if(workDone) done++; else if(n>0) pending++; else neu++;
+    if(gefenDone) done++; else if(G.rows.length>0) pending++; else neu++;
+    if(maanahSaved) done++; else pending++;
+    if(tazkirSaved) done++; else pending++;
+    // adjust: forms never opened count as "new" only if no local data at all
+    if(!maanahSaved && !store.get("maanak_form")) { /* already pending */ }
+    const cards=[
+      {t:"הושלמו",v:String(done),cls:"ok",go:()=>setMode("forms")},
+      {t:"טפסים ממתינים",v:String(pending),cls:pending?"warn":"",go:()=>setMode("forms")},
+      {t:'סה"כ טפסים',v:String(total),cls:"",go:()=>setMode("forms")},
+      {t:"חדשים",v:String(Math.max(0,neu)),cls:neu?"info":"",go:()=>setMode("forms")}
+    ];
+    box.innerHTML="";
+    cards.forEach(c=>{ const b=document.createElement("button"); b.className="dcard";
+      b.innerHTML=`<div class="dv ${c.cls}">${esc(c.v)}</div><div class="dt">${esc(c.t)}</div>`;
+      b.onclick=c.go; box.appendChild(b); });
+
+    // activity feed
+    const rec=$("#recent"); if(!rec) return; rec.innerHTML="";
+    const acts=[];
+    if(lastFile) acts.push({text:"כרטיס נוכחות – הושלם",time:"הופק במכשיר",dot:"ok",go:()=>setMode("work")});
+    else if(n>0) acts.push({text:"כרטיס נוכחות – ממתין",time:open?`${open} ימים חסרים`:`${n} ימים`,dot:"warn",go:()=>setMode("work")});
+    if(gLast) acts.push({text:'דיווח גפ"ן – הושלם',time:"הופק במכשיר",dot:"ok",go:()=>setMode("gefen")});
+    else if(G.rows.length) acts.push({text:'דיווח גפ"ן – בתהליך',time:`${G.rows.length} שורות`,dot:"info",go:()=>setMode("gefen")});
+    if(maanahSaved) acts.push({text:"בקשה למענק – נשמר",time:"במכשיר",dot:"info",go:()=>setMode("maanak")});
+    if(tazkirSaved) acts.push({text:"תזכיר משרדי – נשמר",time:"במכשיר",dot:"info",go:()=>setMode("tazkir")});
+    if(cloudIndex){
+      Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
+      Object.entries(cloudIndex.gef||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:'דיווח גפ"ן · '+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
+    }
+    if(!profileOk) acts.unshift({text:"פרטים וחתימה – חסר",time:"השלימו בלוח הבקרה",dot:"warn",go:()=>$("#s1")&&$("#s1").scrollIntoView({behavior:"smooth"})});
+    if(!acts.length){ rec.innerHTML='<div class="empty">עדיין אין פעילות. התחילו מטופס בטפסים.</div>'; }
+    else acts.slice(0,6).forEach(a=>{
+      const div=document.createElement("div"); div.className="activity-item"; div.style.cursor="pointer";
+      div.innerHTML=`<span class="activity-dot ${a.dot}"></span><div><div class="activity-text">${esc(a.text)}</div><div class="activity-time">${esc(a.time)}</div></div>`;
+      div.onclick=a.go; rec.appendChild(div);
+    });
+  }catch(e){ /* runs before everything is set up; the next update will draw it */ }
+}
+
+$("#month").addEventListener("input",renderDash);
+$("#gMonth").addEventListener("input",renderDash);
+
+/* mode tabs */
+function setMode(m){
+  // Map form sub-modes so the main "טפסים" tab stays highlighted
+  const mainTab = (m==="work"||m==="gefen"||m==="maanak"||m==="tazkir") ? "forms" : m;
+  document.body.dataset.mode=m;
+  store.set("att_mode",m,true);
+  window.scrollTo({top:0});
+  renderDash();
+  document.querySelectorAll(".modes button").forEach(b=>{
+    b.setAttribute("aria-selected", b.dataset.mode===mainTab ? "true" : "false");
+  });
+  // Prefill מענק from profile when opening
+  if(m==="maanak"){
+    const full=(store.get("att_name")||"").trim().split(/\s+/);
+    if(!$("#mFirst").value && full.length){ $("#mFirst").value=full[0]||""; $("#mLast").value=full.slice(1).join(" ")||""; }
+    if(!$("#mTz").value) $("#mTz").value=store.get("att_tz")||"";
+  }
+}
+document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+// Forms list cards → open specific form
+document.querySelectorAll(".form-card-btn").forEach(btn=>{
+  btn.onclick=()=>setMode(btn.dataset.open);
+});
+// Back to forms list
+$("#backToForms").onclick=()=>setMode("forms");
+/* ---- helpers: collect form data ---- */
+function collectMaanak(){
+  return {last:$("#mLast").value.trim(),first:$("#mFirst").value.trim(),tz:$("#mTz").value.trim(),birth:$("#mBirth").value.trim(),unit:$("#mUnit").value.trim(),role:$("#mRole").value.trim(),email:$("#mEmail").value.trim(),mobile:$("#mMobile").value.trim(),subject:$("#mSubject").value.trim(),institution:$("#mInstitution").value.trim(),place:$("#mPlace").value.trim(),cost:$("#mCost").value.trim(),from:$("#mFrom").value,to:$("#mTo").value,day:$("#mDay").value.trim(),hours:$("#mHours").value.trim(),notes:$("#mNotes").value.trim()};
+}
+function collectTazkir(){
+  return {first:$("#tFirst").value.trim(),last:$("#tLast").value.trim(),tz:$("#tTz").value.trim(),birth:$("#tBirth").value,mother:$("#tMother").value.trim(),father:$("#tFather").value.trim(),address:$("#tAddress").value.trim(),phone:$("#tPhone").value.trim(),school:$("#tSchool").value.trim(),cls:$("#tClass").value.trim(),recommend:$("#tRecommend").value.trim(),notes:$("#tNotes").value.trim(),fromName:store.get("att_name")||""};
+}
+
+/* ---- build minimal valid DOCX from paragraphs (JSZip) ---- */
+function escXml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function pRun(text,opts){
+  opts=opts||{};
+  const bold=opts.bold?'<w:b/><w:bCs/>':'';
+  const sz=opts.size||22; // half-points
+  return `<w:p><w:pPr><w:jc w:val="right"/><w:bidi/></w:pPr><w:r><w:rPr>${bold}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:rtl/></w:rPr><w:t xml:space="preserve">${escXml(text)}</w:t></w:r></w:p>`;
+}
+async function buildSimpleDocx(title, lines){
+  if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
+  const body = pRun(title,{bold:true,size:32}) + pRun("") + lines.map(l=>{
+    if(typeof l==="string") return pRun(l,{size:22});
+    return pRun((l.label?l.label+": ":"")+(l.value||""),{bold:!!l.bold,size:l.size||22});
+  }).join("");
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+  const zip=new JSZip();
+  zip.file("[Content_Types].xml",contentTypes);
+  zip.folder("_rels").file(".rels",rels);
+  zip.folder("word").file("document.xml",documentXml);
+  zip.folder("word").folder("_rels").file("document.xml.rels",docRels);
+  return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
+}
+
+let mLastFile=null, tLastFile=null;
+
+$("#mSave")&&($("#mSave").onclick=()=>{
+  const data=collectMaanak();
+  store.set("maanak_form",JSON.stringify(data),true);
+  setStatus("#mStatus","הפרטים נשמרו במכשיר.","ok");
+});
+$("#tSave")&&($("#tSave").onclick=()=>{
+  const data=collectTazkir();
+  store.set("tazkir_form",JSON.stringify(data),true);
+  setStatus("#tStatus","התזכיר נשמר במכשיר.","ok");
+});
+
+$("#mMake")&&($("#mMake").onclick=async()=>{
+  const btn=$("#mMake"); btn.disabled=true; setStatus("#mStatus","בונה את הקובץ…");
+  try{
+    const d=collectMaanak();
+    store.set("maanak_form",JSON.stringify(d),true);
+    if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי.");
+    const lines=[
+      {label:"א. פרטים אישיים",value:"",bold:true,size:26},
+      {label:"שם משפחה",value:d.last},{label:"שם פרטי",value:d.first},{label:"ת.ז.",value:d.tz},
+      {label:"שנת לידה",value:d.birth},{label:"יחידה",value:d.unit},{label:"תפקיד",value:d.role},
+      {label:"דוא\"ל",value:d.email},{label:"נייד",value:d.mobile},
+      "",
+      {label:"ב. פרטי ההשתלמות",value:"",bold:true,size:26},
+      {label:"הנושא",value:d.subject},{label:"המוסד",value:d.institution},{label:"המקום",value:d.place},
+      {label:"שכר לימוד",value:d.cost},{label:"מתאריך",value:d.from},{label:"עד תאריך",value:d.to},
+      {label:"יום בשבוע",value:d.day},{label:"שעות",value:d.hours},
+      "",
+      {label:"ג. נימוקים",value:"",bold:true,size:26},
+      d.notes||"—",
+      "",
+      "חתימת העובד/ת: ________________",
+      "תאריך: "+new Date().toLocaleDateString("he-IL")
+    ];
+    const blob=await buildSimpleDocx("בקשה למענק השתלמות",lines);
+    const fname=`בקשה_למענק_השתלמות_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    mLastFile=new File([blob],fname,{type:blob.type});
+    $("#mDriveBtn").hidden=!driveOn();
+    preparePdf("maanak",d,fname);
+    let msg="הקובץ מוכן והורד.";
+    if(cloud.user){ try{ await cloud.sb.storage.from(BUCKET).upload(P("forms/maanak/"+fname),blob,{upsert:true,contentType:DOCX_MIME}); msg+=" נשמר גם בענן."; }catch(e){ msg+=" השמירה בענן נכשלה."; } }
+    setStatus("#mStatus",msg,"ok");
+  }catch(e){ setStatus("#mStatus",e.message||"יצירת הקובץ נכשלה.","err"); }
+  finally{ btn.disabled=false; }
+});
+
+$("#tMake")&&($("#tMake").onclick=async()=>{
+  const btn=$("#tMake"); btn.disabled=true; setStatus("#tStatus","בונה את הקובץ…");
+  try{
+    const d=collectTazkir();
+    store.set("tazkir_form",JSON.stringify(d),true);
+    if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי של התלמיד/ה.");
+    const lines=[
+      {label:"אל",value:"האגף לחינוך"},
+      {label:"מאת",value:d.fromName},
+      "",
+      {label:"פרטי התלמיד/ה",value:"",bold:true,size:26},
+      {label:"שם פרטי",value:d.first},{label:"שם משפחה",value:d.last},{label:"ת\"ז",value:d.tz},
+      {label:"תאריך לידה",value:d.birth},{label:"שם האם",value:d.mother},{label:"שם האב",value:d.father},
+      {label:"כתובת",value:d.address},{label:"טלפון",value:d.phone},
+      {label:"מוסד לימודים",value:d.school},{label:"כתה",value:d.cls},
+      "",
+      {label:"המלצות לשיבוץ",value:"",bold:true,size:26},
+      d.recommend||"—",
+      "",
+      {label:"הערות",value:"",bold:true,size:26},
+      d.notes||"—",
+      "",
+      "חתימת המנהל: ________________",
+      "תאריך: "+new Date().toLocaleDateString("he-IL")
+    ];
+    const blob=await buildSimpleDocx("תזכיר משרדי",lines);
+    const fname=`תזכיר_משרדי_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    tLastFile=new File([blob],fname,{type:blob.type});
+    $("#tDriveBtn").hidden=!driveOn();
+    preparePdf("tazkir",d,fname);
+    let msg="הקובץ מוכן והורד.";
+    if(cloud.user){ try{ await cloud.sb.storage.from(BUCKET).upload(P("forms/tazkir/"+fname),blob,{upsert:true,contentType:DOCX_MIME}); msg+=" נשמר גם בענן."; }catch(e){ msg+=" השמירה בענן נכשלה."; } }
+    setStatus("#tStatus",msg,"ok");
+  }catch(e){ setStatus("#tStatus",e.message||"יצירת הקובץ נכשלה.","err"); }
+  finally{ btn.disabled=false; }
+});
+
+// Restore saved new-form data
+try{ const md=JSON.parse(store.get("maanak_form")||"null"); if(md){ Object.entries({mLast:"last",mFirst:"first",mTz:"tz",mBirth:"birth",mUnit:"unit",mRole:"role",mEmail:"email",mMobile:"mobile",mSubject:"subject",mInstitution:"institution",mPlace:"place",mCost:"cost",mFrom:"from",mTo:"to",mDay:"day",mHours:"hours",mNotes:"notes"}).forEach(([id,k])=>{ if(md[k] && $("#"+id)) $("#"+id).value=md[k]; }); } }catch(e){}
+try{ const td=JSON.parse(store.get("tazkir_form")||"null"); if(td){ Object.entries({tFirst:"first",tLast:"last",tTz:"tz",tBirth:"birth",tMother:"mother",tFather:"father",tAddress:"address",tPhone:"phone",tSchool:"school",tClass:"cls",tRecommend:"recommend",tNotes:"notes"}).forEach(([id,k])=>{ if(td[k] && $("#"+id)) $("#"+id).value=td[k]; }); } }catch(e){}
+
+const validModes=["dash","forms","files","work","gefen","maanak","tazkir"];
+setMode(validModes.includes(store.get("att_mode"))?store.get("att_mode"):"dash");
+
+
+
+/* ================= Google Drive ================= */
+// scope drive.file: the app sees only files and folders it created itself
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.file", DRIVE_ROOT="משלים החתמות";
+const drive={token:null,exp:0,client:null,folders:{}};
+const driveOn = () => !!(GOOGLE_CLIENT_ID && window.google && google.accounts && google.accounts.oauth2);
+function driveToken(){ // must be called straight from a tap: it may open Google's sign-in window
+  return new Promise((res,rej)=>{
+    if(drive.token && Date.now()<drive.exp-60000) return res(drive.token);
+    if(!drive.client) drive.client=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:()=>{}});
+    drive.client.callback=r=>{ if(r.error) return rej(r); drive.token=r.access_token; drive.exp=Date.now()+(+r.expires_in||3600)*1000; res(drive.token); };
+    drive.client.error_callback=e=>rej(e);
+    const hint=(cloud.user&&cloud.user.email)||undefined;
+    drive.client.requestAccessToken(hint?{login_hint:hint}:{});
+  });
+}
+async function gfetch(url,opts){ const r=await fetch(url,{...opts,headers:{...((opts&&opts.headers)||{}),Authorization:"Bearer "+drive.token}});
+  if(r.status===401){ drive.token=null; throw {code:"auth"}; } if(!r.ok) throw new Error("drive "+r.status); return r.json(); }
+const qs = v => "'"+String(v).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"'";
+async function driveFolder(name,parent){
+  const key=parent+"/"+name; if(drive.folders[key]) return drive.folders[key];
+  const q=`name=${qs(name)} and mimeType='application/vnd.google-apps.folder' and trashed=false and ${qs(parent)} in parents`;
+  const j=await gfetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));
+  let id=j.files&&j.files[0]&&j.files[0].id;
+  if(!id) id=(await gfetch("https://www.googleapis.com/drive/v3/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder",parents:[parent]})})).id;
+  return drive.folders[key]=id;
+}
+function driveFolderName(kind){
+  if(kind==="gefen") return 'גפ"ן';
+  if(kind==="maanak") return "מענק השתלמות";
+  if(kind==="tazkir") return "תזכירים";
+  return "שעות עבודה";
+}
+async function driveUpload(file,kind){
+  const root=await driveFolder(DRIVE_ROOT,"root");
+  const sub=await driveFolder(driveFolderName(kind),root);
+  const q=`name=${qs(file.name)} and ${qs(sub)} in parents and trashed=false`;
+  const ex=await gfetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));
+  const old=ex.files&&ex.files[0]&&ex.files[0].id;
+  if(old) // same month again: replace the content of the existing file
+    return gfetch(`https://www.googleapis.com/upload/drive/v3/files/${old}?uploadType=media&fields=id,webViewLink`,{method:"PATCH",headers:{"Content-Type":file.type},body:file});
+  const fd=new FormData();
+  fd.append("metadata",new Blob([JSON.stringify({name:file.name,parents:[sub]})],{type:"application/json"}));
+  fd.append("file",file);
+  return gfetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",{method:"POST",body:fd});
+}
+function driveButton(btnSel,statusSel,getFile,kind){
+  $(btnSel).onclick=async()=>{
+    const f=getFile(); if(!f) return; const btn=$(btnSel);
+    let tokenP; try{ tokenP=driveToken(); }catch(e){ return setStatus(statusSel,"ההתחברות ל-Google לא נטענה. רענן ונסה שוב.","err"); }
+    btn.disabled=true; setStatus(statusSel,"מתחבר ל-Google Drive…");
+    try{
+      await tokenP; setStatus(statusSel,"מעלה לדרייב…");
+      let r; try{ r=await driveUpload(f,kind); }catch(e){ if(e&&e.code==="auth"){ await driveToken(); r=await driveUpload(f,kind); } else throw e; }
+      const folder=`${DRIVE_ROOT} / ${driveFolderName(kind)}`;
+      $(statusSel).className="status ok"; $(statusSel).innerHTML=`נשמר בדרייב, בתיקייה ${esc(folder)}. `+(r&&r.webViewLink?`<a href="${esc(r.webViewLink)}" target="_blank" rel="noopener">פתח בדרייב</a>`:"");
+    }catch(e){
+      const t=(e&&(e.type||e.error))||"";
+      setStatus(statusSel, /popup_closed|access_denied|popup_failed/.test(t)?"ההתחברות ל-Google בוטלה. לחץ שוב כדי לנסות.":"השמירה בדרייב נכשלה. נסה שוב בעוד רגע.","err");
+    }finally{ btn.disabled=false; }
+  };
+}
+
+driveButton("#driveBtn","#s5status",()=>lastFile,"work");
+driveButton("#gDriveBtn","#gMakeStatus",()=>gLast,"gefen");
+driveButton("#mDriveBtn","#mStatus",()=>mLastFile,"maanak");
+driveButton("#tDriveBtn","#tStatus",()=>tLastFile,"tazkir");
+
+
+/* ================= cloud (Supabase) ================= */
+const BUCKET="attendance", PROFILE_TABLE="attendance_profiles";
+const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", DOCX_MIME="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const cloud={sb:null,user:null,applying:false,timer:null};
+const cloudOn = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+const monthOf = isos => { const c={}; isos.forEach(d=>{ const k=d.slice(0,7); c[k]=(c[k]||0)+1; }); return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]; };
+const monthLabel = ym => HEB_MONTHS[+ym.slice(5,7)-1]+" "+ym.slice(0,4);
+const P = rel => cloud.user.id+"/"+rel;
+function syncState(t){ $("#syncState").textContent=t||""; }
+function authErr(e){ const m=(e&&e.message)||"";
+  if(/invalid login/i.test(m)) return "מייל או סיסמה לא נכונים.";
+  if(/not confirmed/i.test(m)) return "צריך קודם לאשר את המייל דרך הקישור שנשלח אליך.";
+  if(/already registered/i.test(m)) return "המייל הזה כבר רשום. נסה להיכנס.";
+  if(/at least 6/i.test(m)) return "הסיסמה צריכה להיות לפחות 6 תווים.";
+  if(/rate limit/i.test(m)) return "יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.";
+  return "משהו השתבש: "+m; }
+
+async function cloudInit(){
+  if(!cloudOn()) return;            // local-only mode
+  cloud.sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  cloud.sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==="PASSWORD_RECOVERY"){ showAuth(true); return; }
+    const u=session&&session.user;
+    if(u && (!cloud.user || cloud.user.id!==u.id)) setTimeout(()=>onLogin(u),0);
+    if(!u && cloud.user) onLogout();
+  });
+  const {data}=await cloud.sb.auth.getSession();
+  if(data&&data.session&&data.session.user) onLogin(data.session.user); else showAuth(false);
+}
+function showAuth(recovery){
+  document.body.classList.add("locked"); $("#auth").hidden=false; $("#acct").hidden=true; $("#files").hidden=true;
+  $("#authForm").hidden=!!recovery; $("#newPassForm").hidden=!recovery;
+  $("#authTitle").textContent=recovery?"בחירת סיסמה חדשה":"כניסה לחשבון";
+}
+async function onLogin(u){
+  cloud.user=u; document.body.classList.remove("locked"); $("#auth").hidden=true;
+  $("#acct").hidden=false; $("#acctEmail").textContent=u.email; $("#files").hidden=false; $("#filesOff").hidden=true; renderDash();
+  await cloudPullProfile(); await cloudPullTemplate(); await cloudPullSettings(); renderFiles();
+}
+function onLogout(){
+  cloud.user=null; cloudIndex=null; $("#files").hidden=true; $("#filesOff").hidden=false; ["att_name","att_tz","att_sig","att_tpl","att_school"].forEach(k=>store.set(k,null,true));
+  $("#name").value=""; $("#tz").value=""; $("#school").value=""; G.rows=[]; renderG(); showSig(); loadTpl(); showAuth(false);
+}
+$("#login").onclick=async()=>{ setStatus("#authStatus","מתחבר…");
+  const {error}=await cloud.sb.auth.signInWithPassword({email:$("#email").value.trim(),password:$("#pass").value});
+  setStatus("#authStatus",error?authErr(error):"",error?"err":""); };
+$("#signup").onclick=async()=>{ setStatus("#authStatus","יוצר חשבון…");
+  const {data,error}=await cloud.sb.auth.signUp({email:$("#email").value.trim(),password:$("#pass").value,options:{emailRedirectTo:location.href.split("#")[0]}});
+  if(error) return setStatus("#authStatus",authErr(error),"err");
+  setStatus("#authStatus",data.session?"החשבון נוצר.":"החשבון נוצר. שלחנו אליך מייל אישור, לחץ על הקישור שבו ואז היכנס.","ok"); };
+$("#forgot").onclick=async()=>{ const email=$("#email").value.trim(); if(!email) return setStatus("#authStatus","כתוב קודם את המייל.","err");
+  const {error}=await cloud.sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split("#")[0]});
+  setStatus("#authStatus",error?authErr(error):"שלחנו מייל עם קישור לבחירת סיסמה חדשה.",error?"err":"ok"); };
+$("#setPass").onclick=async()=>{ const {error}=await cloud.sb.auth.updateUser({password:$("#newPass").value});
+  if(error) return setStatus("#authStatus",authErr(error),"err");
+  setStatus("#authStatus","הסיסמה עודכנה.","ok"); const {data}=await cloud.sb.auth.getUser(); if(data&&data.user) onLogin(data.user); };
+$("#logout").onclick=()=>cloud.sb.auth.signOut();
+
+/* profile: name, ID, signature */
+async function cloudPullProfile(){
+  syncState("מסנכרן…");
+  const {data,error}=await cloud.sb.from(PROFILE_TABLE).select("full_name,id_number,signature").eq("user_id",cloud.user.id).maybeSingle();
+  if(error){ syncState("הסנכרון נכשל"); return; }
+  if(data){ store.set("att_name",data.full_name||"",true); store.set("att_tz",data.id_number||"",true); store.set("att_sig",data.signature||null,true); }
+  else await cloudPushProfile();   // first login: upload what's on this device
+  $("#name").value=store.get("att_name")||""; $("#tz").value=store.get("att_tz")||""; showSig(); syncState("מסונכרן");
+}
+async function cloudPushProfile(){
+  if(!cloud.user) return; syncState("שומר…");
+  const {error}=await cloud.sb.from(PROFILE_TABLE).upsert({user_id:cloud.user.id,full_name:store.get("att_name")||"",id_number:store.get("att_tz")||"",signature:store.get("att_sig")||null,updated_at:new Date().toISOString()});
+  syncState(error?"השמירה בענן נכשלה":"מסונכרן");
+}
+window.cloudOnChange=(k,v)=>{
+  if(!cloud.user) return;
+  if(["att_name","att_tz","att_sig"].includes(k)){ clearTimeout(cloud.timer); cloud.timer=setTimeout(cloudPushProfile,800); }
+  if(k==="att_tpl") cloudPushTemplate(v);
+  if(k==="att_school"){ clearTimeout(cloud.stimer); cloud.stimer=setTimeout(cloudPushSettings,800); }
+};
+
+/* settings kept as a small file in the gefen folder (no database change needed) */
+async function cloudPullSettings(){
+  const {data}=await cloud.sb.storage.from(BUCKET).download(P("gefen/settings.json"));
+  if(data){ try{ const j=JSON.parse(await data.text()); if(j.school!=null){ store.set("att_school",j.school,true); } }catch(e){} }
+  else if(store.get("att_school")) await cloudPushSettings();
+  $("#school").value=store.get("att_school")||""; renderG();
+}
+async function cloudPushSettings(){
+  if(!cloud.user) return;
+  await cloud.sb.storage.from(BUCKET).upload(P("gefen/settings.json"),new Blob([JSON.stringify({school:store.get("att_school")||""})],{type:"application/json"}),{upsert:true,contentType:"application/json"});
+}
+/* template */
+async function cloudPullTemplate(){
+  const {data}=await cloud.sb.storage.from(BUCKET).download(P("template.docx"));
+  if(data){ store.set("att_tpl",bytesToB64(new Uint8Array(await data.arrayBuffer())),true); }
+  else if(store.get("att_tpl")) await cloudPushTemplate(store.get("att_tpl"));
+  loadTpl();
+}
+async function cloudPushTemplate(b64){
+  if(!b64){ await cloud.sb.storage.from(BUCKET).remove([P("template.docx")]); return; }
+  await cloud.sb.storage.from(BUCKET).upload(P("template.docx"),new Blob([b64ToBytes(b64)],{type:DOCX_MIME}),{upsert:true,contentType:DOCX_MIME});
+}
+
+/* files: reports/<YYYY-MM>.docx, sources/<YYYY-MM>_hours.xlsx, sources/<YYYY-MM>_clock.xlsx */
+const DIR = kind => kind==="gefen" ? "gefen" : "work";   // separate cloud folders
+async function cloudSaveSource(bytes,kind,isos,name){
+  if(!cloud.user) return; const ym=monthOf(isos); const ext=(name.split(".").pop()||"xlsx").toLowerCase();
+  const {error}=await cloud.sb.storage.from(BUCKET).upload(P(`${DIR(kind)}/sources/${ym}_${kind}.${ext}`),new Blob([bytes],{type:XLSX_MIME}),{upsert:true,contentType:XLSX_MIME});
+  if(!error) renderFiles();
+}
+async function cloudSaveReport(blob,ym,kind){
+  const {error}=await cloud.sb.storage.from(BUCKET).upload(P(`${DIR(kind)}/reports/${ym}.docx`),blob,{upsert:true,contentType:DOCX_MIME});
+  renderFiles(); return !error;
+}
+async function listDir(dir){ const {data,error}=await cloud.sb.storage.from(BUCKET).list(P(dir),{limit:1000,sortBy:{column:"name",order:"desc"}}); return error?[]:(data||[]).filter(f=>f.id); }
+async function renderFiles(){
+  if(!cloud.user) return;
+  const [wr,ws,lr,ls,gr,gs,fm,ft]=await Promise.all(["work/reports","work/sources","reports","sources","gefen/reports","gefen/sources","forms/maanak","forms/tazkir"].map(listDir));
+  const work={}, gef={};
+  const put=(map,ym,k,v)=>{ (map[ym]=map[ym]||{})[k]=v; };
+  [[lr,"reports"],[wr,"work/reports"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.docx$/); if(m) put(work,m[1],"report",d+"/"+f.name); }));
+  [[ls,"sources"],[ws,"work/sources"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})_(hours|clock)\./); if(m) put(work,m[1],m[2],d+"/"+f.name); }));
+  gr.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.docx$/); if(m) put(gef,m[1],"report","gefen/reports/"+f.name); });
+  gs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})_gefen\./); if(m) put(gef,m[1],"gefen","gefen/sources/"+f.name); });
+  const draw=(box,map,kind)=>{
+    if(!box) return;
+    const keys=Object.keys(map).sort().reverse();
+    box.innerHTML = keys.length ? "" : '<div class="folder-empty">עדיין אין קבצים בתיקייה הזאת.</div>';
+    keys.forEach(ym=>{ const m=map[ym]; const div=document.createElement("div"); div.className="month";
+      div.innerHTML=`<h3>${monthLabel(ym)}</h3><div class="bar"></div>`; const bar=div.querySelector(".bar");
+      const add=(label,fn,cls)=>{ const b=document.createElement("button"); b.textContent=label; if(cls) b.className=cls; b.onclick=fn; bar.appendChild(b); };
+      const ml=monthLabel(ym).replace(" ","_");
+      if(kind==="work"){
+        if(m.report) add("כרטיס נוכחות ⬇",()=>cloudDownload(m.report,`כרטיס_נוכחות_${ml}.docx`));
+        if(m.hours) add("קובץ שעות ⬇",()=>cloudDownload(m.hours,`שעות_${ym}.xlsx`));
+        if(m.clock) add("דוח שעון ⬇",()=>cloudDownload(m.clock,`דוח_שעון_${ym}.xlsx`));
+        if(m.hours||m.clock) add("טען לעריכה",()=>cloudLoadMonth(m,ym),"primary");
+      } else {
+        if(m.report) add("דוח גפ\"ן ⬇",()=>cloudDownload(m.report,`דיווח_גפן_${ml}.docx`));
+        if(m.gefen) add("קובץ גפ\"ן ⬇",()=>cloudDownload(m.gefen,`גפן_${ym}.xlsx`));
+        if(m.gefen) add("טען לעריכה",()=>cloudLoadGefen(m,ym),"primary");
+      }
+      add("מחק",()=>cloudDeleteMonth(m,ym),"del");
+      box.appendChild(div); });
+  };
+  draw($("#fileListWork"),work,"work"); draw($("#fileListGefen"),gef,"gefen");
+  // forms folder
+  const formsBox=$("#fileListForms");
+  if(formsBox){
+    const allForms=[...(fm||[]).map(f=>({name:f.name,path:"forms/maanak/"+f.name,label:"מענק"})),...(ft||[]).map(f=>({name:f.name,path:"forms/tazkir/"+f.name,label:"תזכיר"}))];
+    formsBox.innerHTML = allForms.length ? "" : '<div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div>';
+    allForms.forEach(f=>{
+      const div=document.createElement("div"); div.className="month";
+      div.innerHTML=`<h3>${esc(f.label)} · ${esc(f.name)}</h3><div class="bar"></div>`;
+      const b=document.createElement("button"); b.textContent="הורדה ⬇"; b.onclick=()=>cloudDownload(f.path,f.name);
+      div.querySelector(".bar").appendChild(b); formsBox.appendChild(div);
+    });
+  }
+  const wc=Object.keys(work).length, gc=Object.keys(gef).length, fc=(fm||[]).length+(ft||[]).length;
+  const setCount=(id,n,empty)=>{ const el=$(id); if(el) el.textContent=n?`${n} חודשים / קבצים`:(empty||"ריק"); };
+  setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
+  setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
+  setCount("folderFormsCount",fc,"מענק · תזכירים");
+  cloudIndex={work,gef}; renderDash();
+}
+// folder open/close
+document.querySelectorAll(".folder-head").forEach(btn=>{
+  btn.onclick=()=>{
+    const folder=btn.closest(".folder");
+    const open=folder.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open?"true":"false");
+  };
+});
+
+async function cloudLoadGefen(m,ym){
+  setStatus("#filesStatus","טוען את "+monthLabel(ym)+"…");
+  const {data}=await cloud.sb.storage.from(BUCKET).download(P(m.gefen));
+  if(!data) return setStatus("#filesStatus","הטעינה נכשלה.","err");
+  setMode("gefen"); loadGefenBytes(new Uint8Array(await data.arrayBuffer()));
+  setStatus("#filesStatus",monthLabel(ym)+" נטען לדיווח הגפ\"ן. אפשר לתקן ולהפיק מחדש.","ok");
+  $("#g2").scrollIntoView({behavior:"smooth"});
+}
+async function cloudDownload(rel,fname){
+  setStatus("#filesStatus","מוריד…");
+  const {data,error}=await cloud.sb.storage.from(BUCKET).download(P(rel));
+  if(error||!data) return setStatus("#filesStatus","ההורדה נכשלה.","err");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(data); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000); setStatus("#filesStatus","");
+}
+async function cloudLoadMonth(m,ym){
+  setStatus("#filesStatus","טוען את "+monthLabel(ym)+"…"); setMode("work");
+  S.clock=[]; S.rows=[]; S.excel={};
+  for(const kind of ["hours","clock"]){ if(!m[kind]) continue;
+    const {data}=await cloud.sb.storage.from(BUCKET).download(P(m[kind])); if(!data) continue;
+    const bytes=new Uint8Array(await data.arrayBuffer()); kind==="hours"?loadHoursBytes(bytes):loadClockBytes(bytes); }
+  S.monthAuto=true; autoMonth(); renderCal(); renderRows(); renderCheck();
+  setStatus("#filesStatus",monthLabel(ym)+" נטען. אפשר לתקן ולהפיק מחדש.","ok");
+  $("#s2").scrollIntoView({behavior:"smooth"});
+}
+async function cloudDeleteMonth(m,ym){
+  if(!confirm(`למחוק את כל הקבצים של ${monthLabel(ym)} מהענן?`)) return;
+  const paths=[m.report,m.hours,m.clock,m.gefen].filter(Boolean).map(P);
+  const {error}=await cloud.sb.storage.from(BUCKET).remove(paths);
+  setStatus("#filesStatus",error?"המחיקה נכשלה.":"נמחק.",error?"err":"ok"); renderFiles();
+}
+
+loadTpl(); showSig(); renderCal(); renderRows(); renderG(); renderDash();
+cloudInit();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
