@@ -449,8 +449,16 @@ body[data-mode="tazkir"] .back-row{display:flex}
 
 <!-- ========== תזכיר משרדי ========== -->
 <section class="step tab m-tazkir" id="tz1"><span class="punch">1</span>
-  <h2>תזכיר משרדי – פרטי התלמיד/ה</h2>
+  <h2>תזכיר משרדי – כותרת ופרטי תלמיד</h2>
   <p class="hint">טופס הפניה / המלצה לוועדה באגף לחינוך.</p>
+  <div class="row2">
+    <div><label class="f" for="tTo">לכבוד / אל</label><input type="text" id="tTo" value="האגף לחינוך"></div>
+    <div><label class="f" for="tDate">תאריך</label><input type="date" id="tDate"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tFrom">מאת</label><input type="text" id="tFrom"></div>
+    <div><label class="f" for="tCheckNo">מס' בדיקה</label><input type="text" id="tCheckNo"></div>
+  </div>
   <div class="row2">
     <div><label class="f" for="tFirst">שם פרטי</label><input type="text" id="tFirst"></div>
     <div><label class="f" for="tLast">שם משפחה</label><input type="text" id="tLast"></div>
@@ -459,9 +467,27 @@ body[data-mode="tazkir"] .back-row{display:flex}
     <div><label class="f" for="tTz">ת"ז</label><input type="text" id="tTz" inputmode="numeric"></div>
     <div><label class="f" for="tBirth">תאריך לידה</label><input type="date" id="tBirth"></div>
   </div>
+  <label class="f">מין</label>
+  <div class="bar" style="margin-top:4px">
+    <label><input type="radio" name="tGender" id="tGenderM" value="ז"> זכר</label>
+    <label><input type="radio" name="tGender" id="tGenderF" value="נ"> נקבה</label>
+  </div>
   <div class="row2">
     <div><label class="f" for="tMother">שם האם</label><input type="text" id="tMother"></div>
     <div><label class="f" for="tFather">שם האב</label><input type="text" id="tFather"></div>
+  </div>
+  <label class="f" for="tFamilyStatus">המצב המשפחתי</label>
+  <select id="tFamilyStatus">
+    <option value="">בחרו…</option>
+    <option>נשואים</option>
+    <option>גרושים</option>
+    <option>פרודים</option>
+    <option>אלמן/ה</option>
+    <option>רווק/ה</option>
+  </select>
+  <div id="tOtherParentWrap" hidden>
+    <label class="f" for="tOtherParentAddr">כתובת ההורה השני (במקרה של גרושים/פרודים)</label>
+    <input type="text" id="tOtherParentAddr">
   </div>
   <div class="row2">
     <div><label class="f" for="tAddress">כתובת פרטית</label><input type="text" id="tAddress"></div>
@@ -469,16 +495,76 @@ body[data-mode="tazkir"] .back-row{display:flex}
   </div>
   <div class="row2">
     <div><label class="f" for="tSchool">שם המוסד בו התלמיד לומד</label><input type="text" id="tSchool"></div>
-    <div><label class="f" for="tClass">סוג / דרגת הכתה</label><input type="text" id="tClass"></div>
+    <div><label class="f" for="tClassType">סוג הכתה</label><input type="text" id="tClassType" placeholder="למשל ד"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="tClassGrade">דרגת הכתה</label><input type="text" id="tClassGrade"></div>
+    <div><label class="f" for="tBirthCountry">ארץ לידה</label><input type="text" id="tBirthCountry" value="ישראל"></div>
+  </div>
+  <div id="tAliyahWrap" hidden>
+    <label class="f" for="tAliyahDate">תאריך עלייה</label>
+    <input type="date" id="tAliyahDate">
   </div>
 </section>
 
 <section class="step tab m-tazkir" id="tz2"><span class="punch">2</span>
-  <h2>המלצות והערות</h2>
-  <label class="f" for="tRecommend">המלצה לשיבוץ</label>
-  <textarea id="tRecommend" rows="3" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)" placeholder="בהתאם לממצאינו אנו ממליצים לשבץ את הנ&quot;ל בביה&quot;ס..."></textarea>
+  <h2>מסמכים, המלצות וחתימות</h2>
+  <label class="f">מסמכים בתיק</label>
+  <div class="bar" style="margin-top:4px;flex-direction:column;align-items:stretch;gap:8px">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span style="min-width:8em">דו"ח פסיכולוגי</span>
+      <label><input type="radio" name="tDocPsych" value="כן"> כן</label>
+      <label><input type="radio" name="tDocPsych" value="לא" checked> לא</label>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span style="min-width:8em">שאלון הפניה</span>
+      <label><input type="radio" name="tDocQuest" value="כן"> כן</label>
+      <label><input type="radio" name="tDocQuest" value="לא" checked> לא</label>
+    </div>
+    <div>
+      <label class="f" for="tDocOther">אחר (פירוט ידני)</label>
+      <input type="text" id="tDocOther" placeholder="אופציונלי">
+    </div>
+  </div>
+
+  <label class="f" for="tHebYear">המלצות להעברה לשנת תש</label>
+  <input type="text" id="tHebYear" placeholder="למשל חנ''ג או תשפ&quot;ו">
+
+  <label class="f">סוג בית ספר מומלץ</label>
+  <div class="bar" style="margin-top:4px">
+    <label><input type="radio" name="tSchoolType" id="tSchoolReg" value="רגיל" checked> בית ספר רגיל</label>
+    <label><input type="radio" name="tSchoolType" id="tSchoolSpec" value="מיוחד"> חינוך מיוחד</label>
+  </div>
+  <div id="tRegClassWrap">
+    <label class="f" for="tRegClassKind">סוג כיתה (בביה"ס רגיל)</label>
+    <select id="tRegClassKind">
+      <option value="">בחרו…</option>
+      <option>מקדמת</option>
+      <option>מעבר</option>
+      <option>לקויות למידה</option>
+      <option>הפרעות התנהגות</option>
+      <option>לקויות תקשורת</option>
+      <option>מוכנות</option>
+    </select>
+  </div>
+  <label class="f" for="tTargetSchool">שם ביה"ס המומלץ</label>
+  <input type="text" id="tTargetSchool">
+
+  <label class="f">גן / שנה נוספת</label>
+  <div class="bar" style="margin-top:4px;flex-wrap:wrap">
+    <label><input type="checkbox" id="tGanExtra"> שנה נוספת בגן</label>
+    <label><input type="checkbox" id="tGanSiach"> גננת שיח</label>
+    <label><input type="checkbox" id="tGanSpecial"> גן חינוך מיוחד</label>
+  </div>
+
   <label class="f" for="tNotes">הערות</label>
-  <textarea id="tNotes" rows="3" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)"></textarea>
+  <textarea id="tNotes" rows="3" style="width:100%;font:inherit;padding:11px 14px;border:1.5px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink)"></textarea>
+
+  <div class="row2">
+    <div><label class="f" for="tPsychName">שם הפסיכולוג/ית</label><input type="text" id="tPsychName"></div>
+    <div><label class="f" for="tPrincipalName">שם המנהל/ת</label><input type="text" id="tPrincipalName"></div>
+  </div>
+
   <div class="bar" style="margin-top:14px">
     <button class="primary" id="tMake">הפק קובץ וורד</button>
     <button id="tShare" hidden>שתף PDF</button>
@@ -489,7 +575,6 @@ body[data-mode="tazkir"] .back-row{display:flex}
   <div class="status" id="tStatus"></div>
   <div class="status" id="tPdf"></div>
 </section>
-
 
 <section class="step tab m-files" id="filesOff"><span class="punch">☁</span>
   <h2>קבצים בענן</h2>
@@ -1395,36 +1480,101 @@ function collectMaanak(){
   return {last:$("#mLast").value.trim(),first:$("#mFirst").value.trim(),tz:$("#mTz").value.trim(),birth:$("#mBirth").value.trim(),unit:$("#mUnit").value.trim(),role:$("#mRole").value.trim(),email:$("#mEmail").value.trim(),mobile:$("#mMobile").value.trim(),subject:$("#mSubject").value.trim(),institution:$("#mInstitution").value.trim(),place:$("#mPlace").value.trim(),cost:$("#mCost").value.trim(),from:$("#mFrom").value,to:$("#mTo").value,day:$("#mDay").value.trim(),hours:$("#mHours").value.trim(),notes:$("#mNotes").value.trim()};
 }
 function collectTazkir(){
-  return {first:$("#tFirst").value.trim(),last:$("#tLast").value.trim(),tz:$("#tTz").value.trim(),birth:$("#tBirth").value,mother:$("#tMother").value.trim(),father:$("#tFather").value.trim(),address:$("#tAddress").value.trim(),phone:$("#tPhone").value.trim(),school:$("#tSchool").value.trim(),cls:$("#tClass").value.trim(),recommend:$("#tRecommend").value.trim(),notes:$("#tNotes").value.trim(),fromName:store.get("att_name")||""};
+  const gender = ($("#tGenderM")&&$("#tGenderM").checked)?"ז":(($("#tGenderF")&&$("#tGenderF").checked)?"נ":"");
+  const schoolType = ($("#tSchoolSpec")&&$("#tSchoolSpec").checked)?"מיוחד":"רגיל";
+  const gan=[];
+  if($("#tGanExtra")&&$("#tGanExtra").checked) gan.push("שנה נוספת בגן");
+  if($("#tGanSiach")&&$("#tGanSiach").checked) gan.push("גננת שיח");
+  if($("#tGanSpecial")&&$("#tGanSpecial").checked) gan.push("גן חינוך מיוחד");
+  const docPsych=(document.querySelector('input[name="tDocPsych"]:checked')||{}).value||"";
+  const docQuest=(document.querySelector('input[name="tDocQuest"]:checked')||{}).value||"";
+  return {
+    to:($("#tTo")&&$("#tTo").value.trim())||"האגף לחינוך",
+    date:($("#tDate")&&$("#tDate").value)||"",
+    from:($("#tFrom")&&$("#tFrom").value.trim())||(store.get("att_name")||""),
+    checkNo:($("#tCheckNo")&&$("#tCheckNo").value.trim())||"",
+    first:$("#tFirst").value.trim(), last:$("#tLast").value.trim(), tz:$("#tTz").value.trim(),
+    birth:$("#tBirth").value, gender,
+    mother:$("#tMother").value.trim(), father:$("#tFather").value.trim(),
+    familyStatus:($("#tFamilyStatus")&&$("#tFamilyStatus").value)||"",
+    otherParentAddr:($("#tOtherParentAddr")&&$("#tOtherParentAddr").value.trim())||"",
+    address:$("#tAddress").value.trim(), phone:$("#tPhone").value.trim(),
+    school:$("#tSchool").value.trim(),
+    classType:($("#tClassType")&&$("#tClassType").value.trim())||"",
+    classGrade:($("#tClassGrade")&&$("#tClassGrade").value.trim())||"",
+    birthCountry:($("#tBirthCountry")&&$("#tBirthCountry").value.trim())||"ישראל",
+    aliyahDate:($("#tAliyahDate")&&$("#tAliyahDate").value)||"",
+    docPsych, docQuest, docOther:($("#tDocOther")&&$("#tDocOther").value.trim())||"",
+    hebYear:($("#tHebYear")&&$("#tHebYear").value.trim())||"",
+    schoolType, regClassKind:($("#tRegClassKind")&&$("#tRegClassKind").value)||"",
+    targetSchool:($("#tTargetSchool")&&$("#tTargetSchool").value.trim())||"",
+    gan:gan.join(", "),
+    notes:$("#tNotes").value.trim(),
+    psychName:($("#tPsychName")&&$("#tPsychName").value.trim())||"",
+    principalName:($("#tPrincipalName")&&$("#tPrincipalName").value.trim())||"",
+    fromName:store.get("att_name")||""
+  };
 }
 
-/* Fill official DOCX template: label cell → next sibling cell gets the value */
-function fillNextCell(doc, labelRe, value){
-  if(value==null || value==="") return false;
+/* Fill DOCX robustly for official templates */
+function normalizeHeb(s){
+  return String(s||"").replace(/[\u200f\u200e\u00a0]/g," ").replace(/\s+/g," ").trim();
+}
+function fillField(doc, labelRe, value){
+  if(value==null || String(value).trim()==="") return false;
+  value=String(value).trim();
   const cells=elsW(doc,"tc");
   for(let i=0;i<cells.length;i++){
-    const t=textOf(cells[i]).replace(/\s+/g," ").trim();
-    if(labelRe.test(t) && i+1<cells.length){
-      // only fill if the next cell is mostly empty
-      const next=cells[i+1];
-      const nt=textOf(next).replace(/\s+/g," ").trim();
-      if(!nt || /^[_‐–—.\s]*$/.test(nt) || nt.length<2){
-        setCell(doc, next, String(value));
+    const raw=textOf(cells[i]);
+    const t=normalizeHeb(raw);
+    if(!labelRe.test(t) && !labelRe.test(raw.trim())) continue;
+
+    // 1) next sibling empty cell (tazkir style: label | value)
+    if(i+1<cells.length){
+      const nt=normalizeHeb(textOf(cells[i+1]));
+      if(!nt || /^[_‐–—.\s]*$/.test(nt)){
+        setCell(doc, cells[i+1], value);
         return true;
       }
     }
+
+    // 2) label ends with colon → append value in same cell after colon
+    if(/:\s*$/.test(t) || t.includes(":")){
+      const ts=elsW(cells[i],"t");
+      if(ts.length){
+        // put value after the last text node that has the colon
+        let done=false;
+        for(const node of ts){
+          if((node.textContent||"").includes(":")){
+            setT(node, (node.textContent||"").replace(/\s*$/,"") + " " + value);
+            done=true; break;
+          }
+        }
+        if(done) return true;
+      }
+    }
+
+    // 3) pure header label cell (שם משפחה etc.) → add second paragraph with value
+    {
+      const p=mk(doc,"p");
+      const r=mk(doc,"r");
+      const rp=mk(doc,"rPr");
+      rp.appendChild(mk(doc,"rtl"));
+      r.appendChild(rp);
+      const te=mk(doc,"t"); setT(te, value); r.appendChild(te); p.appendChild(r);
+      cells[i].appendChild(p);
+      return true;
+    }
   }
-  return false;
-}
-function fillByLabelContains(doc, labelPart, value){
-  if(!value) return false;
-  const cells=elsW(doc,"tc");
-  for(let i=0;i<cells.length;i++){
-    const t=textOf(cells[i]);
-    if(t.includes(labelPart) && i+1<cells.length){
-      const nt=textOf(cells[i+1]).replace(/\s+/g," ").trim();
-      if(!nt || /^[_‐–—.\s]*$/.test(nt) || nt.length<3){
-        setCell(doc, cells[i+1], String(value));
+  // 4) fallback: any paragraph containing the label text
+  const labelStr = (labelRe.source||"").replace(/[\^\$\\]/g,"");
+  if(labelStr){
+    for(const p of elsW(doc,"p")){
+      const t=normalizeHeb(textOf(p));
+      if(t.includes(labelStr) || labelRe.test(t)){
+        if(/_{3,}/.test(textOf(p))){ fillBlank(doc,p,value,{underline:true}); return true; }
+        const r=mk(doc,"r"); const rp=mk(doc,"rPr"); rp.appendChild(mk(doc,"rtl")); r.appendChild(rp);
+        const te=mk(doc,"t"); setT(te," "+value); r.appendChild(te); p.appendChild(r);
         return true;
       }
     }
@@ -1432,40 +1582,76 @@ function fillByLabelContains(doc, labelPart, value){
   return false;
 }
 function fillUnderscoresInDoc(doc, map){
-  // replace long underscore runs in paragraphs that contain a key word
   elsW(doc,"p").forEach(p=>{
     const tx=textOf(p);
-    Object.entries(map).forEach(([key,val])=>{
+    Object.entries(map||{}).forEach(([key,val])=>{
       if(!val) return;
-      if(tx.includes(key) && /_{3,}/.test(tx)){
-        fillBlank(doc,p,val,{underline:true});
-      }
+      if(tx.includes(key) && /_{3,}/.test(tx)) fillBlank(doc,p,val,{underline:true});
     });
   });
 }
+function markCheckbox(doc, labelPart, yes){
+  if(!yes) return;
+  elsW(doc,"t").forEach(t=>{
+    let s=t.textContent||"";
+    // gender-specific
+    if(yes==="Z" && /המין/.test(textOf(t.parentNode&&t.parentNode.parentNode||t))){
+      s=s.replace("☐ ז","☑ ז").replace("☐ז","☑ז");
+      t.textContent=s; return;
+    }
+    if(yes==="N" && /המין/.test(textOf(t.parentNode&&t.parentNode.parentNode||t))){
+      s=s.replace("☐ נ","☑ נ").replace("☐נ","☑נ");
+      t.textContent=s; return;
+    }
+    if(yes===true && s.includes("☐") && (s.includes(labelPart) || textOf(t.parentNode&&t.parentNode.parentNode||t).includes(labelPart))){
+      t.textContent=s.replace("☐","☑");
+    }
+  });
+  // also scan full cell text for gender
+  if(yes==="Z" || yes==="N"){
+    elsW(doc,"tc").forEach(tc=>{
+      const full=textOf(tc);
+      if(!/המין/.test(full)) return;
+      elsW(tc,"t").forEach(t=>{
+        let s=t.textContent||"";
+        if(yes==="Z") s=s.replace("☐ ז","☑ ז").replace("☐ז","☑ז");
+        if(yes==="N") s=s.replace("☐ נ","☑ נ").replace("☐נ","☑נ");
+        t.textContent=s;
+      });
+    });
+  }
+}
 function appendTextAfterLabel(doc, labelPart, value){
   if(!value) return;
-  if(typeof fillByLabelContains==="function" && fillByLabelContains(doc, labelPart, value)) return;
-  const paras=elsW(doc,"p");
-  for(const p of paras){
+  const cells=elsW(doc,"tc");
+  for(let i=0;i<cells.length;i++){
+    const t=textOf(cells[i]);
+    if(t.includes(labelPart)){
+      if(i+1<cells.length && !textOf(cells[i+1]).trim()){ setCell(doc, cells[i+1], value); return; }
+      const ts=elsW(cells[i],"t");
+      if(ts.length){ setT(ts[ts.length-1], (ts[ts.length-1].textContent||"")+" "+value); return; }
+    }
+  }
+  elsW(doc,"p").forEach(p=>{
     const t=textOf(p);
     if(t.includes(labelPart)){
       if(/_{3,}/.test(t)){ fillBlank(doc,p,value); return; }
       const r=mk(doc,"r"); const rp=mk(doc,"rPr"); rp.appendChild(mk(doc,"rtl")); r.appendChild(rp);
-      const te=mk(doc,"t"); setT(te," "+value); r.appendChild(te); p.appendChild(r); return;
+      const te=mk(doc,"t"); setT(te," "+value); r.appendChild(te); p.appendChild(r);
     }
-  }
+  });
 }
-async function fillOfficialDocx(b64, fills, underscoreMap, freeText){
+async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks){
   if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
   if(!b64) throw new Error("תבנית הטופס לא נטענה.");
   const zip=await JSZip.loadAsync(b64ToBytes(b64));
   const xml=await zip.file("word/document.xml").async("string");
   const doc=new DOMParser().parseFromString(xml,"application/xml");
   if(doc.getElementsByTagName("parsererror").length) throw new Error("שגיאה בפענוח תבנית הוורד.");
-  fills.forEach(([re,val])=>fillNextCell(doc, re, val));
+  (fills||[]).forEach(([re,val])=>fillField(doc, re, val));
   if(underscoreMap) fillUnderscoresInDoc(doc, underscoreMap);
   if(freeText) freeText.forEach(([label,val])=>appendTextAfterLabel(doc, label, val));
+  if(checks) checks.forEach(([label,yes])=>markCheckbox(doc, label, yes));
   const serializer=new XMLSerializer();
   let out=serializer.serializeToString(doc);
   if(!out.startsWith("<?xml")) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out;
@@ -1492,6 +1678,7 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
     const d=collectMaanak();
     store.set("maanak_form",JSON.stringify(d),true);
     if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי.");
+    const hourParts=(d.hours||"").split(/\s*[–\-]\s*/);
     const fills=[
       [/^שם משפחה$/, d.last],
       [/^שם פרטי$/, d.first],
@@ -1508,13 +1695,15 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
       [/^מתאריך:?$/, d.from],
       [/^עד תאריך:?$/, d.to],
       [/^היום בשבוע$/, d.day],
-      [/^משעה$/, d.hours ? d.hours.split(/[–\-]/)[0]?.trim() : ""],
-      [/^עד שעה$/, d.hours && d.hours.includes("–") ? d.hours.split(/[–\-]/)[1]?.trim() : (d.hours && d.hours.includes("-") ? d.hours.split("-")[1]?.trim() : "")],
+      [/^משעה$/, hourParts[0]||""],
+      [/^עד שעה$/, hourParts[1]||""],
     ];
-    // notes go into section ד if possible via underscore or empty cell near נימוקי
-    const blob=await fillOfficialDocx(MAANAK_B64, fills, {"חתימה": (store.get("att_name")||""), "תאריך": new Date().toLocaleDateString("he-IL")}, [["נימוקי", d.notes]]);
-    // secondary pass: put notes into cell after נימוקי if empty
-    // (re-open would be heavy; notes often free-text — try string replace on underscores in notes area is already done)
+    // format dates as DD/MM/YYYY for Word readability
+    const fmtD = (s)=>{ if(!s) return ""; const p=String(s).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; };
+    fills[12][1]=fmtD(d.from); fills[13][1]=fmtD(d.to);
+    const blob=await fillOfficialDocx(MAANAK_B64, fills,
+      {"חתימה": (store.get("att_name")||""), "תאריך": new Date().toLocaleDateString("he-IL")},
+      [["נימוקי", d.notes], ["ד. נימוקי", d.notes]]);
     const fname=`בקשה_למענק_השתלמות_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -1534,23 +1723,49 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
     const d=collectTazkir();
     store.set("tazkir_form",JSON.stringify(d),true);
     if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי של התלמיד/ה.");
+    const fmtD = (s)=>{ if(!s) return ""; const p=String(s).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; };
     const fills=[
+      [/^תאריך:?$/, fmtD(d.date)||fmtD(new Date().toISOString().slice(0,10))],
+      [/^מאת:?$/, d.from],
       [/^שם פרטי$/, d.first],
       [/^שם משפחה$/, d.last],
       [/^ת"?ז$/, d.tz],
-      [/^תאריך לידה:?$/, d.birth],
+      [/^תאריך לידה:?$/, fmtD(d.birth)],
       [/^שם האם:?$/, d.mother],
       [/^שם האב:?$/, d.father],
+      [/^המצב המשפחתי:?$/, d.familyStatus],
       [/^כתובת פרטית:?$/, d.address],
       [/^מס'? טלפון:?$/, d.phone],
       [/^שם המוסד בו התלמיד לומד:?$/, d.school],
-      [/^סוג הכתה:?$/, d.cls],
-      [/^דרגת הכתה:?$/, d.cls],
+      [/^סוג הכתה:?$/, d.classType],
+      [/^דרגת הכתה:?$/, d.classGrade],
+      [/^ארץ הלידה:?$/, d.birthCountry],
+      [/^תאריך\s*העליה\s*:?$/, d.aliyahDate ? fmtD(d.aliyahDate) : ""],
+      [/^בביה"?ס:?$/, d.targetSchool],
+      [/^הערות:?$/, d.notes],
     ];
+    // free-text / special placements
+    const free=[
+      ["אל:", d.to],
+      ["מס' בדיקה", d.checkNo],
+      ["מס׳ בדיקה", d.checkNo],
+      ["אם ההורים גרושים", d.otherParentAddr],
+      ["המלצות להעברה", d.hebYear ? ("לשנת תש"+d.hebYear) : ""],
+      ["בכתה מקדמת", d.regClassKind ? ("סוג כיתה: "+d.regClassKind+(d.schoolType==="מיוחד"?" (חינוך מיוחד)":" (ביה\"ס רגיל)")) : (d.schoolType==="מיוחד"?"חינוך מיוחד":"")],
+      ["בגן שנה נוספת", d.gan],
+      ["חתימת הפסיכולוג", d.psychName],
+      ["חתימת המנהל", d.principalName],
+      ["אחר", d.docOther],
+    ];
+    if(d.docPsych==="כן") free.push(['דו"ח פסיכולוגי', "✓ כן"]);
+    if(d.docQuest==="כן") free.push(["שאלון הפניה", "✓ כן"]);
+    const checks=[];
+    if(d.gender==="ז") checks.push(["המין","Z"]);
+    if(d.gender==="נ") checks.push(["המין","N"]);
     const blob=await fillOfficialDocx(TAZKIR_B64, fills, {
-      "מאת": d.fromName,
-      "תאריך": new Date().toLocaleDateString("he-IL")
-    }, [["הערות", d.notes], ["המלצות", d.recommend], ["מאת", d.fromName]]);
+      "מאת": d.from,
+      "תאריך": fmtD(d.date)||new Date().toLocaleDateString("he-IL")
+    }, free, checks);
     const fname=`תזכיר_משרדי_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -1564,9 +1779,30 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
   finally{ btn.disabled=false; }
 });
 
+// conditional UI for tazkir
+(function(){
+  const fs=$("#tFamilyStatus"), op=$("#tOtherParentWrap");
+  if(fs&&op){ fs.addEventListener("change",()=>{ op.hidden=!(fs.value==="גרושים"||fs.value==="פרודים"); }); }
+  const bc=$("#tBirthCountry"), aw=$("#tAliyahWrap");
+  if(bc&&aw){ const upd=()=>{ const v=(bc.value||"").trim(); aw.hidden=!v || v==="ישראל" || v==="Israel"; }; bc.addEventListener("input",upd); upd(); }
+  const reg=$("#tSchoolReg"), spec=$("#tSchoolSpec"), rcw=$("#tRegClassWrap");
+  if(reg&&rcw){ const upd=()=>{ rcw.hidden=!(reg.checked); }; reg.addEventListener("change",upd); if(spec) spec.addEventListener("change",upd); }
+  if($("#tFrom") && !$("#tFrom").value) $("#tFrom").value=store.get("att_name")||"";
+  if($("#tDate") && !$("#tDate").value){ const n=new Date(); $("#tDate").value=n.toISOString().slice(0,10); }
+})();
+
 // Restore saved new-form data
 try{ const md=JSON.parse(store.get("maanak_form")||"null"); if(md){ Object.entries({mLast:"last",mFirst:"first",mTz:"tz",mBirth:"birth",mUnit:"unit",mRole:"role",mEmail:"email",mMobile:"mobile",mSubject:"subject",mInstitution:"institution",mPlace:"place",mCost:"cost",mFrom:"from",mTo:"to",mDay:"day",mHours:"hours",mNotes:"notes"}).forEach(([id,k])=>{ if(md[k] && $("#"+id)) $("#"+id).value=md[k]; }); } }catch(e){}
-try{ const td=JSON.parse(store.get("tazkir_form")||"null"); if(td){ Object.entries({tFirst:"first",tLast:"last",tTz:"tz",tBirth:"birth",tMother:"mother",tFather:"father",tAddress:"address",tPhone:"phone",tSchool:"school",tClass:"cls",tRecommend:"recommend",tNotes:"notes"}).forEach(([id,k])=>{ if(td[k] && $("#"+id)) $("#"+id).value=td[k]; }); } }catch(e){}
+try{ const td=JSON.parse(store.get("tazkir_form")||"null"); if(td){
+  Object.entries({tTo:"to",tDate:"date",tFrom:"from",tCheckNo:"checkNo",tFirst:"first",tLast:"last",tTz:"tz",tBirth:"birth",tMother:"mother",tFather:"father",tFamilyStatus:"familyStatus",tOtherParentAddr:"otherParentAddr",tAddress:"address",tPhone:"phone",tSchool:"school",tClassType:"classType",tClassGrade:"classGrade",tBirthCountry:"birthCountry",tAliyahDate:"aliyahDate",tDocOther:"docOther",tHebYear:"hebYear",tRegClassKind:"regClassKind",tTargetSchool:"targetSchool",tNotes:"notes",tPsychName:"psychName",tPrincipalName:"principalName"}).forEach(([id,k])=>{ if(td[k]!=null && $("#"+id)) $("#"+id).value=td[k]; });
+  if(td.gender==="ז" && $("#tGenderM")) $("#tGenderM").checked=true;
+  if(td.gender==="נ" && $("#tGenderF")) $("#tGenderF").checked=true;
+  if(td.schoolType==="מיוחד" && $("#tSchoolSpec")) $("#tSchoolSpec").checked=true;
+  if(td.docPsych){ const el=document.querySelector('input[name="tDocPsych"][value="'+td.docPsych+'"]'); if(el) el.checked=true; }
+  if(td.docQuest){ const el=document.querySelector('input[name="tDocQuest"][value="'+td.docQuest+'"]'); if(el) el.checked=true; }
+  if($("#tOtherParentWrap")) $("#tOtherParentWrap").hidden=!(td.familyStatus==="גרושים"||td.familyStatus==="פרודים");
+  if($("#tAliyahWrap")){ const v=(td.birthCountry||""); $("#tAliyahWrap").hidden=!v || v==="ישראל"; }
+} }catch(e){}
 
 const validModes=["dash","forms","files","work","gefen","maanak","tazkir"];
 setMode(validModes.includes(store.get("att_mode"))?store.get("att_mode"):"dash");
