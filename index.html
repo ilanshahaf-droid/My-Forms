@@ -1656,50 +1656,46 @@ function fillUnderscoresInDoc(doc, map){
 function markCheckbox(doc, labelPart, yes){
   if(!yes) return;
   const texts=elsW(doc,"t");
-  // ☐ and label are often in SEPARATE runs: [☐] [ קבוע/ה ]
-  const isBox = (s)=> s==="☐" || s==="□" || s==="☐ " || /^[☐□]\s*$/.test(s||"");
+  const isBox = (s)=> { const x=(s||"").trim(); return x==="☐" || x==="□" || x==="☑"; };
 
   if(yes==="Z" || yes==="N"){
-    // Gender: find ☐ whose NEXT text node contains ז or נ
     for(let i=0;i<texts.length;i++){
       const s=texts[i].textContent||"";
-      if(!isBox(s)) continue;
+      if(!isBox(s) && s!=="☐" && s!=="□") continue;
+      if((s||"").includes("☑")) continue;
       const next=(texts[i+1]&&texts[i+1].textContent)||"";
-      if(yes==="Z" && /ז/.test(next) && !/נ/.test(next.replace(/ז/g,""))){
-        texts[i].textContent="☑"; return;
-      }
-      if(yes==="N" && /נ/.test(next)){
-        texts[i].textContent="☑"; return;
-      }
+      if(yes==="Z" && /^\s*ז\b/.test(next)){ texts[i].textContent="☑"; return; }
+      if(yes==="N" && /^\s*נ\b/.test(next)){ texts[i].textContent="☑"; return; }
     }
-    // fallback: same-run "☐ ז"
     texts.forEach(t=>{
       let s=t.textContent||"";
-      if(yes==="Z") t.textContent=s.replace(/☐\s*ז/g,"☑ ז").replace(/□\s*ז/g,"☑ ז");
-      if(yes==="N") t.textContent=s.replace(/☐\s*נ/g,"☑ נ").replace(/□\s*נ/g,"☑ נ");
+      if(yes==="Z") t.textContent=s.replace(/☐\s*ז/g,"☑ ז");
+      if(yes==="N") t.textContent=s.replace(/☐\s*נ/g,"☑ נ");
     });
     return;
   }
 
   const target=String(labelPart).trim();
-  // Match ☐ run followed by a run whose text starts with / contains the target
+  // Match ☐ run followed by label run – require the label run to START with the target
+  // (after optional spaces), and for short targets (≤2 chars) require exact token match
   for(let i=0;i<texts.length;i++){
-    const s=texts[i].textContent||"";
-    if(!isBox(s)) continue;
-    const next=((texts[i+1]&&texts[i+1].textContent)||"").trim();
-    // exact start or includes (for short labels like "א","ב","1","2","קיץ")
-    if(next===target || next.startsWith(target) || next.includes(target)){
-      // avoid false positives on very short targets inside longer words
-      if(target.length<=2){
-        // require the next run to be essentially just that option (with optional punctuation)
-        const n=next.replace(/[\s☐□☑]/g,"");
-        if(n!==target && !n.startsWith(target)) continue;
-      }
-      texts[i].textContent="☑";
-      return;
+    const s=(texts[i].textContent||"");
+    if(!isBox(s) && s.trim()!=="☐" && s.trim()!=="□") continue;
+    if(s.includes("☑")) continue;
+    const next=((texts[i+1]&&texts[i+1].textContent)||"");
+    const nextTrim=next.trim();
+    // token = first word/option in the next run
+    const token=(nextTrim.split(/\s+/)[0]||"").replace(/[:：].*$/,"");
+    let ok=false;
+    if(target.length<=2){
+      // exact token only – prevents "א" matching "ארעי"
+      ok = (token===target);
+    } else {
+      ok = nextTrim===target || nextTrim.startsWith(target) || token===target || token.startsWith(target);
     }
+    if(ok){ texts[i].textContent="☑"; return; }
   }
-  // fallback: same-run "☐ label"
+  // fallback same-run
   const re=new RegExp("([☐□])\\s*"+target.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
   for(const t of texts){
     const s=t.textContent||"";
@@ -1762,7 +1758,94 @@ function appendTextAfterLabel(doc, labelPart, value){
     }
   });
 }
-async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, withSig){
+function fillGrantFinancial(doc, d){
+  if(!d) return;
+  const texts=elsW(doc,"t");
+  const isBox = (s)=>{ const x=(s||"").trim(); return x==="☐"||x==="□"; };
+  function markAndFill(labelSubstr, amount){
+    for(let i=0;i<texts.length;i++){
+      const next=((texts[i+1]&&texts[i+1].textContent)||"");
+      if(next.includes(labelSubstr)){
+        if(isBox(texts[i].textContent||"")) texts[i].textContent="☑";
+        if(amount){
+          const n=texts[i+1];
+          if(n && /_{2,}/.test(n.textContent||""))
+            n.textContent=(n.textContent||"").replace(/_{2,}/, " "+amount+" ");
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+  if(d.grant==="מלאה") markAndFill("השתתפות מלאה", d.grantFullAmt);
+  if(d.grant==="חלקית") markAndFill("השתתפות חלקית", d.grantPartAmt);
+  if(d.absWeek) markAndFill("ימים/שעות היעדרות בשבוע", d.absWeek);
+  if(d.absDays) markAndFill("ימי היעדרות ע״ח העירייה", d.absDays);
+  if(d.absExam) markAndFill("ימי היעדרות לבחינות", d.absExam);
+}
+function highlightClassChoice(doc, kind){
+  if(!kind) return;
+  // Bold / mark the chosen class type inside the long options line
+  elsW(doc,"t").forEach(t=>{
+    const s=t.textContent||"";
+    if(!s.includes("מקדמת") && !s.includes("לקוי")) return;
+    // wrap choice with brackets and markers
+    if(s.includes(kind)){
+      t.textContent=s.replace(kind, "【"+kind+"】");
+    } else {
+      // partial matches for option aliases
+      const aliases={"לקויות למידה":["לקוי למידה","לקויות למידה"],"הפרעות התנהגות":["הפרעות התנהגות"],"מקדמת":["מקדמת"],"מעבר":["מעבר"],"לקויות תקשורת":["לקויי תקשורת","לקויות תקשורת"],"מוכנות":["מוכנות"]};
+      const list=aliases[kind]||[kind];
+      for(const a of list){
+        if(s.includes(a)){ t.textContent=s.replace(a,"【"+a+"】"); break; }
+      }
+    }
+  });
+}
+function fixMatayLayout(doc, fromName){
+  // Move "מאת" block to the left side (last cells in RTL table)
+  if(!fromName) return;
+  const tables=elsW(doc,"tbl");
+  // Table index 2 is the מאת row in the official template
+  if(tables.length>2){
+    const tr=elsW(tables[2],"tr")[0];
+    if(!tr) return;
+    const cells=directChildren(tr,"tc");
+    if(cells.length>=3){
+      // Put label+value in the leftmost visual cell (last in RTL)
+      setCell(doc, cells[cells.length-1], "מאת:  "+fromName);
+      setCell(doc, cells[0], "");
+      if(cells[1]) setCell(doc, cells[1], "");
+    }
+  }
+}
+function placeSigAboveName(doc){
+  // handled in XML string stage
+}
+function clearEmptyAlLine(doc){
+  // Table 0: [אל: האגף, EMPTY-with-line, תאריך, date] – clear borders on the empty cell
+  const tables=elsW(doc,"tbl");
+  if(!tables.length) return;
+  const tr=elsW(tables[0],"tr")[0];
+  if(!tr) return;
+  const cells=directChildren(tr,"tc");
+  if(cells.length<2) return;
+  const empty=cells[1];
+  if(textOf(empty).trim()) return;
+  // remove cell borders
+  let tcPr=directChildren(empty,"tcPr")[0];
+  if(!tcPr){ tcPr=mk(doc,"tcPr"); empty.insertBefore(tcPr, empty.firstChild); }
+  directChildren(tcPr,"tcBorders").forEach(b=>tcPr.removeChild(b));
+  const borders=mk(doc,"tcBorders");
+  ["top","left","bottom","right"].forEach(side=>{
+    const el=mk(doc,side);
+    el.setAttributeNS(W,"w:val","nil");
+    borders.appendChild(el);
+  });
+  tcPr.appendChild(borders);
+}
+
+async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, withSig, extra){
   if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
   if(!b64) throw new Error("תבנית הטופס לא נטענה.");
   const zip=await JSZip.loadAsync(b64ToBytes(b64));
@@ -1773,6 +1856,14 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
   if(underscoreMap) fillUnderscoresInDoc(doc, underscoreMap);
   if(freeText) freeText.forEach(([label,val])=>appendTextAfterLabel(doc, label, val));
   if(checks) checks.forEach(([label,yes])=>markCheckbox(doc, label, yes));
+  if(extra && extra.grant) fillGrantFinancial(doc, extra.grant);
+  if(extra && extra.classKind) highlightClassChoice(doc, extra.classKind);
+  if(extra && extra.fromName) fixMatayLayout(doc, extra.fromName);
+  try{ clearEmptyAlLine(doc); }catch(e){}
+  if(extra && extra.schoolType){
+    appendTextAfterLabel(doc, 'בהתאם לממצאינו', extra.schoolType==='מיוחד' ? '(חינוך מיוחד)' : '(ביה\"ס רגיל)');
+  }
+  if(extra && extra.targetSchool) appendTextAfterLabel(doc, 'בביה"ס:', extra.targetSchool);
 
   // Hebrew year: replace underscores after "תש" in heading
   elsW(doc,"t").forEach(t=>{
@@ -1783,7 +1874,7 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
   let out=new XMLSerializer().serializeToString(doc);
   if(!out.startsWith("<?xml")) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out;
 
-  // Embed dashboard signature image
+  // Embed dashboard signature image ABOVE the psychologist / employee name
   if(withSig){
     try{
       const sig=await sigData();
@@ -1791,20 +1882,31 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
         const rid="rIdAttSigForm";
         const {bytes,w,h}=sig;
         const CM=360000;
-        let cx=Math.round(2.6*CM), cy2=Math.round(cx*h/w); if(cy2>0.85*CM){ cy2=Math.round(0.85*CM); cx=Math.round(cy2*w/h); }
+        let cx=Math.round(2.4*CM), cy2=Math.round(cx*h/w); if(cy2>0.75*CM){ cy2=Math.round(0.75*CM); cx=Math.round(cy2*w/h); }
         const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:docPr id="9102" name="Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-        // Prefer placing after "חתימת הפסיכולוג" (memo) or "חתימה:" (grant) – avoid "חתימת המנהל"
+        // Insert drawing at the START of the cell that holds the psychologist name / after חתימה:
+        // Look for run containing the psych name or empty cell after חתימת הפסיכולוג
         let placed=false;
-        const tryPatterns=[
-          /((?:חתימת הפסיכולוג)[^<]{0,80}<\/w:t><\/w:r>)/,
-          /((?:חתימה:)[^<]{0,60}<\/w:t><\/w:r>)/,
-          /((?:חתימה)[^<]{0,40}<\/w:t><\/w:r>)/
-        ];
-        for(const marker of tryPatterns){
-          if(marker.test(out)){
-            out=out.replace(marker, "$1"+drawing);
-            placed=true; break;
+        // Pattern 1: memo – cell text right after "חתימת הפסיכולוג"
+        const psychRe=/(חתימת הפסיכולוג:<\/w:t><\/w:r>)([\s\S]*?)(<w:t[^>]*>)([^<]*)(<\/w:t>)/;
+        if(psychRe.test(out)){
+          out=out.replace(psychRe, (m, a, mid, tOpen, name, tClose)=>{
+            // insert drawing paragraph before the name run
+            return a + mid + drawing + tOpen + name + tClose;
+          });
+          placed=true;
+        }
+        if(!placed){
+          // Pattern 2: grant – after "חתימה:"
+          const grantRe=/(חתימה:\s*)([^<]*<\/w:t><\/w:r>)/;
+          if(grantRe.test(out)){
+            out=out.replace(/(חתימה:[^<]*<\/w:t><\/w:r>)/, "$1"+drawing);
+            placed=true;
           }
+        }
+        if(!placed){
+          const marker=/((?:חתימת הפסיכולוג|חתימה:)[^<]{0,80}<\/w:t><\/w:r>)/;
+          if(marker.test(out)){ out=out.replace(marker,"$1"+drawing); placed=true; }
         }
         if(placed){
           const rootEnd=out.indexOf(">",out.indexOf("<w:document"));
@@ -1878,11 +1980,7 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
       ["נימוקי העובד", d.notes],
       ["ד. נימוקי", d.notes],
     ];
-    if(d.grant==="מלאה" && d.grantFullAmt) free.push(["השתתפות מלאה", d.grantFullAmt]);
-    if(d.grant==="חלקית" && d.grantPartAmt) free.push(["השתתפות חלקית", d.grantPartAmt]);
-    if(d.absWeek) free.push(["ימים/שעות היעדרות בשבוע", d.absWeek]);
-    if(d.absDays) free.push(["ימי היעדרות ע״ח העירייה", d.absDays]);
-    if(d.absExam) free.push(["ימי היעדרות לבחינות", d.absExam]);
+    // grant amounts + absence checkboxes handled by fillGrantFinancial via extra.grant
     const checks=[];
     if(d.emp) checks.push([d.emp, true]);
     if(d.edu) checks.push([d.edu, true]);
@@ -1890,12 +1988,10 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
     if(d.studyYear) checks.push([d.studyYear, true]);
     if(d.semester==="1"||d.semester==="2") checks.push([d.semester, true]);
     if(d.semester==="קיץ") checks.push(["קיץ", true]);
-    if(d.grant==="מלאה") checks.push(["השתתפות מלאה", true]);
-    if(d.grant==="חלקית") checks.push(["השתתפות חלקית", true]);
     // חתימה בטופס מענק: רק תמונת חתימה (בלי שם ליד השורה)
     const blob=await fillOfficialDocx(MAANAK_B64, fills,
       {"תאריך": new Date().toLocaleDateString("he-IL")},
-      free, checks, true);
+      free, checks, true, {grant:d});
     const fname=`בקשה_למענק_השתלמות_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -1962,7 +2058,7 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
     if(d.gender==="נ") checks.push(["המין","N"]);
     const blob=await fillOfficialDocx(TAZKIR_B64, fills, {
       "תאריך": fmtD(d.date)||new Date().toLocaleDateString("he-IL")
-    }, free, checks, true);
+    }, free, checks, true, {fromName:d.from, classKind:d.regClassKind, schoolType:d.schoolType, targetSchool:d.targetSchool});
     const fname=`תזכיר_משרדי_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
