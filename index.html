@@ -388,35 +388,53 @@ body[data-mode="tazkir"] .back-row{display:flex}
 <!-- ========== בקשה למענק השתלמות ========== -->
 <section class="step tab m-maanak" id="ma1"><span class="punch">1</span>
   <h2>בקשה למענק השתלמות – פרטים אישיים</h2>
-  <p class="hint">חלק מהשדות מתמלאים מהפרטים השמורים (שם, ת.ז., חתימה). אפשר להשלים את השאר כאן.</p>
+  <p class="hint">חלק מהשדות מתמלאים מהפרטים השמורים. השלימו את השאר.</p>
   <div class="row2">
     <div><label class="f" for="mLast">שם משפחה</label><input type="text" id="mLast"></div>
     <div><label class="f" for="mFirst">שם פרטי</label><input type="text" id="mFirst"></div>
   </div>
   <div class="row2">
     <div><label class="f" for="mTz">מספר תעודת זהות</label><input type="text" id="mTz" inputmode="numeric"></div>
-    <div><label class="f" for="mBirth">שנת לידה</label><input type="text" id="mBirth" inputmode="numeric" placeholder="למשל 1985"></div>
+    <div><label class="f" for="mBirth">שנת לידה</label><input type="text" id="mBirth" inputmode="numeric" placeholder="למשל 1979"></div>
   </div>
   <div class="row2">
     <div><label class="f" for="mUnit">יחידה</label><input type="text" id="mUnit"></div>
     <div><label class="f" for="mRole">תפקיד</label><input type="text" id="mRole"></div>
   </div>
   <div class="row2">
+    <div><label class="f" for="mStart">תאריך תחילת העבודה</label><input type="date" id="mStart"></div>
+    <div><label class="f" for="mPercent">שיעור משרה</label><input type="text" id="mPercent" placeholder="למשל 100%"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="mRank">דירוג</label><input type="text" id="mRank"></div>
     <div><label class="f" for="mEmail">דוא"ל</label><input type="email" id="mEmail" dir="ltr"></div>
+  </div>
+  <div class="row2">
     <div><label class="f" for="mMobile">נייד</label><input type="text" id="mMobile" inputmode="tel" dir="ltr"></div>
   </div>
-  <label class="f">סוג העסקה</label>
+  <label class="f">סוג העסקה (מעמד)</label>
   <div class="bar" style="margin-top:4px">
-    <label><input type="checkbox" id="mEmpKavua"> קבוע/ה</label>
-    <label><input type="checkbox" id="mEmpZmani"> זמני/ת</label>
-    <label><input type="checkbox" id="mEmpHoze"> חוזה</label>
-    <label><input type="checkbox" id="mEmpArai"> ארעי</label>
+    <label><input type="radio" name="mEmp" id="mEmpKavua" value="קבוע/ה"> קבוע/ה</label>
+    <label><input type="radio" name="mEmp" id="mEmpZmani" value="זמני/ת"> זמני/ת</label>
+    <label><input type="radio" name="mEmp" id="mEmpHoze" value="חוזה"> חוזה</label>
+    <label><input type="radio" name="mEmp" id="mEmpArai" value="ארעי"> ארעי</label>
+  </div>
+  <label class="f">השכלה</label>
+  <div class="bar" style="margin-top:4px">
+    <label><input type="radio" name="mEdu" id="mEduYesod" value="יסודית"> יסודית</label>
+    <label><input type="radio" name="mEdu" id="mEduTichon" value="תיכונית/מקצועי"> תיכונית/מקצועי</label>
+    <label><input type="radio" name="mEdu" id="mEduAl" value="על תיכונית"> על תיכונית</label>
+    <label><input type="radio" name="mEdu" id="mEduAcad" value="אקדמאית"> אקדמאית</label>
   </div>
 </section>
 
 <section class="step tab m-maanak" id="ma2"><span class="punch">2</span>
-  <h2>פרטי ההשתלמות</h2>
-  <p class="hint">מלאו את פרטי הקורס / הלימודים.</p>
+  <h2>פרטי ההשתלמות והמענק</h2>
+  <label class="f">מיקום ההשתלמות</label>
+  <div class="bar" style="margin-top:4px">
+    <label><input type="radio" name="mLoc" id="mLocIL" value="בארץ" checked> בארץ</label>
+    <label><input type="radio" name="mLoc" id="mLocAbroad" value="בחו״ל"> בחו״ל</label>
+  </div>
   <div class="row2">
     <div><label class="f" for="mSubject">הנושא</label><input type="text" id="mSubject"></div>
     <div><label class="f" for="mInstitution">המוסד</label><input type="text" id="mInstitution"></div>
@@ -430,11 +448,33 @@ body[data-mode="tazkir"] .back-row{display:flex}
     <div><label class="f" for="mTo">עד תאריך</label><input type="date" id="mTo"></div>
   </div>
   <div class="row2">
-    <div><label class="f" for="mDay">היום בשבוע</label><input type="text" id="mDay" placeholder="למשל יום ג'"></div>
-    <div><label class="f" for="mHours">משעה – עד שעה</label><input type="text" id="mHours" placeholder="למשל 16:00–20:00"></div>
+    <div><label class="f" for="mDay">היום בשבוע</label><input type="text" id="mDay" placeholder="למשל ג'"></div>
+    <div><label class="f" for="mHours">משעה – עד שעה</label><input type="text" id="mHours" placeholder="16:00–20:00"></div>
   </div>
+  <div class="row2">
+    <div><label class="f" for="mTotalDays">סה"כ ימי לימוד</label><input type="text" id="mTotalDays"></div>
+    <div><label class="f" for="mStudyYear">תקופת לימודים – שנה</label>
+      <select id="mStudyYear"><option value="">—</option><option>א</option><option>ב</option><option>ג</option></select>
+    </div>
+  </div>
+  <label class="f" for="mSemester">סמסטר</label>
+  <select id="mSemester"><option value="">—</option><option value="1">1</option><option value="2">2</option><option value="קיץ">קיץ</option></select>
+
+  <h2 style="margin-top:18px;font-size:17px">ג. המענק המבוקש</h2>
+  <label class="f">הוצאות כספיות</label>
+  <div class="bar" style="margin-top:4px;flex-direction:column;align-items:stretch;gap:6px">
+    <label><input type="radio" name="mGrant" id="mGrantFull" value="מלאה"> השתתפות מלאה בסך <input type="text" id="mGrantFullAmt" style="width:7em;display:inline-block" placeholder="סכום"></label>
+    <label><input type="radio" name="mGrant" id="mGrantPart" value="חלקית"> השתתפות חלקית בסך <input type="text" id="mGrantPartAmt" style="width:7em;display:inline-block" placeholder="סכום"></label>
+  </div>
+  <label class="f">היעדרות מהעבודה</label>
+  <div class="bar" style="margin-top:4px;flex-direction:column;align-items:stretch;gap:6px">
+    <label>ימים/שעות היעדרות בשבוע ע״ח העירייה: <input type="text" id="mAbsWeek" style="width:6em;display:inline-block"></label>
+    <label>ימי היעדרות ע״ח העירייה: <input type="text" id="mAbsDays" style="width:6em;display:inline-block"></label>
+    <label>ימי היעדרות לבחינות ע״ח העירייה: <input type="text" id="mAbsExam" style="width:6em;display:inline-block"></label>
+  </div>
+
   <label class="f" for="mNotes">נימוקי העובד/ת</label>
-  <textarea id="mNotes" rows="4" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)"></textarea>
+  <textarea id="mNotes" rows="3" style="width:100%;font:inherit;padding:11px 14px;border:1.5px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink)"></textarea>
   <div class="bar" style="margin-top:14px">
     <button class="primary" id="mMake">הפק קובץ וורד</button>
     <button id="mShare" hidden>שתף PDF</button>
@@ -452,12 +492,12 @@ body[data-mode="tazkir"] .back-row{display:flex}
   <h2>תזכיר משרדי – כותרת ופרטי תלמיד</h2>
   <p class="hint">טופס הפניה / המלצה לוועדה באגף לחינוך.</p>
   <div class="row2">
-    <div><label class="f" for="tTo">לכבוד / אל</label><input type="text" id="tTo" value="האגף לחינוך"></div>
+    <div><label class="f" for="tTo">אל / לכבוד</label><input type="text" id="tTo" value="האגף לחינוך" placeholder="למשל האגף לחינוך"></div>
     <div><label class="f" for="tDate">תאריך</label><input type="date" id="tDate"></div>
   </div>
   <div class="row2">
-    <div><label class="f" for="tFrom">מאת</label><input type="text" id="tFrom"></div>
     <div><label class="f" for="tCheckNo">מס' בדיקה</label><input type="text" id="tCheckNo"></div>
+    <div><label class="f" for="tFrom">מאת (כותב הדו״ח)</label><input type="text" id="tFrom" placeholder="מתמלא אוטומטית מהפרטים"></div>
   </div>
   <div class="row2">
     <div><label class="f" for="tFirst">שם פרטי</label><input type="text" id="tFirst"></div>
@@ -527,8 +567,8 @@ body[data-mode="tazkir"] .back-row{display:flex}
     </div>
   </div>
 
-  <label class="f" for="tHebYear">המלצות להעברה לשנת תש</label>
-  <input type="text" id="tHebYear" placeholder="למשל חנ''ג או תשפ&quot;ו">
+  <label class="f" for="tHebYear">המלצות להעברה – שנה עברית (רק הסיומת)</label>
+  <input type="text" id="tHebYear" placeholder='למשל שפ"ו או פ"ו (בלי המילה "תש")'>
 
   <label class="f">סוג בית ספר מומלץ</label>
   <div class="bar" style="margin-top:4px">
@@ -1477,7 +1517,30 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{
 $("#backToForms").onclick=()=>setMode("forms");
 /* ---- helpers: collect form data ---- */
 function collectMaanak(){
-  return {last:$("#mLast").value.trim(),first:$("#mFirst").value.trim(),tz:$("#mTz").value.trim(),birth:$("#mBirth").value.trim(),unit:$("#mUnit").value.trim(),role:$("#mRole").value.trim(),email:$("#mEmail").value.trim(),mobile:$("#mMobile").value.trim(),subject:$("#mSubject").value.trim(),institution:$("#mInstitution").value.trim(),place:$("#mPlace").value.trim(),cost:$("#mCost").value.trim(),from:$("#mFrom").value,to:$("#mTo").value,day:$("#mDay").value.trim(),hours:$("#mHours").value.trim(),notes:$("#mNotes").value.trim()};
+  const emp=(document.querySelector('input[name="mEmp"]:checked')||{}).value||"";
+  const edu=(document.querySelector('input[name="mEdu"]:checked')||{}).value||"";
+  const loc=(document.querySelector('input[name="mLoc"]:checked')||{}).value||"בארץ";
+  const grant=(document.querySelector('input[name="mGrant"]:checked')||{}).value||"";
+  return {
+    last:$("#mLast").value.trim(),first:$("#mFirst").value.trim(),tz:$("#mTz").value.trim(),
+    birth:$("#mBirth").value.trim(),unit:$("#mUnit").value.trim(),role:$("#mRole").value.trim(),
+    start:($("#mStart")&&$("#mStart").value)||"", percent:($("#mPercent")&&$("#mPercent").value.trim())||"",
+    rank:($("#mRank")&&$("#mRank").value.trim())||"",
+    email:$("#mEmail").value.trim(),mobile:$("#mMobile").value.trim(),
+    emp, edu, loc,
+    subject:$("#mSubject").value.trim(),institution:$("#mInstitution").value.trim(),
+    place:$("#mPlace").value.trim(),cost:$("#mCost").value.trim(),
+    from:$("#mFrom").value,to:$("#mTo").value,day:$("#mDay").value.trim(),hours:$("#mHours").value.trim(),
+    totalDays:($("#mTotalDays")&&$("#mTotalDays").value.trim())||"",
+    studyYear:($("#mStudyYear")&&$("#mStudyYear").value)||"",
+    semester:($("#mSemester")&&$("#mSemester").value)||"",
+    grant, grantFullAmt:($("#mGrantFullAmt")&&$("#mGrantFullAmt").value.trim())||"",
+    grantPartAmt:($("#mGrantPartAmt")&&$("#mGrantPartAmt").value.trim())||"",
+    absWeek:($("#mAbsWeek")&&$("#mAbsWeek").value.trim())||"",
+    absDays:($("#mAbsDays")&&$("#mAbsDays").value.trim())||"",
+    absExam:($("#mAbsExam")&&$("#mAbsExam").value.trim())||"",
+    notes:$("#mNotes").value.trim()
+  };
 }
 function collectTazkir(){
   const gender = ($("#tGenderM")&&$("#tGenderM").checked)?"ז":(($("#tGenderF")&&$("#tGenderF").checked)?"נ":"");
@@ -1592,41 +1655,70 @@ function fillUnderscoresInDoc(doc, map){
 }
 function markCheckbox(doc, labelPart, yes){
   if(!yes) return;
-  elsW(doc,"t").forEach(t=>{
-    let s=t.textContent||"";
-    // gender-specific
-    if(yes==="Z" && /המין/.test(textOf(t.parentNode&&t.parentNode.parentNode||t))){
-      s=s.replace("☐ ז","☑ ז").replace("☐ז","☑ז");
-      t.textContent=s; return;
-    }
-    if(yes==="N" && /המין/.test(textOf(t.parentNode&&t.parentNode.parentNode||t))){
-      s=s.replace("☐ נ","☑ נ").replace("☐נ","☑נ");
-      t.textContent=s; return;
-    }
-    if(yes===true && s.includes("☐") && (s.includes(labelPart) || textOf(t.parentNode&&t.parentNode.parentNode||t).includes(labelPart))){
-      t.textContent=s.replace("☐","☑");
-    }
-  });
-  // also scan full cell text for gender
+  // Gender: replace ☐ ז / ☐ נ inside cells containing המין
   if(yes==="Z" || yes==="N"){
     elsW(doc,"tc").forEach(tc=>{
-      const full=textOf(tc);
-      if(!/המין/.test(full)) return;
+      if(!/המין/.test(textOf(tc))) return;
       elsW(tc,"t").forEach(t=>{
         let s=t.textContent||"";
-        if(yes==="Z") s=s.replace("☐ ז","☑ ז").replace("☐ז","☑ז");
-        if(yes==="N") s=s.replace("☐ נ","☑ נ").replace("☐נ","☑נ");
+        if(yes==="Z"){ s=s.replace(/☐\s*ז/g,"☑ ז").replace(/□\s*ז/g,"☑ ז"); }
+        if(yes==="N"){ s=s.replace(/☐\s*נ/g,"☑ נ").replace(/□\s*נ/g,"☑ נ"); }
         t.textContent=s;
       });
     });
+    // also paragraphs
+    elsW(doc,"t").forEach(t=>{
+      let s=t.textContent||"";
+      if(yes==="Z" && /☐\s*ז/.test(s)) t.textContent=s.replace(/☐\s*ז/g,"☑ ז");
+      if(yes==="N" && /☐\s*נ/.test(s)) t.textContent=s.replace(/☐\s*נ/g,"☑ נ");
+    });
+    return;
   }
+  // Employment / education / location checkboxes: find text node containing the label and mark its box
+  const target=String(labelPart);
+  elsW(doc,"t").forEach(t=>{
+    let s=t.textContent||"";
+    if(!s.includes("☐") && !s.includes("□")) return;
+    // match patterns like "☐ קבוע/ה" or "☐ בארץ"
+    const re=new RegExp("([☐□])\\s*"+target.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&"));
+    if(re.test(s)) t.textContent=s.replace(re,"☑ "+target);
+  });
 }
 function appendTextAfterLabel(doc, labelPart, value){
   if(!value) return;
+  // Special: Hebrew year blank after תש
+  if(labelPart.includes("המלצות להעברה") || labelPart.includes("לשנת תש")){
+    let done=false;
+    elsW(doc,"t").forEach(t=>{
+      const s=t.textContent||"";
+      if(/תש/.test(s) && /[_־–—]{2,}/.test(s)){
+        t.textContent=s.replace(/([תש])\s*[_־–—]+/, "$1"+value);
+        done=true;
+      } else if(/תש\s*$/.test(s.trim()) || s.trim().endsWith("תש")){
+        t.textContent=s.replace(/תש\s*$/, "תש"+value);
+        done=true;
+      }
+    });
+    if(done) return;
+  }
   const cells=elsW(doc,"tc");
   for(let i=0;i<cells.length;i++){
     const t=textOf(cells[i]);
     if(t.includes(labelPart)){
+      // For doc checkmarks: put ✓ in next empty cell only
+      if(value==="✓" && i+1<cells.length){ setCell(doc, cells[i+1], "✓"); return; }
+      // Labels that already include default text in the same cell (e.g. "אל: האגף…"): replace after colon
+      if(labelPart==="אל:" || /:$/.test(labelPart.trim())){
+        const ts=elsW(cells[i],"t");
+        if(ts.length){
+          // rebuild: keep label up to colon, then value
+          let joined=ts.map(x=>x.textContent||"").join("");
+          if(joined.includes(":")){
+            setCell(doc, cells[i], labelPart.replace(/:$/,"")+":  "+value);
+            return;
+          }
+        }
+      }
       if(i+1<cells.length && !textOf(cells[i+1]).trim()){ setCell(doc, cells[i+1], value); return; }
       const ts=elsW(cells[i],"t");
       if(ts.length){ setT(ts[ts.length-1], (ts[ts.length-1].textContent||"")+" "+value); return; }
@@ -1641,7 +1733,7 @@ function appendTextAfterLabel(doc, labelPart, value){
     }
   });
 }
-async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks){
+async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, withSig){
   if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
   if(!b64) throw new Error("תבנית הטופס לא נטענה.");
   const zip=await JSZip.loadAsync(b64ToBytes(b64));
@@ -1652,12 +1744,51 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks){
   if(underscoreMap) fillUnderscoresInDoc(doc, underscoreMap);
   if(freeText) freeText.forEach(([label,val])=>appendTextAfterLabel(doc, label, val));
   if(checks) checks.forEach(([label,yes])=>markCheckbox(doc, label, yes));
-  const serializer=new XMLSerializer();
-  let out=serializer.serializeToString(doc);
+
+  // Hebrew year: replace underscores after "תש" in heading
+  elsW(doc,"t").forEach(t=>{
+    const s=t.textContent||"";
+    if(/תש[_־–—\s]{2,}/.test(s) && underscoreMap){ /* handled below */ }
+  });
+
+  let out=new XMLSerializer().serializeToString(doc);
   if(!out.startsWith("<?xml")) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out;
+
+  // Embed dashboard signature image near signature labels if available
+  if(withSig){
+    try{
+      const sig=await sigData();
+      if(sig && sig.bytes){
+        const rid="rIdAttSigForm";
+        const {bytes,w,h}=sig;
+        const CM=360000;
+        let cx=Math.round(2.8*CM), cy2=Math.round(cx*h/w); if(cy2>0.9*CM){ cy2=Math.round(0.9*CM); cx=Math.round(cy2*w/h); }
+        const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:docPr id="9102" name="Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+        // Insert after first occurrence of חתימה text run if possible
+        const marker=/((?:חתימה|חתימת)[^<]{0,40}<\/w:t><\/w:r>)/;
+        if(marker.test(out)){
+          out=out.replace(marker, "$1"+drawing);
+          const rootEnd=out.indexOf(">",out.indexOf("<w:document"));
+          let root=out.slice(0,rootEnd);
+          if(!/xmlns:wp=/.test(root)) root+=' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+          if(!/xmlns:r=/.test(root)) root+=' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+          out=root+out.slice(rootEnd);
+          zip.file("word/media/att_signature.png",bytes);
+          const relPath="word/_rels/document.xml.rels"; let rels=await zip.file(relPath).async("string");
+          if(!rels.includes(rid)) rels=rels.replace("</Relationships>",`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`);
+          zip.file(relPath,rels);
+          let ct=await zip.file("[Content_Types].xml").async("string");
+          if(!/Extension="png"/i.test(ct)) ct=ct.replace(/(<Types[^>]*>)/,'$1<Default Extension="png" ContentType="image/png"/>');
+          zip.file("[Content_Types].xml",ct);
+        }
+      }
+    }catch(e){ console.warn("sig embed",e); }
+  }
+
   zip.file("word/document.xml", out);
   return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
 }
+
 
 let mLastFile=null, tLastFile=null;
 
@@ -1678,7 +1809,9 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
     const d=collectMaanak();
     store.set("maanak_form",JSON.stringify(d),true);
     if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי.");
+    const fmtD = (s)=>{ if(!s) return ""; const p=String(s).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; };
     const hourParts=(d.hours||"").split(/\s*[–\-]\s*/);
+    const sigName=store.get("att_name")||"";
     const fills=[
       [/^שם משפחה$/, d.last],
       [/^שם פרטי$/, d.first],
@@ -1686,24 +1819,43 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
       [/^שנת לידה$/, d.birth],
       [/^יחידה$/, d.unit],
       [/^תפקיד$/, d.role],
+      [/^תאריך תחילת העבודה$/, fmtD(d.start)],
+      [/^שיעור המשרה$/, d.percent],
+      [/^דירוג$/, d.rank],
       [/^דוא"?ל$/, d.email],
       [/^נייד$/, d.mobile],
       [/^הנושא:?$/, d.subject],
       [/^המוסד:?$/, d.institution],
       [/^המקום:?$/, d.place],
       [/^גובה שכר הלימוד$/, d.cost],
-      [/^מתאריך:?$/, d.from],
-      [/^עד תאריך:?$/, d.to],
+      [/^מתאריך:?$/, fmtD(d.from)],
+      [/^עד תאריך:?$/, fmtD(d.to)],
       [/^היום בשבוע$/, d.day],
       [/^משעה$/, hourParts[0]||""],
       [/^עד שעה$/, hourParts[1]||""],
+      [/^סה"?כ ימי לימוד$/, d.totalDays],
     ];
-    // format dates as DD/MM/YYYY for Word readability
-    const fmtD = (s)=>{ if(!s) return ""; const p=String(s).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; };
-    fills[12][1]=fmtD(d.from); fills[13][1]=fmtD(d.to);
+    const free=[
+      ["נימוקי העובד", d.notes],
+      ["ד. נימוקי", d.notes],
+    ];
+    if(d.grant==="מלאה" && d.grantFullAmt) free.push(["השתתפות מלאה", d.grantFullAmt]);
+    if(d.grant==="חלקית" && d.grantPartAmt) free.push(["השתתפות חלקית", d.grantPartAmt]);
+    if(d.absWeek) free.push(["ימים/שעות היעדרות בשבוע", d.absWeek]);
+    if(d.absDays) free.push(["ימי היעדרות ע״ח העירייה", d.absDays]);
+    if(d.absExam) free.push(["ימי היעדרות לבחינות", d.absExam]);
+    const checks=[];
+    if(d.emp) checks.push([d.emp, true]);
+    if(d.edu) checks.push([d.edu, true]);
+    if(d.loc) checks.push([d.loc, true]);
+    if(d.studyYear) checks.push([d.studyYear, true]);
+    if(d.semester==="1"||d.semester==="2") checks.push([d.semester, true]);
+    if(d.semester==="קיץ") checks.push(["קיץ", true]);
+    if(d.grant==="מלאה") checks.push(["השתתפות מלאה", true]);
+    if(d.grant==="חלקית") checks.push(["השתתפות חלקית", true]);
     const blob=await fillOfficialDocx(MAANAK_B64, fills,
-      {"חתימה": (store.get("att_name")||""), "תאריך": new Date().toLocaleDateString("he-IL")},
-      [["נימוקי", d.notes], ["ד. נימוקי", d.notes]]);
+      {"חתימה": sigName, "תאריך": new Date().toLocaleDateString("he-IL")},
+      free, checks, true);
     const fname=`בקשה_למענק_השתלמות_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -1724,8 +1876,10 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
     store.set("tazkir_form",JSON.stringify(d),true);
     if(!d.last && !d.first) throw new Error("יש למלא לפחות שם משפחה או שם פרטי של התלמיד/ה.");
     const fmtD = (s)=>{ if(!s) return ""; const p=String(s).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; };
+    // Hebrew year: only the suffix goes into the blank after "תש"
+    let yearSuffix=(d.hebYear||"").trim().replace(/^תש\s*/i,"");
     const fills=[
-      [/^תאריך:?$/, fmtD(d.date)||fmtD(new Date().toISOString().slice(0,10))],
+      [/^תאריך:?$/, fmtD(d.date)||new Date().toLocaleDateString("he-IL")],
       [/^מאת:?$/, d.from],
       [/^שם פרטי$/, d.first],
       [/^שם משפחה$/, d.last],
@@ -1740,32 +1894,36 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
       [/^סוג הכתה:?$/, d.classType],
       [/^דרגת הכתה:?$/, d.classGrade],
       [/^ארץ הלידה:?$/, d.birthCountry],
-      [/^תאריך\s*העליה\s*:?$/, d.aliyahDate ? fmtD(d.aliyahDate) : ""],
+      [/^תאריך\s*העליה\s*:?$/, d.aliyahDate?fmtD(d.aliyahDate):""],
       [/^בביה"?ס:?$/, d.targetSchool],
       [/^הערות:?$/, d.notes],
     ];
-    // free-text / special placements
     const free=[
       ["אל:", d.to],
       ["מס' בדיקה", d.checkNo],
-      ["מס׳ בדיקה", d.checkNo],
       ["אם ההורים גרושים", d.otherParentAddr],
-      ["המלצות להעברה", d.hebYear ? ("לשנת תש"+d.hebYear) : ""],
-      ["בכתה מקדמת", d.regClassKind ? ("סוג כיתה: "+d.regClassKind+(d.schoolType==="מיוחד"?" (חינוך מיוחד)":" (ביה\"ס רגיל)")) : (d.schoolType==="מיוחד"?"חינוך מיוחד":"")],
       ["בגן שנה נוספת", d.gan],
       ["חתימת הפסיכולוג", d.psychName],
       ["חתימת המנהל", d.principalName],
       ["אחר", d.docOther],
     ];
-    if(d.docPsych==="כן") free.push(['דו"ח פסיכולוגי', "✓ כן"]);
-    if(d.docQuest==="כן") free.push(["שאלון הפניה", "✓ כן"]);
+    // year: fill the blank after תש in the heading paragraph only
+    if(yearSuffix) free.push(["המלצות להעברה לשנת תש", yearSuffix]);
+    // school type + class kind go into the class-type recommendation line
+    if(d.regClassKind || d.schoolType){
+      const bit = d.regClassKind || "";
+      free.push(["בכתה מקדמת", bit ? (bit + (d.schoolType==="מיוחד"?" (חינוך מיוחד)":"")) : (d.schoolType==="מיוחד"?"חינוך מיוחד":"")]);
+    }
+    // documents: only a checkmark, not "כן ✓"
+    if(d.docPsych==="כן") free.push(['דו"ח פסיכולוגי', "✓"]);
+    if(d.docQuest==="כן") free.push(["שאלון הפניה", "✓"]);
     const checks=[];
     if(d.gender==="ז") checks.push(["המין","Z"]);
     if(d.gender==="נ") checks.push(["המין","N"]);
     const blob=await fillOfficialDocx(TAZKIR_B64, fills, {
       "מאת": d.from,
       "תאריך": fmtD(d.date)||new Date().toLocaleDateString("he-IL")
-    }, free, checks);
+    }, free, checks, true);
     const fname=`תזכיר_משרדי_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -1778,6 +1936,7 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
   }catch(e){ console.error(e); setStatus("#tStatus",e.message||"יצירת הקובץ נכשלה.","err"); }
   finally{ btn.disabled=false; }
 });
+
 
 // conditional UI for tazkir
 (function(){
@@ -1792,7 +1951,7 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
 })();
 
 // Restore saved new-form data
-try{ const md=JSON.parse(store.get("maanak_form")||"null"); if(md){ Object.entries({mLast:"last",mFirst:"first",mTz:"tz",mBirth:"birth",mUnit:"unit",mRole:"role",mEmail:"email",mMobile:"mobile",mSubject:"subject",mInstitution:"institution",mPlace:"place",mCost:"cost",mFrom:"from",mTo:"to",mDay:"day",mHours:"hours",mNotes:"notes"}).forEach(([id,k])=>{ if(md[k] && $("#"+id)) $("#"+id).value=md[k]; }); } }catch(e){}
+try{ const md=JSON.parse(store.get("maanak_form")||"null"); if(md){ Object.entries({mLast:"last",mFirst:"first",mTz:"tz",mBirth:"birth",mUnit:"unit",mRole:"role",mStart:"start",mPercent:"percent",mRank:"rank",mEmail:"email",mMobile:"mobile",mSubject:"subject",mInstitution:"institution",mPlace:"place",mCost:"cost",mFrom:"from",mTo:"to",mDay:"day",mHours:"hours",mTotalDays:"totalDays",mStudyYear:"studyYear",mSemester:"semester",mGrantFullAmt:"grantFullAmt",mGrantPartAmt:"grantPartAmt",mAbsWeek:"absWeek",mAbsDays:"absDays",mAbsExam:"absExam",mNotes:"notes"}).forEach(([id,k])=>{ if(md[k] && $("#"+id)) $("#"+id).value=md[k]; }); } }catch(e){}
 try{ const td=JSON.parse(store.get("tazkir_form")||"null"); if(td){
   Object.entries({tTo:"to",tDate:"date",tFrom:"from",tCheckNo:"checkNo",tFirst:"first",tLast:"last",tTz:"tz",tBirth:"birth",tMother:"mother",tFather:"father",tFamilyStatus:"familyStatus",tOtherParentAddr:"otherParentAddr",tAddress:"address",tPhone:"phone",tSchool:"school",tClassType:"classType",tClassGrade:"classGrade",tBirthCountry:"birthCountry",tAliyahDate:"aliyahDate",tDocOther:"docOther",tHebYear:"hebYear",tRegClassKind:"regClassKind",tTargetSchool:"targetSchool",tNotes:"notes",tPsychName:"psychName",tPrincipalName:"principalName"}).forEach(([id,k])=>{ if(td[k]!=null && $("#"+id)) $("#"+id).value=td[k]; });
   if(td.gender==="ז" && $("#tGenderM")) $("#tGenderM").checked=true;
