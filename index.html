@@ -481,6 +481,7 @@ body[data-mode="tazkir"] .back-row{display:flex}
     <a id="mShareOpen" class="btnlink" hidden>הורד PDF</a>
     <button id="mDriveBtn" class="drivebtn" hidden>שמור בדרייב</button>
     <button id="mSave">שמור פרטים</button>
+    <button id="mClear" type="button" style="border-color:var(--stamp);color:var(--stamp)">נקה טופס</button>
   </div>
   <div class="status" id="mStatus"></div>
   <div class="status" id="mPdf"></div>
@@ -611,6 +612,7 @@ body[data-mode="tazkir"] .back-row{display:flex}
     <a id="tShareOpen" class="btnlink" hidden>הורד PDF</a>
     <button id="tDriveBtn" class="drivebtn" hidden>שמור בדרייב</button>
     <button id="tSave">שמור תזכיר</button>
+    <button id="tClear" type="button" style="border-color:var(--stamp);color:var(--stamp)">נקה טופס</button>
   </div>
   <div class="status" id="tStatus"></div>
   <div class="status" id="tPdf"></div>
@@ -1252,6 +1254,88 @@ function loadJsPdf(){
     sc.onload=()=>window.jspdf?res(window.jspdf):rej(new Error("jspdf")); sc.onerror=()=>{ jsPdfP=null; rej(new Error("jspdf")); };
     document.head.appendChild(sc); }));
 }
+function loadScriptOnce(src, globalCheck){
+  return new Promise((res,rej)=>{
+    if(globalCheck()) return res();
+    const sc=document.createElement("script"); sc.src=src;
+    sc.onload=()=>globalCheck()?res():rej(new Error("load "+src));
+    sc.onerror=()=>rej(new Error("load "+src));
+    document.head.appendChild(sc);
+  });
+}
+function loadDocxPreview(){
+  return loadScriptOnce("https://cdn.jsdelivr.net/npm/docx-preview@0.3.3/dist/docx-preview.min.js", ()=>!!(window.docx&&window.docx.renderAsync));
+}
+function loadHtml2Canvas(){
+  return loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", ()=>!!window.html2canvas);
+}
+/** Convert a filled official DOCX blob into a PDF that matches the Word layout */
+async function docxBlobToPdfBlob(docxBlob){
+  await Promise.all([loadDocxPreview(), loadHtml2Canvas(), loadJsPdf()]);
+  const {jsPDF}=window.jspdf;
+  const host=document.createElement("div");
+  host.setAttribute("dir","rtl");
+  host.style.cssText="position:fixed;left:-12000px;top:0;width:794px;background:#fff;z-index:-1;overflow:visible;";
+  const body=document.createElement("div");
+  body.style.cssText="width:794px;background:#fff;color:#000;";
+  host.appendChild(body);
+  document.body.appendChild(host);
+  try{
+    await window.docx.renderAsync(docxBlob, body, null, {
+      className: "docx",
+      inWrapper: true,
+      ignoreWidth: false,
+      ignoreHeight: false,
+      breakPages: true,
+      renderHeaders: true,
+      renderFooters: true,
+      useBase64URL: true
+    });
+    await new Promise(r=>setTimeout(r, 500));
+    const imgs=[...body.querySelectorAll("img")];
+    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r;})));
+
+    const pageW=210, pageH=297;
+    const pageNodes=[...body.querySelectorAll("section.docx, .docx-wrapper > section")];
+    const pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+
+    if(pageNodes.length > 1){
+      for(let i=0;i<pageNodes.length;i++){
+        const canvas=await window.html2canvas(pageNodes[i],{
+          scale:2, useCORS:true, allowTaint:true, backgroundColor:"#ffffff", logging:false,
+          windowWidth: Math.max(794, pageNodes[i].scrollWidth||794)
+        });
+        const img=canvas.toDataURL("image/jpeg",0.93);
+        if(i>0) pdf.addPage();
+        const imgH=(canvas.height/canvas.width)*pageW;
+        pdf.addImage(img,"JPEG",0,0,pageW, Math.min(imgH, pageH));
+      }
+      return pdf.output("blob");
+    }
+
+    // Single continuous document → slice into A4 pages
+    const target=body.querySelector(".docx-wrapper") || body;
+    const canvas=await window.html2canvas(target,{
+      scale:2, useCORS:true, allowTaint:true, backgroundColor:"#ffffff", logging:false,
+      windowWidth: Math.max(794, target.scrollWidth||794)
+    });
+    const imgData=canvas.toDataURL("image/jpeg",0.93);
+    const imgHmm=(canvas.height/canvas.width)*pageW;
+    let heightLeft=imgHmm;
+    let position=0;
+    pdf.addImage(imgData,"JPEG",0,position,pageW,imgHmm);
+    heightLeft-=pageH;
+    while(heightLeft > 3){
+      position = heightLeft - imgHmm;
+      pdf.addPage();
+      pdf.addImage(imgData,"JPEG",0,position,pageW,imgHmm);
+      heightLeft-=pageH;
+    }
+    return pdf.output("blob");
+  } finally {
+    host.remove();
+  }
+}
 async function pdfFonts(){ try{ await Promise.all(["400 16px Arimo","700 16px Arimo"].map(f=>document.fonts.load(f,"אבג 123"))); }catch(e){} }
 function pdfCanvas(){
   const c=document.createElement("canvas"); c.width=A4W*PDF_SCALE; c.height=A4H*PDF_SCALE;
@@ -1338,49 +1422,68 @@ function drawGefen(x,d,sig){
   psign(x,"חתימת הפסיכולוג.ית",R,sy,175,sig,15); psign(x,'חתימת מנהל.ת ביה"ס',R,sy+44,150,null,15); psign(x,'חתימת מנהלת שפ"ח חיפה',R,sy+88,150,null,15);
 }
 function drawMaanak(x,d,sig){
-  const R=A4W-48, L=48, y0=56;
-  ptext(x,"בקשה למענק השתלמות",A4W/2,y0,{bold:true,size:22,align:"center"});
-  ptext(x,"הכשרות ארוכות טווח / לימודים אקדמיים / לימודי תעודה",A4W/2,y0+28,{size:13,align:"center"});
-  let y=y0+70;
-  const line=(label,val)=>{ ptext(x,label+":",R,y,{bold:true,size:14}); ptext(x,val||"—",R-ptext(x,label+":",R,y,{bold:true,size:14})-12,y,{size:14}); y+=26; };
-  ptext(x,"א. פרטים אישיים",R,y,{bold:true,size:16}); y+=30;
+  const R=A4W-48, L=48, mid=A4W/2;
+  let y=48;
+  ptext(x,"בקשה למענק השתלמות",mid,y,{bold:true,size:20,align:"center"}); y+=24;
+  ptext(x,"הכשרות ארוכות טווח / לימודים אקדמיים / לימודי תעודה",mid,y,{size:12,align:"center"}); y+=36;
+  const line=(label,val)=>{ if(val==null||val==="") return; ptext(x,label+":",R,y,{bold:true,size:12}); ptext(x,String(val),R-110,y,{size:12}); y+=20; };
+  ptext(x,"א. פרטים אישיים",R,y,{bold:true,size:14}); y+=24;
   line("שם משפחה",d.last); line("שם פרטי",d.first); line("ת.ז.",d.tz); line("שנת לידה",d.birth);
-  line("יחידה",d.unit); line("תפקיד",d.role); line("דוא\"ל",d.email); line("נייד",d.mobile);
-  y+=12; ptext(x,"ב. פרטי ההשתלמות",R,y,{bold:true,size:16}); y+=30;
-  line("הנושא",d.subject); line("המוסד",d.institution); line("המקום",d.place); line("שכר לימוד",d.cost);
-  line("מתאריך",d.from); line("עד תאריך",d.to); line("יום בשבוע",d.day); line("שעות",d.hours);
-  if(d.notes){ y+=12; ptext(x,"ג. נימוקים",R,y,{bold:true,size:16}); y+=28;
-    const words=String(d.notes).split(/\s+/); let row=""; 
-    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
-    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
+  line("יחידה",d.unit); line("תפקיד",d.role); line("תחילת עבודה",d.start); line("שיעור משרה",d.percent);
+  line("דירוג",d.rank); line("מעמד",d.emp); line("השכלה",d.edu);
+  line("דוא\"ל",d.email); line("נייד",d.mobile);
+  y+=10; ptext(x,"ב. פרטי ההשתלמות",R,y,{bold:true,size:14}); y+=24;
+  line("מיקום",d.loc); line("הנושא",d.subject); line("המוסד",d.institution); line("המקום",d.place);
+  line("שכר לימוד",d.cost); line("מתאריך",d.from); line("עד תאריך",d.to);
+  line("יום בשבוע",d.day); line("שעות",d.hours); line("סה\"כ ימים",d.totalDays);
+  line("שנה",d.studyYear); line("סמסטר",d.semester);
+  y+=10; ptext(x,"ג. המענק המבוקש",R,y,{bold:true,size:14}); y+=24;
+  if(d.grant==="מלאה") line("השתתפות מלאה",d.grantFullAmt);
+  if(d.grant==="חלקית") line("השתתפות חלקית",d.grantPartAmt);
+  line("היעדרות שבועית",d.absWeek); line("ימי היעדרות",d.absDays); line("היעדרות לבחינות",d.absExam);
+  if(d.notes){ y+=10; ptext(x,"ד. נימוקים",R,y,{bold:true,size:14}); y+=22;
+    const words=String(d.notes).split(/\s+/); let row="";
+    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-30){ ptext(x,row,R,y,{size:12}); y+=18; row=w; } else row=t; });
+    if(row){ ptext(x,row,R,y,{size:12}); y+=18; }
   }
-  y+=30; ptext(x,"חתימת העובד/ת: ________________",R,y,{size:14});
-  if(sig){ try{ x.drawImage(sig,R-160,y+8,140,50); }catch(e){} }
-  y+=70; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:13});
+  y+=28; ptext(x,"חתימת העובד/ת:",R,y,{size:13});
+  if(sig){ try{ x.drawImage(sig,R-170,y+6,150,52); }catch(e){} }
+  y+=66; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:12});
 }
 function drawTazkir(x,d,sig){
-  const R=A4W-48, L=48;
-  let y=56;
-  ptext(x,"תזכיר משרדי",A4W/2,y,{bold:true,size:22,align:"center"}); y+=36;
-  ptext(x,"אל: האגף לחינוך",R,y,{size:14}); y+=28;
-  ptext(x,"מאת: "+(d.fromName||""),R,y,{size:14}); y+=36;
-  const line=(label,val)=>{ ptext(x,label+":",R,y,{bold:true,size:14}); ptext(x,val||"—",R-ptext(x,label+":",R,y,{bold:true,size:14})-12,y,{size:14}); y+=26; };
-  line("שם פרטי",d.first); line("שם משפחה",d.last); line("ת\"ז",d.tz); line("תאריך לידה",d.birth);
-  line("שם האם",d.mother); line("שם האב",d.father); line("כתובת",d.address); line("טלפון",d.phone);
-  line("מוסד לימודים",d.school); line("כתה",d.cls);
-  if(d.recommend){ y+=14; ptext(x,"המלצות לשיבוץ",R,y,{bold:true,size:15}); y+=26;
-    const words=String(d.recommend).split(/\s+/); let row="";
-    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
-    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
-  }
-  if(d.notes){ y+=12; ptext(x,"הערות",R,y,{bold:true,size:15}); y+=26;
+  const R=A4W-48, L=48, mid=A4W/2;
+  let y=48;
+  ptext(x,"תזכיר משרדי",mid,y,{bold:true,size:20,align:"center"}); y+=32;
+  const line=(label,val)=>{ if(val==null||val==="") return; ptext(x,label+":",R,y,{bold:true,size:12}); ptext(x,String(val),R-130,y,{size:12}); y+=20; };
+  line("אל",d.to||"האגף לחינוך");
+  line("תאריך",d.date||new Date().toLocaleDateString("he-IL"));
+  line("מס' בדיקה",d.checkNo);
+  line("מאת",d.from||d.fromName);
+  y+=8;
+  line("שם פרטי",d.first); line("שם משפחה",d.last); line("ת\"ז",d.tz);
+  line("מין",d.gender==="ז"?"זכר":(d.gender==="נ"?"נקבה":""));
+  line("תאריך לידה",d.birth); line("שם האם",d.mother); line("שם האב",d.father);
+  line("מצב משפחתי",d.familyStatus);
+  if(d.otherParentAddr) line("כתובת הורה שני",d.otherParentAddr);
+  line("כתובת",d.address); line("טלפון",d.phone);
+  line("מוסד לימודים",d.school); line("סוג כיתה",d.classType); line("דרגת כיתה",d.classGrade);
+  line("ארץ לידה",d.birthCountry); if(d.aliyahDate) line("תאריך עלייה",d.aliyahDate);
+  y+=6;
+  line("דו\"ח פסיכולוגי",d.docPsych); line("שאלון הפניה",d.docQuest); if(d.docOther) line("אחר",d.docOther);
+  y+=8;
+  if(d.hebYear) line("המלצה לשנת תש",d.hebYear);
+  line("סוג ביה\"ס",d.schoolType); line("סוג כיתה מומלץ",d.regClassKind);
+  line("ביה\"ס מומלץ",d.targetSchool); if(d.gan) line("גן",d.gan);
+  if(d.notes){ y+=8; ptext(x,"הערות:",R,y,{bold:true,size:12}); y+=20;
     const words=String(d.notes).split(/\s+/); let row="";
-    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-20){ ptext(x,row,R,y,{size:13}); y+=20; row=w; } else row=t; });
-    if(row){ ptext(x,row,R,y,{size:13}); y+=20; }
+    words.forEach(w=>{ const t=row?row+" "+w:w; if(x.measureText(t).width>R-L-30){ ptext(x,row,R,y,{size:12}); y+=18; row=w; } else row=t; });
+    if(row){ ptext(x,row,R,y,{size:12}); y+=18; }
   }
-  y+=36; ptext(x,"חתימת המנהל: ________________",R,y,{size:14});
-  if(sig){ try{ x.drawImage(sig,R-160,y+8,140,50); }catch(e){} }
-  y+=70; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:13});
+  y+=24;
+  ptext(x,"חתימת המנהל: "+(d.principalName||"________________"),R,y,{size:12}); y+=28;
+  ptext(x,"חתימת הפסיכולוג: "+(d.psychName||""),R,y,{size:12});
+  if(sig){ try{ x.drawImage(sig,R-170,y+6,150,52); }catch(e){} }
+  y+=66; ptext(x,"תאריך: "+(new Date().toLocaleDateString("he-IL")),R,y,{size:12});
 }
 
 async function buildPdf(kind,d){
@@ -1404,18 +1507,29 @@ const PDF_UI={
   tazkir:{share:"#tShare",dl:"#tShareOpen",status:"#tPdf"}
 };
 const pdfFiles={};
-async function preparePdf(kind,data,docName){
-  const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF…");
+async function preparePdf(kind,data,docName,docxBlob){
+  const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF מהתבנית הרשמית…");
   try{
-    const blob=await buildPdf(kind,data);
+    let blob;
+    if(docxBlob && (kind==="maanak"||kind==="tazkir")){
+      try{
+        blob=await docxBlobToPdfBlob(docxBlob);
+      }catch(convErr){
+        console.warn("docx→pdf failed, fallback canvas", convErr);
+        setStatus(ui.status,"המרה מהוורד נכשלה, מכין PDF חלופי…");
+        blob=await buildPdf(kind,data);
+      }
+    } else {
+      blob=await buildPdf(kind,data);
+    }
     const name=docName.replace(/\.docx$/i,".pdf"); const file=new File([blob],name,{type:"application/pdf"});
     if(pdfFiles[kind]) URL.revokeObjectURL(pdfFiles[kind].url);
     const url=URL.createObjectURL(file); pdfFiles[kind]={file,url};
     const a=$(ui.dl); a.href=url; a.download=name; a.hidden=false;
     let can=false; try{ can=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
     $(ui.share).hidden=!can;
-    setStatus(ui.status,can?'ה-PDF מוכן. "שתף PDF" לשליחה בוואטסאפ או במייל, או "הורד PDF" לשמירה בטלפון.':'ה-PDF מוכן. לחץ "הורד PDF", ואז פתח אותו מההורדות כדי לשתף.',"ok");
-  }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה (צריך חיבור לאינטרנט בפעם הראשונה). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
+    setStatus(ui.status,can?'ה-PDF מוכן (זהה לתבנית הוורד). אפשר לשתף או להוריד.':'ה-PDF מוכן (זהה לתבנית הוורד). לחץ "הורד PDF".',"ok");
+  }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה (צריך חיבור לאינטרנט בפעם הראשונה). קובץ הוורד תקין.","err"); }
 }
 ["work","gefen","maanak","tazkir"].forEach(kind=>{
   const ui=PDF_UI[kind]; if(!ui) return;
@@ -1664,8 +1778,8 @@ function markCheckbox(doc, labelPart, yes){
       if(!isBox(s) && s!=="☐" && s!=="□") continue;
       if((s||"").includes("☑")) continue;
       const next=(texts[i+1]&&texts[i+1].textContent)||"";
-      if(yes==="Z" && /^\s*ז\b/.test(next)){ texts[i].textContent="☑"; return; }
-      if(yes==="N" && /^\s*נ\b/.test(next)){ texts[i].textContent="☑"; return; }
+      if(yes==="Z" && /^\s*ז/.test(next)){ texts[i].textContent="☑"; return; }
+      if(yes==="N" && /^\s*נ/.test(next)){ texts[i].textContent="☑"; return; }
     }
     texts.forEach(t=>{
       let s=t.textContent||"";
@@ -1803,46 +1917,15 @@ function highlightClassChoice(doc, kind){
   });
 }
 function fixMatayLayout(doc, fromName){
-  // Move "מאת" block to the left side (last cells in RTL table)
+  // Safe: only ensure "מאת" value is filled in the next empty cell – no cell rearranging
   if(!fromName) return;
-  const tables=elsW(doc,"tbl");
-  // Table index 2 is the מאת row in the official template
-  if(tables.length>2){
-    const tr=elsW(tables[2],"tr")[0];
-    if(!tr) return;
-    const cells=directChildren(tr,"tc");
-    if(cells.length>=3){
-      // Put label+value in the leftmost visual cell (last in RTL)
-      setCell(doc, cells[cells.length-1], "מאת:  "+fromName);
-      setCell(doc, cells[0], "");
-      if(cells[1]) setCell(doc, cells[1], "");
-    }
-  }
+  fillField(doc, /^מאת:?$/, fromName);
 }
 function placeSigAboveName(doc){
   // handled in XML string stage
 }
 function clearEmptyAlLine(doc){
-  // Table 0: [אל: האגף, EMPTY-with-line, תאריך, date] – clear borders on the empty cell
-  const tables=elsW(doc,"tbl");
-  if(!tables.length) return;
-  const tr=elsW(tables[0],"tr")[0];
-  if(!tr) return;
-  const cells=directChildren(tr,"tc");
-  if(cells.length<2) return;
-  const empty=cells[1];
-  if(textOf(empty).trim()) return;
-  // remove cell borders
-  let tcPr=directChildren(empty,"tcPr")[0];
-  if(!tcPr){ tcPr=mk(doc,"tcPr"); empty.insertBefore(tcPr, empty.firstChild); }
-  directChildren(tcPr,"tcBorders").forEach(b=>tcPr.removeChild(b));
-  const borders=mk(doc,"tcBorders");
-  ["top","left","bottom","right"].forEach(side=>{
-    const el=mk(doc,side);
-    el.setAttributeNS(W,"w:val","nil");
-    borders.appendChild(el);
-  });
-  tcPr.appendChild(borders);
+  // Disabled: removing borders via nil values can corrupt Word on mobile/Online
 }
 
 async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, withSig, extra){
@@ -1874,7 +1957,7 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
   let out=new XMLSerializer().serializeToString(doc);
   if(!out.startsWith("<?xml")) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out;
 
-  // Embed dashboard signature image ABOVE the psychologist / employee name
+  // Embed dashboard signature image (safe inline drawing)
   if(withSig){
     try{
       const sig=await sigData();
@@ -1883,47 +1966,42 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
         const {bytes,w,h}=sig;
         const CM=360000;
         let cx=Math.round(2.4*CM), cy2=Math.round(cx*h/w); if(cy2>0.75*CM){ cy2=Math.round(0.75*CM); cx=Math.round(cy2*w/h); }
-        const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:docPr id="9102" name="Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-        // Insert drawing at the START of the cell that holds the psychologist name / after חתימה:
-        // Look for run containing the psych name or empty cell after חתימת הפסיכולוג
+        const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="9102" name="Signature"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+        // Prefer psychologist signature label; fallback to plain חתימה:
         let placed=false;
-        // Pattern 1: memo – cell text right after "חתימת הפסיכולוג"
-        const psychRe=/(חתימת הפסיכולוג:<\/w:t><\/w:r>)([\s\S]*?)(<w:t[^>]*>)([^<]*)(<\/w:t>)/;
-        if(psychRe.test(out)){
-          out=out.replace(psychRe, (m, a, mid, tOpen, name, tClose)=>{
-            // insert drawing paragraph before the name run
-            return a + mid + drawing + tOpen + name + tClose;
-          });
-          placed=true;
-        }
-        if(!placed){
-          // Pattern 2: grant – after "חתימה:"
-          const grantRe=/(חתימה:\s*)([^<]*<\/w:t><\/w:r>)/;
-          if(grantRe.test(out)){
-            out=out.replace(/(חתימה:[^<]*<\/w:t><\/w:r>)/, "$1"+drawing);
-            placed=true;
-          }
-        }
-        if(!placed){
-          const marker=/((?:חתימת הפסיכולוג|חתימה:)[^<]{0,80}<\/w:t><\/w:r>)/;
-          if(marker.test(out)){ out=out.replace(marker,"$1"+drawing); placed=true; }
+        const patterns=[
+          /(חתימת הפסיכולוג:[^<]*<\/w:t><\/w:r>)/,
+          /(חתימה:[^<]*<\/w:t><\/w:r>)/
+        ];
+        for(const re of patterns){
+          if(re.test(out)){ out=out.replace(re, "$1"+drawing); placed=true; break; }
         }
         if(placed){
-          const rootEnd=out.indexOf(">",out.indexOf("<w:document"));
-          let root=out.slice(0,rootEnd);
-          if(!/xmlns:wp=/.test(root)) root+=' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
-          if(!/xmlns:r=/.test(root)) root+=' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
-          out=root+out.slice(rootEnd);
-          zip.file("word/media/att_signature.png",bytes);
-          const relPath="word/_rels/document.xml.rels"; let rels=await zip.file(relPath).async("string");
-          if(!rels.includes(rid)) rels=rels.replace("</Relationships>",`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`);
-          zip.file(relPath,rels);
+          // Ensure required namespaces on root
+          const rootEnd=out.indexOf(">", out.indexOf("<w:document"));
+          if(rootEnd>0){
+            let root=out.slice(0,rootEnd);
+            if(!/xmlns:wp=/.test(root)) root+=' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+            if(!/xmlns:r=/.test(root)) root+=' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+            if(!/xmlns:a=/.test(root)) root+=' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"';
+            if(!/xmlns:pic=/.test(root)) root+=' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+            out=root+out.slice(rootEnd);
+          }
+          zip.file("word/media/att_signature.png", bytes);
+          const relPath="word/_rels/document.xml.rels";
+          let rels=await zip.file(relPath).async("string");
+          if(!rels.includes(rid)){
+            rels=rels.replace("</Relationships>", `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`);
+            zip.file(relPath, rels);
+          }
           let ct=await zip.file("[Content_Types].xml").async("string");
-          if(!/Extension="png"/i.test(ct)) ct=ct.replace(/(<Types[^>]*>)/,'$1<Default Extension="png" ContentType="image/png"/>');
-          zip.file("[Content_Types].xml",ct);
+          if(!/Extension="png"/i.test(ct)){
+            ct=ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
+            zip.file("[Content_Types].xml", ct);
+          }
         }
       }
-    }catch(e){ console.warn("sig embed",e); }
+    }catch(e){ console.warn("sig embed skipped", e); }
   }
 
   zip.file("word/document.xml", out);
@@ -1943,6 +2021,51 @@ $("#tSave")&&($("#tSave").onclick=()=>{
   store.set("tazkir_form",JSON.stringify(data),true);
   setStatus("#tStatus","התזכיר נשמר במכשיר.","ok");
 });
+
+$("#mClear")&&($("#mClear").onclick=()=>{
+  if(!confirm("לנקות את כל שדות בקשת המענק? פרטי הפרופיל (שם, ת.ז., חתימה) יישמרו.")) return;
+  ["mSubject","mInstitution","mPlace","mCost","mFrom","mTo","mDay","mHours","mTotalDays","mNotes",
+   "mGrantFullAmt","mGrantPartAmt","mAbsWeek","mAbsDays","mAbsExam","mStart","mPercent","mRank"].forEach(id=>{
+    const el=$("#"+id); if(el) el.value="";
+  });
+  if($("#mStudyYear")) $("#mStudyYear").value="";
+  if($("#mSemester")) $("#mSemester").value="";
+  document.querySelectorAll('input[name="mEmp"],input[name="mEdu"],input[name="mLoc"],input[name="mGrant"]').forEach(r=>r.checked=false);
+  if($("#mLocIL")) $("#mLocIL").checked=true;
+  // keep name/tz/email/mobile from profile if present, but allow clearing unit/role if form-specific
+  store.set("maanak_form",null,true);
+  mLastFile=null; $("#mShare").hidden=true; $("#mShareOpen").hidden=true; $("#mDriveBtn").hidden=true;
+  setStatus("#mStatus","הטופס נוקה. פרטי הפרופיל נשמרו.","ok");
+});
+$("#tClear")&&($("#tClear").onclick=()=>{
+  if(!confirm("לנקות את כל שדות התזכיר? פרטי הפרופיל (שם הפסיכולוג, חתימה) יישמרו.")) return;
+  ["tCheckNo","tFirst","tLast","tTz","tBirth","tMother","tFather","tFamilyStatus","tOtherParentAddr",
+   "tAddress","tPhone","tSchool","tClassType","tClassGrade","tBirthCountry","tAliyahDate","tDocOther",
+   "tHebYear","tRegClassKind","tTargetSchool","tNotes","tPrincipalName"].forEach(id=>{
+    const el=$("#"+id); if(el) el.value="";
+  });
+  document.querySelectorAll('input[name="tGender"],input[name="tDocPsych"],input[name="tDocQuest"],input[name="tSchoolType"]').forEach(r=>r.checked=false);
+  if($("#tDocPsych")||document.querySelector('input[name="tDocPsych"][value="לא"]')){
+    const n=document.querySelector('input[name="tDocPsych"][value="לא"]'); if(n) n.checked=true;
+    const q=document.querySelector('input[name="tDocQuest"][value="לא"]'); if(q) q.checked=true;
+  }
+  if($("#tSchoolReg")) $("#tSchoolReg").checked=true;
+  if($("#tGanExtra")) $("#tGanExtra").checked=false;
+  if($("#tGanSiach")) $("#tGanSiach").checked=false;
+  if($("#tGanSpecial")) $("#tGanSpecial").checked=false;
+  if($("#tOtherParentWrap")) $("#tOtherParentWrap").hidden=true;
+  if($("#tAliyahWrap")) $("#tAliyahWrap").hidden=true;
+  if($("#tBirthCountry")) $("#tBirthCountry").value="ישראל";
+  // restore psychologist name into מאת / psych name from profile
+  const pname=store.get("att_name")||"";
+  if($("#tFrom")) $("#tFrom").value=pname;
+  if($("#tPsychName")) $("#tPsychName").value=pname;
+  if($("#tTo")) $("#tTo").value="האגף לחינוך";
+  store.set("tazkir_form",null,true);
+  tLastFile=null; $("#tShare").hidden=true; $("#tShareOpen").hidden=true; $("#tDriveBtn").hidden=true;
+  setStatus("#tStatus","התזכיר נוקה. פרטי הפסיכולוג נשמרו.","ok");
+});
+
 
 $("#mMake")&&($("#mMake").onclick=async()=>{
   const btn=$("#mMake"); btn.disabled=true; setStatus("#mStatus","בונה את הקובץ לפי התבנית הרשמית…");
@@ -1997,7 +2120,7 @@ $("#mMake")&&($("#mMake").onclick=async()=>{
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
     mLastFile=new File([blob],fname,{type:blob.type});
     $("#mDriveBtn").hidden=!driveOn();
-    preparePdf("maanak",d,fname);
+    preparePdf("maanak",d,fname,blob);
     let msg="הקובץ הופק לפי התבנית הרשמית והורד.";
     if(cloud.user){ try{ await cloud.sb.storage.from(BUCKET).upload(P("forms/maanak/"+fname),blob,{upsert:true,contentType:DOCX_MIME}); msg+=" נשמר גם בענן."; }catch(e){ msg+=" השמירה בענן נכשלה."; } }
     setStatus("#mStatus",msg,"ok");
@@ -2064,7 +2187,7 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
     tLastFile=new File([blob],fname,{type:blob.type});
     $("#tDriveBtn").hidden=!driveOn();
-    preparePdf("tazkir",d,fname);
+    preparePdf("tazkir",d,fname,blob);
     let msg="הקובץ הופק לפי התבנית הרשמית והורד.";
     if(cloud.user){ try{ await cloud.sb.storage.from(BUCKET).upload(P("forms/tazkir/"+fname),blob,{upsert:true,contentType:DOCX_MIME}); msg+=" נשמר גם בענן."; }catch(e){ msg+=" השמירה בענן נכשלה."; } }
     setStatus("#tStatus",msg,"ok");
