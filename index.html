@@ -2078,7 +2078,8 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
     appendTextAfterLabel(doc, 'בהתאם לממצאינו', tag);
   }
   if(extra && extra.schoolType!=='גן' && extra.targetSchool) appendTextAfterLabel(doc, 'בביה"ס:', extra.targetSchool);
-  // Place signature names into the empty cells next to the labels (table 23)
+
+  // Place signature names into dedicated cells + marker for image
   if(extra){
     const cells=elsW(doc,"tc");
     for(let i=0;i<cells.length;i++){
@@ -2087,8 +2088,42 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
         setCell(doc, cells[i+1], extra.principalName);
       }
       if(/חתימת הפסיכולוג/.test(t) && i+1<cells.length){
-        // name goes in value cell; image will be injected after serialize near this label
-        if(extra.psychName) setCell(doc, cells[i+1], extra.psychName);
+        // Put marker + optional name in the VALUE cell (image injected after serialize)
+        const name = extra.psychName || "";
+        setCell(doc, cells[i+1], "§§SIG§§" + (name ? ("\n"+name) : ""));
+      }
+    }
+  }
+
+
+  // Grant form: mark "חתימה:" cell for signature image if no psych marker yet
+  if(withSig){
+    let hasMarker = false;
+    elsW(doc,"t").forEach(t=>{ if((t.textContent||"").includes("§§SIG§§")) hasMarker=true; });
+    if(!hasMarker){
+      const cells=elsW(doc,"tc");
+      for(let i=0;i<cells.length;i++){
+        const t=textOf(cells[i]);
+        if(/^חתימה\s*:/.test(t.trim()) || (t.includes("חתימה:") && !t.includes("פסיכולוג") && !t.includes("מנהל"))){
+          // put marker in same cell after the label, or next empty cell
+          if(i+1<cells.length && !textOf(cells[i+1]).trim()){
+            setCell(doc, cells[i+1], "§§SIG§§");
+          } else {
+            const ts=elsW(cells[i],"t");
+            if(ts.length) setT(ts[ts.length-1], (ts[ts.length-1].textContent||"") + " §§SIG§§");
+          }
+          break;
+        }
+      }
+      // also search paragraphs (grant commitment section)
+      if(!hasMarker){
+        elsW(doc,"p").forEach(p=>{
+          const t=textOf(p);
+          if(t.includes("חתימה:") && !t.includes("פסיכולוג") && !t.includes("§§SIG§§")){
+            const ts=elsW(p,"t");
+            if(ts.length) setT(ts[ts.length-1], (ts[ts.length-1].textContent||"") + " §§SIG§§");
+          }
+        });
       }
     }
   }
@@ -2102,69 +2137,85 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
   let out=new XMLSerializer().serializeToString(doc);
   if(!out.startsWith("<?xml")) out='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out;
 
-  // Embed dashboard signature image (safe inline drawing)
+  // Embed dashboard signature image into the psych value cell (marker §§SIG§§)
   if(withSig){
     try{
       const sig=await sigData();
-      if(sig && sig.bytes){
+      if(sig && sig.bytes && out.includes("§§SIG§§")){
         const rid="rIdAttSigForm";
         const {bytes,w,h}=sig;
         const CM=360000;
-        let cx=Math.round(2.4*CM), cy2=Math.round(cx*h/w); if(cy2>0.75*CM){ cy2=Math.round(0.75*CM); cx=Math.round(cy2*w/h); }
-        const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="9102" name="Signature"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-        // Prefer psychologist signature label; fallback to plain חתימה:
-        let placed=false;
-        // Place image in the VALUE cell after "חתימת הפסיכולוג" (not next to the label).
-        // Strategy: find label cell, then inject drawing into the following empty/value cell's first paragraph.
-        // Fallback: after the label run.
-        const labelRe=/(חתימת הפסיכולוג:<\/w:t><\/w:r>)([\s\S]*?)(<\/w:tc>)/;
-        if(labelRe.test(out)){
-          out=out.replace(labelRe, (m, lab, mid, close)=>{
-            // If mid already has a <w:t> with the name, put drawing before that text run
-            if(/<w:t[^>]*>/.test(mid)){
-              return lab + mid.replace(/(<w:t[^>]*>)/, drawing+"$1") + close;
+        let cx=Math.round(2.6*CM), cy2=Math.round(cx*h/w);
+        if(cy2>1.0*CM){ cy2=Math.round(1.0*CM); cx=Math.round(cy2*w/h); }
+        const drawing=
+          `<w:r><w:rPr><w:noProof/></w:rPr>`+
+          `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">`+
+          `<wp:extent cx="${cx}" cy="${cy2}"/>`+
+          `<wp:effectExtent l="0" t="0" r="0" b="0"/>`+
+          `<wp:docPr id="9102" name="Signature"/>`+
+          `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>`+
+          `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">`+
+          `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">`+
+          `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">`+
+          `<pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr>`+
+          `<pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
+          `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm>`+
+          `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>`+
+          `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+
+        // Replace the whole run that contains the marker with: [drawing run] + [name run]
+        // Avoid nesting <w:r> inside another <w:r>.
+        out = out.replace(
+          /<w:r\b[^>]*>[\s\S]*?<w:t[^>]*>\s*§§SIG§§\s*([\s\S]*?)<\/w:t>[\s\S]*?<\/w:r>/,
+          (m, rest) => {
+            const name = (rest || "").replace(/^\n+/, "").trim();
+            if(name){
+              return drawing + `<w:r><w:rPr><w:rtl/></w:rPr><w:t xml:space="preserve">` + name + `</w:t></w:r>`;
             }
-            // empty value cell – insert a paragraph with the drawing
-            return lab + mid.replace(/(<w:p[^>]*>)/, "$1"+drawing) + close;
-          });
-          placed=true;
+            return drawing;
+          }
+        );
+        // cleanup any leftover marker
+        out = out.replace(/§§SIG§§/g, "");
+
+        // namespaces on root
+        const rootEnd = out.indexOf(">", out.indexOf("<w:document"));
+        if(rootEnd > 0){
+          let root = out.slice(0, rootEnd);
+          if(!/xmlns:wp=/.test(root)) root += ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+          if(!/xmlns:r=/.test(root)) root += ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+          if(!/xmlns:a=/.test(root)) root += ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"';
+          if(!/xmlns:pic=/.test(root)) root += ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+          out = root + out.slice(rootEnd);
         }
-        if(!placed){
-          const patterns=[
-            /(חתימת הפסיכולוג:[^<]*<\/w:t><\/w:r>)/,
-            /(חתימה:[^<]*<\/w:t><\/w:r>)/
-          ];
-          for(const re of patterns){
-            if(re.test(out)){ out=out.replace(re, "$1"+drawing); placed=true; break; }
-          }
+
+        zip.file("word/media/att_signature.png", bytes);
+        const relPath = "word/_rels/document.xml.rels";
+        let rels = await zip.file(relPath).async("string");
+        if(!rels.includes(rid)){
+          rels = rels.replace(
+            "</Relationships>",
+            `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`
+          );
+          zip.file(relPath, rels);
         }
-        if(placed){
-          // Ensure required namespaces on root
-          const rootEnd=out.indexOf(">", out.indexOf("<w:document"));
-          if(rootEnd>0){
-            let root=out.slice(0,rootEnd);
-            if(!/xmlns:wp=/.test(root)) root+=' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
-            if(!/xmlns:r=/.test(root)) root+=' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
-            if(!/xmlns:a=/.test(root)) root+=' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"';
-            if(!/xmlns:pic=/.test(root)) root+=' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
-            out=root+out.slice(rootEnd);
-          }
-          zip.file("word/media/att_signature.png", bytes);
-          const relPath="word/_rels/document.xml.rels";
-          let rels=await zip.file(relPath).async("string");
-          if(!rels.includes(rid)){
-            rels=rels.replace("</Relationships>", `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/att_signature.png"/></Relationships>`);
-            zip.file(relPath, rels);
-          }
-          let ct=await zip.file("[Content_Types].xml").async("string");
-          if(!/Extension="png"/i.test(ct)){
-            ct=ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
-            zip.file("[Content_Types].xml", ct);
-          }
+        let ct = await zip.file("[Content_Types].xml").async("string");
+        if(!/Extension="png"/i.test(ct)){
+          ct = ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
+          zip.file("[Content_Types].xml", ct);
         }
+      } else if(out.includes("§§SIG§§")){
+        // no signature image available – just strip marker, keep name
+        out = out.replace(/§§SIG§§\s*/g, "");
       }
-    }catch(e){ console.warn("sig embed skipped", e); }
+    }catch(e){
+      console.warn("sig embed skipped", e);
+      out = out.replace(/§§SIG§§\s*/g, "");
+    }
+  } else if(out.includes("§§SIG§§")){
+    out = out.replace(/§§SIG§§\s*/g, "");
   }
+
 
   zip.file("word/document.xml", out);
   return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
