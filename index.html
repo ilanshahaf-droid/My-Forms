@@ -2124,23 +2124,24 @@ $("#tSave")&&($("#tSave").onclick=()=>{
 });
 
 $("#mClear")&&($("#mClear").onclick=()=>{
-  if(!confirm("לנקות את כל שדות בקשת המענק? פרטי הפרופיל (שם, ת.ז., חתימה) יישמרו.")) return;
+  if(!confirm("לנקות את שדות הבקשה? פרטי הפרופיל, תחילת העבודה וההשכלה יישמרו.")) return;
+  // נשמרים: שם/ת.ז./יחידה/תפקיד/דואל/נייד, תאריך תחילת עבודה (mStart), השכלה (mEdu)
   ["mSubject","mInstitution","mPlace","mCost","mFrom","mTo","mDay","mHours","mTotalDays","mNotes",
-   "mGrantFullAmt","mGrantPartAmt","mAbsWeek","mAbsDays","mAbsExam","mStart","mPercent","mRank"].forEach(id=>{
+   "mGrantFullAmt","mGrantPartAmt","mAbsWeek","mAbsDays","mAbsExam","mPercent","mRank"].forEach(id=>{
     const el=$("#"+id); if(el) el.value="";
   });
   if($("#mStudyYear")) $("#mStudyYear").value="";
   if($("#mSemester")) $("#mSemester").value="";
-  document.querySelectorAll('input[name="mEmp"],input[name="mEdu"],input[name="mLoc"],input[name="mGrant"]').forEach(r=>r.checked=false);
+  // נקה מעמד, מיקום ומענק – אבל לא השכלה
+  document.querySelectorAll('input[name="mEmp"],input[name="mLoc"],input[name="mGrant"]').forEach(r=>r.checked=false);
   if($("#mLocIL")) $("#mLocIL").checked=true;
-  // keep name/tz/email/mobile from profile if present, but allow clearing unit/role if form-specific
   store.set("maanak_form",null,true);
   mLastFile=null; $("#mShare").hidden=true; $("#mShareOpen").hidden=true; $("#mDriveBtn").hidden=true;
-  setStatus("#mStatus","הטופס נוקה. פרטי הפרופיל נשמרו.","ok");
+  setStatus("#mStatus","הטופס נוקה. תחילת עבודה, השכלה ופרטי פרופיל נשמרו.","ok");
 });
 $("#tClear")&&($("#tClear").onclick=()=>{
   if(!confirm("לנקות את כל שדות התזכיר? פרטי הפרופיל (שם הפסיכולוג, חתימה) יישמרו.")) return;
-  ["tCheckNo","tFirst","tLast","tTz","tBirth","tMother","tFather","tFamilyStatus","tOtherParentAddr",
+  ["tTo","tCheckNo","tFirst","tLast","tTz","tBirth","tMother","tFather","tFamilyStatus","tOtherParentAddr",
    "tAddress","tPhone","tSchool","tClassType","tClassGrade","tBirthCountry","tAliyahDate","tDocOther",
    "tHebYear","tRegClassKind","tTargetSchool","tNotes","tPrincipalName"].forEach(id=>{
     const el=$("#"+id); if(el) el.value="";
@@ -2157,14 +2158,13 @@ $("#tClear")&&($("#tClear").onclick=()=>{
   if($("#tOtherParentWrap")) $("#tOtherParentWrap").hidden=true;
   if($("#tAliyahWrap")) $("#tAliyahWrap").hidden=true;
   if($("#tBirthCountry")) $("#tBirthCountry").value="ישראל";
-  // restore psychologist name into מאת / psych name from profile
+  // restore psychologist name into מאת / psych name from profile – אל נשאר ריק
   const pname=store.get("att_name")||"";
   if($("#tFrom")) $("#tFrom").value=pname;
   if($("#tPsychName")) $("#tPsychName").value=pname;
-  if($("#tTo")) $("#tTo").value="האגף לחינוך";
   store.set("tazkir_form",null,true);
   tLastFile=null; $("#tShare").hidden=true; $("#tShareOpen").hidden=true; $("#tDriveBtn").hidden=true;
-  setStatus("#tStatus","התזכיר נוקה. פרטי הפסיכולוג נשמרו.","ok");
+  setStatus("#tStatus","התזכיר נוקה (כולל שדה אל). פרטי הפסיכולוג נשמרו.","ok");
 });
 
 
