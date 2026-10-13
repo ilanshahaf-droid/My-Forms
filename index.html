@@ -672,11 +672,13 @@ header.app-header p{margin:6px 0 0}
   <label class="f" for="tHebYear">המלצות להעברה – שנה עברית (רק הסיומת)</label>
   <input type="text" id="tHebYear" placeholder='למשל שפ"ו או פ"ו (בלי המילה "תש")'>
 
-  <label class="f">סוג בית ספר מומלץ</label>
-  <div class="bar" style="margin-top:4px">
+  <label class="f">המלצת שיבוץ</label>
+  <div class="bar" style="margin-top:4px;flex-wrap:wrap">
     <label><input type="radio" name="tSchoolType" id="tSchoolReg" value="רגיל" checked> בית ספר רגיל</label>
     <label><input type="radio" name="tSchoolType" id="tSchoolSpec" value="מיוחד"> חינוך מיוחד</label>
+    <label><input type="radio" name="tSchoolType" id="tSchoolGan" value="גן"> גן</label>
   </div>
+
   <div id="tRegClassWrap">
     <label class="f" for="tRegClassKind">סוג כיתה (בביה"ס רגיל)</label>
     <select id="tRegClassKind">
@@ -689,14 +691,31 @@ header.app-header p{margin:6px 0 0}
       <option>מוכנות</option>
     </select>
   </div>
-  <label class="f" for="tTargetSchool">שם ביה"ס המומלץ</label>
-  <input type="text" id="tTargetSchool">
 
-  <label class="f">גן / שנה נוספת</label>
-  <div class="bar" style="margin-top:4px;flex-wrap:wrap">
-    <label><input type="checkbox" id="tGanExtra"> שנה נוספת בגן</label>
-    <label><input type="checkbox" id="tGanSiach"> גננת שיח</label>
-    <label><input type="checkbox" id="tGanSpecial"> גן חינוך מיוחד</label>
+  <div id="tSpecClassWrap" hidden>
+    <label class="f" for="tSpecSchoolKind">סוג בית ספר לחינוך מיוחד</label>
+    <select id="tSpecSchoolKind">
+      <option value="">בחרו…</option>
+      <option>תקשורתי</option>
+      <option>נפשי</option>
+      <option>לקויות למידה</option>
+      <option>התנהגותי</option>
+      <option>הנמכה קוגניטיבית</option>
+    </select>
+  </div>
+
+  <div id="tTargetSchoolWrap">
+    <label class="f" for="tTargetSchool">שם ביה"ס המומלץ</label>
+    <input type="text" id="tTargetSchool">
+  </div>
+
+  <div id="tGanWrap" hidden>
+    <label class="f">אפשרות בגן</label>
+    <div class="bar" style="margin-top:4px;flex-wrap:wrap">
+      <label><input type="checkbox" id="tGanExtra"> שנה נוספת בגן</label>
+      <label><input type="checkbox" id="tGanSiach"> גננת שיח</label>
+      <label><input type="checkbox" id="tGanSpecial"> גן חינוך מיוחד</label>
+    </div>
   </div>
 
   <label class="f" for="tNotes">הערות</label>
@@ -1759,15 +1778,23 @@ function collectMaanak(){
 }
 function collectTazkir(){
   const gender = ($("#tGenderM")&&$("#tGenderM").checked)?"ז":(($("#tGenderF")&&$("#tGenderF").checked)?"נ":"");
-  const schoolType = ($("#tSchoolSpec")&&$("#tSchoolSpec").checked)?"מיוחד":"רגיל";
+  let schoolType="רגיל";
+  if($("#tSchoolSpec")&&$("#tSchoolSpec").checked) schoolType="מיוחד";
+  else if($("#tSchoolGan")&&$("#tSchoolGan").checked) schoolType="גן";
   const gan=[];
-  if($("#tGanExtra")&&$("#tGanExtra").checked) gan.push("שנה נוספת בגן");
-  if($("#tGanSiach")&&$("#tGanSiach").checked) gan.push("גננת שיח");
-  if($("#tGanSpecial")&&$("#tGanSpecial").checked) gan.push("גן חינוך מיוחד");
+  if(schoolType==="גן"){
+    if($("#tGanExtra")&&$("#tGanExtra").checked) gan.push("שנה נוספת בגן");
+    if($("#tGanSiach")&&$("#tGanSiach").checked) gan.push("גננת שיח");
+    if($("#tGanSpecial")&&$("#tGanSpecial").checked) gan.push("גן חינוך מיוחד");
+  }
   const docPsych=(document.querySelector('input[name="tDocPsych"]:checked')||{}).value||"";
   const docQuest=(document.querySelector('input[name="tDocQuest"]:checked')||{}).value||"";
+  // When גן – school recommendation fields stay empty
+  const regClassKind = schoolType==="רגיל" ? (($("#tRegClassKind")&&$("#tRegClassKind").value)||"") : "";
+  const specSchoolKind = schoolType==="מיוחד" ? (($("#tSpecSchoolKind")&&$("#tSpecSchoolKind").value)||"") : "";
+  const targetSchool = (schoolType==="גן") ? "" : (($("#tTargetSchool")&&$("#tTargetSchool").value.trim())||"");
   return {
-    to:($("#tTo")&&$("#tTo").value.trim())||"האגף לחינוך",
+    to:($("#tTo")&&$("#tTo").value.trim())||"",
     date:($("#tDate")&&$("#tDate").value)||"",
     from:($("#tFrom")&&$("#tFrom").value.trim())||(store.get("att_name")||""),
     checkNo:($("#tCheckNo")&&$("#tCheckNo").value.trim())||"",
@@ -1784,8 +1811,7 @@ function collectTazkir(){
     aliyahDate:($("#tAliyahDate")&&$("#tAliyahDate").value)||"",
     docPsych, docQuest, docOther:($("#tDocOther")&&$("#tDocOther").value.trim())||"",
     hebYear:($("#tHebYear")&&$("#tHebYear").value.trim())||"",
-    schoolType, regClassKind:($("#tRegClassKind")&&$("#tRegClassKind").value)||"",
-    targetSchool:($("#tTargetSchool")&&$("#tTargetSchool").value.trim())||"",
+    schoolType, regClassKind, specSchoolKind, targetSchool,
     gan:gan.join(", "),
     notes:$("#tNotes").value.trim(),
     psychName:($("#tPsychName")&&$("#tPsychName").value.trim())||"",
@@ -2042,12 +2068,30 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
   if(checks) checks.forEach(([label,yes])=>markCheckbox(doc, label, yes));
   if(extra && extra.grant) fillGrantFinancial(doc, extra.grant);
   if(extra && extra.classKind) highlightClassChoice(doc, extra.classKind);
-  if(extra && extra.fromName) fixMatayLayout(doc, extra.fromName);
+  // do NOT call fixMatayLayout – it double-fills מאת
   try{ clearEmptyAlLine(doc); }catch(e){}
   if(extra && extra.schoolType){
-    appendTextAfterLabel(doc, 'בהתאם לממצאינו', extra.schoolType==='מיוחד' ? '(חינוך מיוחד)' : '(ביה\"ס רגיל)');
+    let tag='';
+    if(extra.schoolType==='מיוחד') tag='(חינוך מיוחד)';
+    else if(extra.schoolType==='גן') tag='(גן)';
+    else tag='(ביה\"ס רגיל)';
+    appendTextAfterLabel(doc, 'בהתאם לממצאינו', tag);
   }
-  if(extra && extra.targetSchool) appendTextAfterLabel(doc, 'בביה"ס:', extra.targetSchool);
+  if(extra && extra.schoolType!=='גן' && extra.targetSchool) appendTextAfterLabel(doc, 'בביה"ס:', extra.targetSchool);
+  // Place signature names into the empty cells next to the labels (table 23)
+  if(extra){
+    const cells=elsW(doc,"tc");
+    for(let i=0;i<cells.length;i++){
+      const t=textOf(cells[i]);
+      if(/חתימת המנהל/.test(t) && i+1<cells.length && extra.principalName){
+        setCell(doc, cells[i+1], extra.principalName);
+      }
+      if(/חתימת הפסיכולוג/.test(t) && i+1<cells.length){
+        // name goes in value cell; image will be injected after serialize near this label
+        if(extra.psychName) setCell(doc, cells[i+1], extra.psychName);
+      }
+    }
+  }
 
   // Hebrew year: replace underscores after "תש" in heading
   elsW(doc,"t").forEach(t=>{
@@ -2070,12 +2114,29 @@ async function fillOfficialDocx(b64, fills, underscoreMap, freeText, checks, wit
         const drawing=`<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy2}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="9102" name="Signature"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="sig.png"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
         // Prefer psychologist signature label; fallback to plain חתימה:
         let placed=false;
-        const patterns=[
-          /(חתימת הפסיכולוג:[^<]*<\/w:t><\/w:r>)/,
-          /(חתימה:[^<]*<\/w:t><\/w:r>)/
-        ];
-        for(const re of patterns){
-          if(re.test(out)){ out=out.replace(re, "$1"+drawing); placed=true; break; }
+        // Place image in the VALUE cell after "חתימת הפסיכולוג" (not next to the label).
+        // Strategy: find label cell, then inject drawing into the following empty/value cell's first paragraph.
+        // Fallback: after the label run.
+        const labelRe=/(חתימת הפסיכולוג:<\/w:t><\/w:r>)([\s\S]*?)(<\/w:tc>)/;
+        if(labelRe.test(out)){
+          out=out.replace(labelRe, (m, lab, mid, close)=>{
+            // If mid already has a <w:t> with the name, put drawing before that text run
+            if(/<w:t[^>]*>/.test(mid)){
+              return lab + mid.replace(/(<w:t[^>]*>)/, drawing+"$1") + close;
+            }
+            // empty value cell – insert a paragraph with the drawing
+            return lab + mid.replace(/(<w:p[^>]*>)/, "$1"+drawing) + close;
+          });
+          placed=true;
+        }
+        if(!placed){
+          const patterns=[
+            /(חתימת הפסיכולוג:[^<]*<\/w:t><\/w:r>)/,
+            /(חתימה:[^<]*<\/w:t><\/w:r>)/
+          ];
+          for(const re of patterns){
+            if(re.test(out)){ out=out.replace(re, "$1"+drawing); placed=true; break; }
+          }
         }
         if(placed){
           // Ensure required namespaces on root
@@ -2143,7 +2204,7 @@ $("#tClear")&&($("#tClear").onclick=()=>{
   if(!confirm("לנקות את כל שדות התזכיר? פרטי הפרופיל (שם הפסיכולוג, חתימה) יישמרו.")) return;
   ["tTo","tCheckNo","tFirst","tLast","tTz","tBirth","tMother","tFather","tFamilyStatus","tOtherParentAddr",
    "tAddress","tPhone","tSchool","tClassType","tClassGrade","tBirthCountry","tAliyahDate","tDocOther",
-   "tHebYear","tRegClassKind","tTargetSchool","tNotes","tPrincipalName"].forEach(id=>{
+   "tHebYear","tRegClassKind","tSpecSchoolKind","tTargetSchool","tNotes","tPrincipalName"].forEach(id=>{
     const el=$("#"+id); if(el) el.value="";
   });
   document.querySelectorAll('input[name="tGender"],input[name="tDocPsych"],input[name="tDocQuest"],input[name="tSchoolType"]').forEach(r=>r.checked=false);
@@ -2152,9 +2213,15 @@ $("#tClear")&&($("#tClear").onclick=()=>{
     const q=document.querySelector('input[name="tDocQuest"][value="לא"]'); if(q) q.checked=true;
   }
   if($("#tSchoolReg")) $("#tSchoolReg").checked=true;
+  if($("#tSpecSchoolKind")) $("#tSpecSchoolKind").value="";
   if($("#tGanExtra")) $("#tGanExtra").checked=false;
   if($("#tGanSiach")) $("#tGanSiach").checked=false;
   if($("#tGanSpecial")) $("#tGanSpecial").checked=false;
+  // refresh conditional panels
+  if($("#tRegClassWrap")) $("#tRegClassWrap").hidden=false;
+  if($("#tSpecClassWrap")) $("#tSpecClassWrap").hidden=true;
+  if($("#tTargetSchoolWrap")) $("#tTargetSchoolWrap").hidden=false;
+  if($("#tGanWrap")) $("#tGanWrap").hidden=true;
   if($("#tOtherParentWrap")) $("#tOtherParentWrap").hidden=true;
   if($("#tAliyahWrap")) $("#tAliyahWrap").hidden=true;
   if($("#tBirthCountry")) $("#tBirthCountry").value="ישראל";
@@ -2267,22 +2334,20 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
     ];
     // year: fill the blank after תש in the heading paragraph only
     if(yearSuffix) free.push(["המלצות להעברה לשנת תש", yearSuffix]);
-    // recommended school name → cell after "בביה\"ס:"
-    if(d.targetSchool) free.push(['בביה"ס:', d.targetSchool]);
-    // recommended class type → append cleanly on the options line only the chosen kind
-    if(d.regClassKind) free.push(["בכתה מקדמת", "← "+d.regClassKind]);
+    // recommended school / class only when not גן
+    if(d.schoolType!=="גן" && d.targetSchool) free.push(['בביה"ס:', d.targetSchool]);
+    if(d.schoolType==="רגיל" && d.regClassKind) free.push(["בכתה מקדמת", "← "+d.regClassKind]);
+    if(d.schoolType==="מיוחד" && d.specSchoolKind) free.push(["בכתה מקדמת", "← "+d.specSchoolKind]);
     // documents: only a checkmark
     if(d.docPsych==="כן") free.push(['דו"ח פסיכולוגי', "✓"]);
     if(d.docQuest==="כן") free.push(["שאלון הפניה", "✓"]);
-    // names next to signature labels (image added separately for psychologist)
-    if(d.principalName) free.push(["חתימת המנהל", d.principalName]);
-    if(d.psychName) free.push(["חתימת הפסיכולוג", d.psychName]);
+    // signature names placed into dedicated cells (not free-text) to avoid duplication
     const checks=[];
     if(d.gender==="ז") checks.push(["המין","Z"]);
     if(d.gender==="נ") checks.push(["המין","N"]);
     const blob=await fillOfficialDocx(TAZKIR_B64, fills, {
       "תאריך": fmtD(d.date)||new Date().toLocaleDateString("he-IL")
-    }, free, checks, true, {fromName:d.from, classKind:d.regClassKind, schoolType:d.schoolType, targetSchool:d.targetSchool});
+    }, free, checks, true, {classKind:d.regClassKind||d.specSchoolKind, schoolType:d.schoolType, targetSchool:d.targetSchool, principalName:d.principalName, psychName:d.psychName, gan:d.gan});
     const fname=`תזכיר_משרדי_${(d.last||d.first||"טופס").replace(/\s+/g,"_")}.docx`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -2303,8 +2368,17 @@ $("#tMake")&&($("#tMake").onclick=async()=>{
   if(fs&&op){ fs.addEventListener("change",()=>{ op.hidden=!(fs.value==="גרושים"||fs.value==="פרודים"); }); }
   const bc=$("#tBirthCountry"), aw=$("#tAliyahWrap");
   if(bc&&aw){ const upd=()=>{ const v=(bc.value||"").trim(); aw.hidden=!v || v==="ישראל" || v==="Israel"; }; bc.addEventListener("input",upd); upd(); }
-  const reg=$("#tSchoolReg"), spec=$("#tSchoolSpec"), rcw=$("#tRegClassWrap");
-  if(reg&&rcw){ const upd=()=>{ rcw.hidden=!(reg.checked); }; reg.addEventListener("change",upd); if(spec) spec.addEventListener("change",upd); }
+  const reg=$("#tSchoolReg"), spec=$("#tSchoolSpec"), gan=$("#tSchoolGan");
+  const rcw=$("#tRegClassWrap"), scw=$("#tSpecClassWrap"), tsw=$("#tTargetSchoolWrap"), gw=$("#tGanWrap");
+  const updSchool=()=>{
+    const isReg=reg&&reg.checked, isSpec=spec&&spec.checked, isGan=gan&&gan.checked;
+    if(rcw) rcw.hidden=!isReg;
+    if(scw) scw.hidden=!isSpec;
+    if(tsw) tsw.hidden=!!isGan; // בית ספר ריק כשנבחר גן
+    if(gw) gw.hidden=!isGan;
+  };
+  [reg,spec,gan].forEach(el=>{ if(el) el.addEventListener("change", updSchool); });
+  updSchool();
   if($("#tFrom") && !$("#tFrom").value) $("#tFrom").value=store.get("att_name")||"";
   if($("#tDate") && !$("#tDate").value){ const n=new Date(); $("#tDate").value=n.toISOString().slice(0,10); }
 })();
