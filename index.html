@@ -133,7 +133,7 @@ body[data-mode="forms"] .tab:not(.m-forms),
 body[data-mode="files"] .tab:not(.m-files),
 body[data-mode="work"] .tab:not(.m-work),
 body[data-mode="gefen"] .tab:not(.m-gefen),
-body[data-mode="maanak"] .tab:not(.m-maanak),
+body[data-mode="maanak"] .tab:not(.m-maanak){display:none}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .dcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:22px 12px;text-align:center;min-height:104px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .dcard:hover,.dcard:focus-visible{border-color:var(--focus);box-shadow:0 6px 20px rgba(59,130,246,.12);outline:none}
@@ -204,7 +204,7 @@ details{margin-top:12px;font-size:14px;color:var(--soft)}
 .back-row{display:none;align-items:center;gap:8px;margin:0 0 12px;padding:0}
 body[data-mode="work"] .back-row,
 body[data-mode="gefen"] .back-row,
-body[data-mode="maanak"] .back-row,
+body[data-mode="maanak"] .back-row{display:flex}
 .back-row button{font:600 14px "Assistant",Arial,sans-serif;background:var(--card);border:1.5px solid var(--rule);border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .back-row button:hover{border-color:var(--btn);color:var(--btn)}
 
