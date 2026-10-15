@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>משלים החתמות</title>
+<title>ממלא טפסים - שפ"ח חיפה</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1C2541">
 <link rel="icon" href="icon-192.png">
@@ -234,8 +234,8 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
 <main>
 <header>
   <div class="logo"><img src="logo.png" alt="שירות פסיכולוגי חינוכי – חיפה" width="205" height="205"></div>
-  <h1>משלים החתמות</h1>
-  <p>טפסים להשלמת חתימות, דיווח גפ"ן, בקשה למענק השתלמות ועוד. כל טופס נשמר כקובץ עם הפרטים והחתימה שלך, ובענן בתקיות נפרדות.</p>
+  <h1>ממלא טפסים - שפ"ח חיפה</h1>
+  <p>אפליקציה למילוי טפסים לשימוש השוטף של הפסיכולוג</p>
   <span class="stamp">טפסים</span>
 </header>
 
@@ -318,7 +318,19 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   </div>
 </section>
 
-<section class="step tab m-work" id="s3"><span class="punch">1</span>
+<section class="step tab m-work" id="sClock"><span class="punch">1</span>
+  <h2>דיווח שעון נוכחות</h2>
+  <p class="hint">טען קובץ אקסל עם דיווחי נוכחות של השעון. האפליקציה תזהה היכן חסרות החתמות.</p>
+  <div class="bar"><label class="filebtn">טען קובץ אקסל של שעון נוכחות<input type="file" id="clockFile" accept=".xlsx,.xls,.csv"></label></div>
+  <div class="status" id="clockStatus"></div>
+  <details><summary>איך יוצרים קובץ אקסל מצילום</summary>
+    <p>שולחים ל-Claude את צילום דוח השעון עם ההנחיה הזאת, ומורידים את קובץ האקסל שהוא יוצר:</p>
+    <p id="clockPrompt" class="prompt">צור קובץ Excel מצילום דוח הנוכחות המצורף, עם ארבע עמודות בדיוק: תאריך (DD/MM/YYYY), כניסה (HH:MM), יציאה (HH:MM), סטטוס (הטקסט שבעמודת פעילות/חריגה, למשל "יום לא נסגר", "העדרות ללא דיווח" או "מנוחה בתשלום"). שורה אחת לכל תאריך שמופיע בדוח. כשאין החתמה, השאר את התא ריק. שים לב: בגלל זווית הצילום השעות עשויות להיראות מוזזות בחצי שורה מהתאריך, אז ודא שכל כניסה ויציאה משויכות לתאריך הנכון.</p>
+    <button id="copyPrompt">העתק את ההנחיה</button>
+  </details>
+</section>
+
+<section class="step tab m-work" id="s3"><span class="punch">2</span>
 
   <h2>קובץ דיווחי השעות</h2>
   <p class="hint">קובץ אקסל עם עמודות תאריך, כניסה ויציאה (למשל Date, Check-In, Check-Out).</p>
@@ -326,21 +338,14 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   <div class="status" id="s3status"></div>
 </section>
 
-<section class="step tab m-work" id="s2"><span class="punch">2</span>
+<section class="step tab m-work" id="s2"><span class="punch">3</span>
   <h2>הימים שחסרה בהם החתמה</h2>
-  <p class="hint">הדרך המדויקת: מעלים קובץ אקסל של דוח השעון, והימים החסרים מסומנים לבד יחד עם ההחתמה שכן נקלטה. אפשר גם לסמן ימים ידנית בלוח. נקודה מתחת לתאריך אומרת שיש לו דיווח בקובץ השעות.</p>
-  <div class="bar"><label class="filebtn">העלה אקסל של דוח השעון<input type="file" id="clockFile" accept=".xlsx,.xls,.csv"></label></div>
-  <div class="status" id="clockStatus"></div>
-  <details><summary>איך יוצרים את הקובץ ב-Claude מהצילום</summary>
-    <p>שולחים ל-Claude את צילום דוח השעון עם ההנחיה הזאת, ומורידים את קובץ האקסל שהוא יוצר:</p>
-    <p id="clockPrompt" class="prompt">צור קובץ Excel מצילום דוח הנוכחות המצורף, עם ארבע עמודות בדיוק: תאריך (DD/MM/YYYY), כניסה (HH:MM), יציאה (HH:MM), סטטוס (הטקסט שבעמודת פעילות/חריגה, למשל "יום לא נסגר", "העדרות ללא דיווח" או "מנוחה בתשלום"). שורה אחת לכל תאריך שמופיע בדוח. כשאין החתמה, השאר את התא ריק. שים לב: בגלל זווית הצילום השעות עשויות להיראות מוזזות בחצי שורה מהתאריך, אז ודא שכל כניסה ויציאה משויכות לתאריך הנכון.</p>
-    <button id="copyPrompt">העתק את ההנחיה</button>
-  </details>
+  <p class="hint">הימים החסרים מסומנים לבד לפי קובץ השעון. אפשר גם לסמן ימים ידנית בלוח. נקודה מתחת לתאריך אומרת שיש לו דיווח בקובץ השעות.</p>
   <div class="bar"><button id="calPrev" aria-label="חודש קודם">›</button><h3 id="calTitle"></h3><button id="calNext" aria-label="חודש הבא">‹</button></div>
   <div class="cal" id="cal" role="grid"></div>
   <div class="check" id="check" hidden></div>
 </section>
-<section class="step tab m-work" id="s4"><span class="punch">3</span>
+<section class="step tab m-work" id="s4"><span class="punch">4</span>
   <h2>הימים להשלמה</h2>
   <p class="hint">ההחתמה שנקלטה נשארת כמו בשעון, והשעה החסרה נלקחת מקובץ השעות ומסומנת בצהוב. בהערות מופיעות ה-Work unit notes מהאקסל. יום שבאקסל רשום בלי משך (למשל 08:00 עד 08:00 עם "מחלת ילד") מסומן אוטומטית כיום מחלה או חופשה, בלי שעות. אפשר גם לבחור את זה ידנית ביום שאין בו שום החתמה. אפשר לתקן כל שדה.</p>
   <div class="row2"><div><label class="f" for="month">חודש בכותרת</label><input type="text" id="month" placeholder="למשל ספטמבר 2026"></div><div></div></div>
@@ -351,7 +356,7 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   <div class="empty" id="noRows">עדיין אין ימים. העלה את קובץ דוח השעון או סמן ימים בלוח בשלב 3.</div>
 </section>
 
-<section class="step tab m-work" id="s5"><span class="punch">4</span>
+<section class="step tab m-work" id="s5"><span class="punch">5</span>
   <h2>כרטיס הנוכחות בוורד</h2>
   <p class="hint">הקובץ נבנה על תבנית "כרטיס נוכחות חודשי" שצורפה. אפשר להחליף לתבנית וורד אחרת עם טבלה שיש בה עמודות תאריך, כניסה, יציאה והערות.</p>
   <div class="bar">
@@ -378,7 +383,7 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
 
 <section class="step tab m-gefen" id="g2"><span class="punch">2</span>
   <h2>שעות הגפ"ן</h2>
-  <p class="hint">מעלים את קובץ האקסל של שעות הגפ"ן (עמודות תאריך, כניסה, יציאה). כל שורה בקובץ הופכת לשורה בדוח, והסה"כ מחושב לבד. אפשר לתקן, להוסיף ולמחוק שורות.</p>
+  <p class="hint">ניתן להעלות דיווח שעות בקובץ אקסל או לדווח באופן ידני</p>
   <div class="bar"><label class="filebtn">בחר קובץ אקסל של גפ"ן<input type="file" id="gFile" accept=".xlsx,.xls,.csv"></label></div>
   <div class="status" id="gStatus"></div>
   <div class="tablewrap"><table>
@@ -842,6 +847,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 
 function markDone(){
   $("#s1").classList.toggle("done", !!($("#name").value&&store.get("att_sig")));
+  $("#sClock").classList.toggle("done", S.clock.length>0);
   $("#s3").classList.toggle("done", Object.keys(S.excel).length>0);
   $("#s2").classList.toggle("done", S.rows.length>0);
   $("#s4").classList.toggle("done", S.rows.length>0 && S.rows.every(rowDone));
@@ -1569,7 +1575,7 @@ setMode(validModes.includes(store.get("att_mode"))?store.get("att_mode"):"dash")
 
 /* ================= Google Drive ================= */
 // scope drive.file: the app sees only files and folders it created itself
-const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.file", DRIVE_ROOT="משלים החתמות";
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.file", DRIVE_ROOT="ממלא טפסים - שפ\"ח חיפה";
 const drive={token:null,exp:0,client:null,folders:{}};
 const driveOn = () => !!(GOOGLE_CLIENT_ID && window.google && google.accounts && google.accounts.oauth2);
 function driveToken(){ // must be called straight from a tap: it may open Google's sign-in window

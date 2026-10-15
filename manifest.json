@@ -1,7 +1,7 @@
 {
-  "name": "משלים החתמות – שירות פסיכולוגי חינוכי חיפה",
-  "short_name": "משלים החתמות",
-  "description": "אפליקציה להחתמות, טפסים ומעקב של השירות הפסיכולוגי החינוכי בחיפה",
+  "name": "ממלא טפסים - שפ\"ח חיפה",
+  "short_name": "ממלא טפסים",
+  "description": "אפליקציה למילוי טפסים לשימוש השוטף של הפסיכולוג בשירות הפסיכולוגי החינוכי בחיפה",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -11,8 +11,23 @@
   "lang": "he",
   "dir": "rtl",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
