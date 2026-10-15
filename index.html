@@ -531,7 +531,7 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
     <div class="folder" id="folderForms" data-folder="forms">
       <button type="button" class="folder-head" aria-expanded="false">
         <span class="folder-icon purple">📁</span>
-        <span class="folder-meta"><h3>טפסים נוספים</h3><p id="folderFormsCount">בקשות למענק</p></span>
+        <span class="folder-meta"><h3>בקשות למענק השתלמות</h3><p id="folderFormsCount">טוען…</p></span>
         <span class="folder-chevron">‹</span>
       </button>
       <div class="folder-body" id="fileListForms"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
@@ -1802,11 +1802,11 @@ async function renderFiles(){
       formsBox.appendChild(div);
     });
   }
-  const wc=Object.keys(work).length, gc=Object.keys(gef).length, fc=(fm||[]).filter(f=>/\.docx$/i.test(f.name)).length;
-  const setCount=(id,n,empty)=>{ const el=$(id); if(el) el.textContent=n?`${n} חודשים / קבצים`:(empty||"ריק"); };
+  const cntFiles=m=>Object.values(m).reduce((a,x)=>a+Object.keys(x).length,0), wc=cntFiles(work), gc=cntFiles(gef), fc=(fm||[]).filter(f=>/\.docx$/i.test(f.name)).length;
+  const setCount=(id,n,empty)=>{ const el=document.getElementById(id); if(el) el.textContent=n?(n===1?"קובץ אחד":`${n} קבצים`):(empty||"ריק"); };
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
-  setCount("folderFormsCount",fc,"בקשות למענק");
+  setCount("folderFormsCount",fc,"ריק – עדיין אין קבצים");
   cloudIndex={work,gef}; renderDash();
 }
 // folder open/close
