@@ -563,6 +563,7 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
 <section class="step tab m-files cloudonly" id="files" hidden><span class="punch">☁</span>
   <h2>קבצים בענן</h2>
   <p class="hint">לחיצה על תיקייה פותחת את הקבצים שבתוכה. בדוחות נוכחות וגפ"ן נשמר בענן רק הדוח שהופק. בבקשות, "טען לעריכה" מחזיר את הטופס לעריכה.</p>
+  <div class="bar" id="cleanBar" hidden><button type="button" id="cleanSources" class="del"></button></div>
   <div class="folder-grid" id="folderGrid">
     <div class="folder" id="folderWork" data-folder="work">
       <button type="button" class="folder-head" aria-expanded="false">
@@ -1930,9 +1931,8 @@ async function renderFiles(){
   const work={}, gef={};
   const put=(map,ym,k,v)=>{ (map[ym]=map[ym]||{})[k]=v; };
   [[lr,"reports"],[wr,"work/reports"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.docx$/); if(m) put(work,m[1],"report",d+"/"+f.name); }));
-  [[ls,"sources"],[ws,"work/sources"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})_(hours|clock)\./); if(m) put(work,m[1],m[2],d+"/"+f.name); }));
+  window.legacySources=[...ls.map(f=>"sources/"+f.name),...ws.map(f=>"work/sources/"+f.name),...gs.map(f=>"gefen/sources/"+f.name)];
   gr.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.docx$/); if(m) put(gef,m[1],"report","gefen/reports/"+f.name); });
-  gs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})_gefen\./); if(m) put(gef,m[1],"gefen","gefen/sources/"+f.name); });
   const draw=(box,map,kind)=>{
     if(!box) return;
     const keys=Object.keys(map).sort().reverse();
@@ -1943,12 +1943,8 @@ async function renderFiles(){
       const ml=monthLabel(ym).replace(" ","_");
       if(kind==="work"){
         if(m.report) add("כרטיס נוכחות ⬇",()=>cloudDownload(m.report,`כרטיס_נוכחות_${ml}.docx`));
-        if(m.hours) add("קובץ שעות ⬇",()=>cloudDownload(m.hours,`שעות_${ym}.xlsx`));
-        if(m.clock) add("דוח שעון ⬇",()=>cloudDownload(m.clock,`דוח_שעון_${ym}.xlsx`));
-        if(m.hours||m.clock) add("טען לעריכה",()=>cloudLoadMonth(m,ym),"primary");
       } else {
         if(m.report) add("דוח גפ\"ן ⬇",()=>cloudDownload(m.report,`דיווח_גפן_${ml}.docx`));
-        if(m.gefen) add("קובץ גפ\"ן ⬇",()=>cloudDownload(m.gefen,`גפן_${ym}.xlsx`));
         if(m.gefen) add("טען לעריכה",()=>cloudLoadGefen(m,ym),"primary");
       }
       add("מחק",()=>cloudDeleteMonth(m,ym),"del");
@@ -1980,6 +1976,9 @@ async function renderFiles(){
   const wc=cntFiles(work), gc=cntFiles(gef);
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
+  const cb=$("#cleanBar"), cbtn=$("#cleanSources"); if(cb&&cbtn){ const n=(window.legacySources||[]).length; cb.hidden=!n; cbtn.textContent="מחק קבצי מקור ישנים ("+n+")";
+    cbtn.onclick=async()=>{ const list=(window.legacySources||[]).slice(); if(!list.length||!confirm("למחוק מהענן "+list.length+" קבצי מקור ישנים (אקסל שהועלו בעבר)? הדוחות שהופקו לא יימחקו.")) return;
+      const {error}=await cloud.sb.storage.from(BUCKET).remove(list.map(P)); setStatus("#filesStatus",error?"המחיקה נכשלה.":"קבצי המקור נמחקו. נשארו רק הדוחות.",error?"err":"ok"); renderFiles(); }; }
   cloudIndex={work,gef}; renderDash();
 }
 // folder open/close
