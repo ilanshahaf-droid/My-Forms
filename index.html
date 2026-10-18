@@ -562,7 +562,7 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
 
 <section class="step tab m-files cloudonly" id="files" hidden><span class="punch">☁</span>
   <h2>קבצים בענן</h2>
-  <p class="hint">לחיצה על תיקייה פותחת את הקבצים שבתוכה. "טען לעריכה" מחזיר את קבצי החודש לאפליקציה.</p>
+  <p class="hint">לחיצה על תיקייה פותחת את הקבצים שבתוכה. בדוחות נוכחות וגפ"ן נשמר בענן רק הדוח שהופק. בבקשות, "טען לעריכה" מחזיר את הטופס לעריכה.</p>
   <div class="folder-grid" id="folderGrid">
     <div class="folder" id="folderWork" data-folder="work">
       <button type="button" class="folder-head" aria-expanded="false">
@@ -791,12 +791,12 @@ function loadClockBytes(bytes){
 }
 $("#xlsFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ if(!window.XLSX) throw new Error("nolib"); const bytes=new Uint8Array(await f.arrayBuffer());
-    const dates=loadHoursBytes(bytes); if(dates.length) cloudSaveSource(bytes,"hours",dates,f.name);
+    const dates=loadHoursBytes(bytes);
   }catch(err){ setStatus("#s3status","לא הצלחתי לקרוא את הקובץ.","err"); }
   e.target.value=""; };
 $("#clockFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ if(!window.XLSX) throw new Error("nolib"); const bytes=new Uint8Array(await f.arrayBuffer());
-    const dates=loadClockBytes(bytes); if(dates.length) cloudSaveSource(bytes,"clock",dates,f.name);
+    const dates=loadClockBytes(bytes);
   }catch(err){ setStatus("#clockStatus","לא הצלחתי לקרוא את הקובץ.","err"); }
   e.target.value=""; };
 $("#copyPrompt").onclick=async()=>{ try{ await navigator.clipboard.writeText($("#clockPrompt").textContent.trim()); $("#copyPrompt").textContent="הועתק ✓"; }catch(e){ $("#copyPrompt").textContent="סמן והעתק ידנית"; } setTimeout(()=>$("#copyPrompt").textContent="העתק את ההנחיה",2000); };
@@ -1160,7 +1160,7 @@ function loadGefenBytes(bytes){
   G.monthAuto=true; gAutoMonth(); renderG(); return G.rows.map(r=>r.date);
 }
 $("#gFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
-  try{ const bytes=new Uint8Array(await f.arrayBuffer()); const d=loadGefenBytes(bytes); if(d.length) cloudSaveSource(bytes,"gefen",d,f.name); }
+  try{ const bytes=new Uint8Array(await f.arrayBuffer()); const d=loadGefenBytes(bytes); }
   catch(err){ setStatus("#gStatus","לא הצלחתי לקרוא את הקובץ.","err"); } e.target.value=""; };
 $("#gAdd").onclick=()=>{ const d=$("#gAddDate").value; if(!d) return; G.rows.push({date:d,in:"",out:"",brk:0});
   G.rows.sort((a,b)=>(a.date+a.in).localeCompare(b.date+b.in)); gAutoMonth(); renderG(); };
@@ -1368,18 +1368,39 @@ function drawHofeshPdf(x,d,sig,logo){
   ptext(x,"2. מכסות ימי חופש והבראה- ראה בגב הטופס.",R,934,{size:11});
 }
 
+/* PDF בלי ספרייה חיצונית: עמוד A4 מצויר על canvas ונארז כתמונת JPEG בתוך קובץ PDF מינימלי.
+   כך זה עובד גם בלי אינטרנט ובכל דפדפן (כולל Safari באייפד). */
+function canvasToPdf(c){
+  const url=c.toDataURL("image/jpeg",0.92), b64=url.split(",")[1];
+  if(!b64) throw new Error("הדפדפן לא הצליח לצייר את העמוד");
+  const bin=atob(b64), jpg=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
+  const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
+  const put=b=>{ parts.push(b); len+=b.length; }, str=t=>put(enc.encode(t));
+  const obj=(n,body)=>{ offs[n]=len; str(n+" 0 obj\n"+body+"\nendobj\n"); };
+  str("%PDF-1.4\n");
+  obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+  offs[4]=len; str("4 0 obj\n<< /Type /XObject /Subtype /Image /Width "+c.width+" /Height "+c.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");
+  put(jpg); str("\nendstream\nendobj\n");
+  const content="q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
+  obj(5,"<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream");
+  const xref=len; let t="xref\n0 6\n0000000000 65535 f \n";
+  for(let i=1;i<=5;i++) t+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+  str(t+"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF");
+  return new Blob(parts,{type:"application/pdf"});
+}
 async function buildPdf(kind,d){
-  const [{jsPDF}]=await Promise.all([loadJsPdf(),pdfFonts()]);
+  await pdfFonts();
   const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
   const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
   const {c,x}=pdfCanvas();
   if(kind==="gefen") drawGefen(x,d,sig);
   else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="maanak") drawFormPdf(x,d,sig);
   else drawWork(x,d,sig);
-  const pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
-  pdf.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",0,0,210,297);
-  return pdf.output("blob");
+  return canvasToPdf(c);
 }
+
 // buttons: "שתף PDF" (only where the browser can share files) and "הורד PDF" (a plain link, works everywhere)
 const PDF_UI={
   work:{share:"#share",dl:"#shareOpen",status:"#s5pdf"},
@@ -1399,7 +1420,7 @@ async function preparePdf(kind,data,docName){
     let can=false; try{ can=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
     $(ui.share).hidden=!can;
     setStatus(ui.status,can?'ה-PDF מוכן. "שתף PDF" לשליחה בוואטסאפ או במייל, או "הורד PDF" לשמירה בטלפון.':'ה-PDF מוכן. לחץ "הורד PDF", ואז פתח אותו מההורדות כדי לשתף.',"ok");
-  }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה (צריך חיבור לאינטרנט בפעם הראשונה). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
+  }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה ("+((e&&e.message)||"שגיאה לא ידועה")+"). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
 }
 ["work","gefen","maanak","hofesh"].forEach(kind=>{
   const ui=PDF_UI[kind]; if(!ui) return;
