@@ -284,6 +284,12 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-qhead h2{margin:0 !important}
 .ck-qtime{font-size:26px;font-weight:700}
 .ck-quick .ck-big{margin-top:12px}
+.ck-chips{grid-template-columns:repeat(auto-fit,minmax(96px,1fr)) !important}
+.ck-place{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.ck-place:last-child{border-bottom:none}
+.ck-place input{flex:1;min-width:0}
+.ck-color{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--rule)}
+.ck-color:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 </style>
 
 </head>
@@ -371,7 +377,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="forms-list">
     <button type="button" class="form-card-btn" data-open="clock">
       <span class="ficon" aria-hidden="true">⏱</span>
-      <span class="finfo"><span class="ft">שעון נוכחות</span><span class="fd">כניסה ויציאה יומית ודו״ח חודשי – שפ״ח, גפ״ן, ק.ש.ר.</span><span class="badge new" data-ckbadge>דיווח יומי</span></span>
+      <span class="finfo"><span class="ft">שעון נוכחות</span><span class="fd">כניסה ויציאה יומית ודו״ח חודשי</span><span class="badge new" data-ckbadge>דיווח יומי</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
     <button type="button" class="form-card-btn" data-open="maanak">
@@ -411,9 +417,25 @@ dialog.ck-dlg form{padding:20px 18px}
 
 <section class="step tab m-work" id="s3"><span class="punch">2</span>
 
-  <h2>קובץ דיווחי השעות</h2>
-  <p class="hint">קובץ אקסל עם עמודות תאריך, כניסה ויציאה (למשל Date, Check-In, Check-Out).</p>
-  <div class="bar"><label class="filebtn">בחר קובץ אקסל<input type="file" id="xlsFile" accept=".xlsx,.xls,.csv"></label></div>
+  <h2>מקור השעות</h2>
+  <p class="hint">מאיפה לקחת את שעות הכניסה והיציאה לימים שצריך להשלים.</p>
+  <div class="opts" role="radiogroup" aria-label="מקור השעות">
+    <label><input type="radio" name="hrsSrc" value="clock"> משעון הנוכחות</label>
+    <label><input type="radio" name="hrsSrc" value="excel"> מקובץ אקסל</label>
+    <label><input type="radio" name="hrsSrc" value="manual"> הזנה ידנית</label>
+  </div>
+  <div id="srcClock" hidden>
+    <div class="row2" style="margin-top:4px"><div><label class="f" for="srcMonth">חודש</label><input type="month" id="srcMonth"></div><div></div></div>
+    <div class="bar"><button type="button" class="primary" id="srcClockLoad">טען שעות משעון הנוכחות</button></div>
+    <p class="hint" style="margin:8px 0 0">לכל יום נלקחת הכניסה הראשונה והיציאה האחרונה. מקום העבודה וההערה נכנסים לעמודת ההערות.</p>
+  </div>
+  <div id="srcExcel" hidden>
+    <p class="hint" style="margin:10px 0 0">קובץ אקסל עם עמודות תאריך, כניסה ויציאה (למשל Date, Check-In, Check-Out).</p>
+    <div class="bar"><label class="filebtn">בחר קובץ אקסל<input type="file" id="xlsFile" accept=".xlsx,.xls,.csv"></label></div>
+  </div>
+  <div id="srcManual" hidden>
+    <p class="hint" style="margin:10px 0 0">מסמנים את הימים בלוח בשלב 3, וכותבים את שעות הכניסה והיציאה בטבלה בשלב 4.</p>
+  </div>
   <div class="status" id="s3status"></div>
 </section>
 
@@ -512,6 +534,14 @@ dialog.ck-dlg form{padding:20px 18px}
   </div>
   <div class="status" id="ckRepStatus"></div>
   <details id="ckPrevBox"><summary>תצוגה מקדימה</summary><div class="ck-prev"><div id="ckPreview"></div></div></details>
+</section>
+
+<section class="step tab m-clock" id="ckPlaces"><span class="punch">⚙</span>
+  <h2>מקומות העבודה שלי</h2>
+  <p class="hint">מגדירים פעם אחת, והם נשמרים בחשבון ומופיעים בכל מכשיר. שינוי שם מעדכן גם את הדיווחים הקיימים. הסרה מהרשימה לא מוחקת דיווחים. לחיצה על העיגול מחליפה צבע.</p>
+  <div id="ckPlaceList"></div>
+  <div class="bar"><input type="text" id="ckPlaceNew" placeholder="שם מקום עבודה חדש" style="flex:1;min-width:0"><button type="button" class="primary" id="ckPlaceAdd">הוספה</button></div>
+  <div class="status" id="ckPlaceStatus"></div>
 </section>
 
 <section class="step tab m-gefen" id="g1"><span class="punch">1</span>
@@ -925,7 +955,7 @@ function offKind(iso){ const x=S.excel[iso]; if(!x||!x.zero) return null; const 
 const rowDone = r => isOff(r.miss) || (r.in && r.out);
 
 function loadHoursBytes(bytes){
-  S.excel=parseHours(bytes);
+  S.excel=parseHours(bytes); if(window.CKW) CKW.excelLoaded();
   const n=Object.keys(S.excel).length;
   if(!n) setStatus("#s3status","לא נמצאו בקובץ עמודות תאריך, כניסה ויציאה.","err");
   else setStatus("#s3status",`נטענו ${n} ימי דיווח מהקובץ.`,"ok");
@@ -940,6 +970,7 @@ function loadClockBytes(bytes){
   const n=S.rows.length;
   setStatus("#clockStatus",`נקראו ${rows.length} ימים מדוח השעון. ${n?`ב-${n} מהם חסרה החתמה, והם סומנו בלוח.`:"לא נמצא אף יום עם החתמה חסרה."}`,"ok");
   S.monthAuto=true; autoMonth(); renderCal(); renderRows(); renderCheck(); markDone();
+  if(window.CKW) CKW.afterClockFile();
   return rows.map(r=>r.date);
 }
 $("#xlsFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
@@ -1035,7 +1066,7 @@ function renderRows(){
     const chip = isOff(r.miss) ? '<span class="chip ok">ללא שעות</span>'
       : lacking ? (r.absent&&!r.in&&!r.out ? '<span class="chip">אין החתמה ואין שעות באקסל: הזן שעות או בחר מחלה/חופשה</span>' : '<span class="chip">חסרה שעה</span>')
       : '<span class="chip ok">מלא</span>';
-    const src=(c,x,v)=>c?"שעון":x?"אקסל":v?"ידני":"";
+    const src=(c,x,v)=>c?"שעון":x?(window.CKW?CKW.label():"אקסל"):v?"ידני":"";
     tr.innerHTML=`<td><b>${fmtDate(r.date)}</b> <span class="src">יום ${dayName(r.date)}</span></td>
       <td><select aria-label="מה חסר"><option value="in">כניסה</option><option value="out">יציאה</option><option value="both">שתיהן</option><option value="sick">יום מחלה</option><option value="vac">יום חופשה</option><option value="off">יום ללא שעות</option></select></td>
       <td><input type="time" data-k="in" ${isOff(r.miss)?"disabled":""} value="${r.in}" class="${r.inX?"fromx":""}" aria-label="כניסה"><span class="src">${src(r.cin,r.inX,r.in)}</span></td>
@@ -2185,11 +2216,9 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigat
 <script>
 /* ================= שעון נוכחות ================= */
 (function(){
-const WORKPLACES = [
-  { name: 'שפ"ח חיפה', short: 'שפח חיפה', color: '#2563EB' },
-  { name: 'גפ"ן',      short: 'גפן',      color: '#059669' },
-  { name: 'ק.ש.ר.',    short: 'קשר',      color: '#D97706' }
-];
+const PALETTE = ["#2563EB","#059669","#D97706","#7C3AED","#DC2626","#0891B2","#DB2777","#65A30D"];
+let WORKPLACES = [];   // [{name, color}] – מוגדר ע"י המשתמש ונשמר בענן
+try{ WORKPLACES = JSON.parse(localStorage.getItem("ck_wps") || "[]"); }catch(_){ WORKPLACES = []; }
 const TBL = "clock_entries";
 const DAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
 const p2 = n => String(n).padStart(2,"0");
@@ -2201,6 +2230,7 @@ const heDate = s => { const d = parseISO(s); return `${p2(d.getDate())}/${p2(d.g
 const dowOf = s => DAYS[parseISO(s).getDay()];
 const mLabel = ym => HEB_MONTHS[+ym.slice(5,7)-1]+" "+ym.slice(0,4);
 const wpColor = n => (WORKPLACES.find(w => w.name === n) || {color:"#64748B"}).color;
+const shortName = n => String(n).replace(/["'״׳.]/g, "").trim();
 const e = s => esc(s == null ? "" : s);
 function minutesOf(x){
   if(!x.time_in || !x.time_out) return 0;
@@ -2248,7 +2278,7 @@ function errMsg(err){ const m = (err && err.message) || String(err);
   return "שגיאה: " + m; }
 
 /* ---------- מצב ---------- */
-const st = { wp: localStorage.getItem("ck_wp") || WORKPLACES[0].name, open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
+const st = { wp: localStorage.getItem("ck_wp") || "", open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
 
 /* ---------- היום (מסך מלא + כרטיס מהיר בלוח הבקרה) ---------- */
 const VIEWS = [
@@ -2257,9 +2287,12 @@ const VIEWS = [
 ];
 const statusAll = (msg, kind) => VIEWS.forEach(v => setStatus(v.status, msg, kind));
 function renderChips(){
-  const html = WORKPLACES.map(w =>
-    `<button type="button" class="ck-chip" style="--wp:${w.color}" aria-pressed="${w.name===st.wp}" data-wp="${e(w.name)}">${e(w.name)}</button>`).join("");
-  VIEWS.forEach(v => { $(v.chips).innerHTML = html; });
+  if(!WORKPLACES.some(w => w.name === st.wp)) st.wp = WORKPLACES.length ? WORKPLACES[0].name : "";
+  const html = WORKPLACES.length ? WORKPLACES.map(w =>
+    `<button type="button" class="ck-chip" style="--wp:${w.color}" aria-pressed="${w.name===st.wp}" data-wp="${e(w.name)}">${e(w.name)}</button>`).join("")
+    : `<div class="ck-warn" style="grid-column:1/-1;margin:0">עוד לא הוגדרו מקומות עבודה.<br><button type="button" class="ck-setup">הגדרת מקומות העבודה שלי</button></div>`;
+  VIEWS.forEach(v => { $(v.chips).innerHTML = html; const b = $(v.chips).querySelector(".ck-setup"); if(b) b.onclick = goPlaces;
+    $(v.btn).disabled = !WORKPLACES.length && !(st.open && st.open.work_date === isoDate(new Date())); });
 }
 VIEWS.forEach(v => {
   $(v.chips).addEventListener("click", async ev => {
@@ -2321,6 +2354,7 @@ async function clockToggle(v){
       st.open = null; VIEWS.forEach(o => { $(o.note).value = ""; });
       statusAll(`✓ יציאה נרשמה ב-${hhmm(now)}`, "ok");
     } else {
+      if(!st.wp) throw new Error("קודם צריך להגדיר מקום עבודה.");
       st.open = await db.insert({work_date: today, workplace: st.wp, time_in: hhmm(now), time_out: null, note});
       statusAll(`✓ כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
     }
@@ -2358,7 +2392,7 @@ async function loadMonth(){
   try{ st.monthList = await db.list(from,to); }catch(err){ st.monthList = []; $("#ckMonthList").innerHTML = `<div class="empty">${e(errMsg(err))}</div>`; return; }
   const s = summarize(st.monthList);
   $("#ckSum").innerHTML = `<div><b class="ck-num">${fmtHM(s.total)}</b><span>סה״כ · ${s.days} ימים</span></div>` +
-    WORKPLACES.map(w => { const x = s.by[w.name]; return `<div style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span>${e(w.name)} · ${x ? x.days.size : 0} ימים</span></div>`; }).join("");
+    [...WORKPLACES, ...Object.keys(s.by).filter(n => !WORKPLACES.some(w => w.name === n)).map(n => ({name:n, color:"#64748B"}))].map(w => { const x = s.by[w.name]; return `<div style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span>${e(w.name)} · ${x ? x.days.size : 0} ימים</span></div>`; }).join("");
   $("#ckMonthList").innerHTML = st.monthList.length ? st.monthList.map(x => entryRow(x,true)).join("") : '<div class="empty">אין דיווחים בחודש הזה</div>';
 }
 function shiftMonth(k){ const [y,m] = st.month.split("-").map(Number), d = new Date(y, m-1+k, 1); st.month = `${d.getFullYear()}-${p2(d.getMonth()+1)}`; loadMonth(); }
@@ -2366,11 +2400,12 @@ $("#ckPrev").onclick = () => shiftMonth(-1);
 $("#ckNext").onclick = () => shiftMonth(1);
 
 /* ---------- עריכה ---------- */
-$("#ckEdWp").innerHTML = WORKPLACES.map(w => `<option>${e(w.name)}</option>`).join("");
 function openEditor(x, date){
   st.editing = x || null;
   $("#ckDlgTitle").textContent = x ? "עריכת דיווח" : "הוספת דיווח ידני";
   $("#ckEdDate").value = x ? x.work_date : (date || isoDate(new Date()));
+  const names = WORKPLACES.map(w => w.name); if(x && !names.includes(x.workplace)) names.push(x.workplace);
+  $("#ckEdWp").innerHTML = names.map(n => `<option>${e(n)}</option>`).join("");
   $("#ckEdWp").value = x ? x.workplace : st.wp;
   $("#ckEdIn").value = x ? t5(x.time_in) : "08:00";
   $("#ckEdOut").value = x ? t5(x.time_out) : "";
@@ -2401,6 +2436,7 @@ function opts(){
   return {
     month: $("#ckRepMonth").value,
     workplaces: [...document.querySelectorAll("#ckRepWps input:checked")].map(i => i.value),
+    allCount: document.querySelectorAll("#ckRepWps input").length,
     grouping: document.querySelector('input[name="ckGroup"]:checked').value,
     dow: $("#ckOptDow").checked, hours: $("#ckOptHours").checked, note: $("#ckOptNote").checked,
     summary: $("#ckOptSummary").checked, id: $("#ckOptId").checked, sign: $("#ckOptSign").checked, sig: $("#ckOptSig").checked,
@@ -2421,7 +2457,7 @@ function buildReport(o, entries){
   if(o.hours) cols.push({k:"hours",h:"סה״כ שעות",w:10});
   if(o.note) cols.push({k:"note",h:"מיקום / הערה",w:34});
   return { title: "דו״ח נוכחות חודשי", month: mLabel(o.month), ym: o.month,
-    wpText: o.workplaces.length === WORKPLACES.length ? "כל מקומות העבודה" : o.workplaces.join(", "),
+    wpText: o.workplaces.length === o.allCount ? "כל מקומות העבודה" : o.workplaces.join(", "),
     groups, summary: o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))), all: mk(null, rows), cols, o };
 }
 const cellVal = (r,k) => k === "hours" ? (r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
@@ -2430,7 +2466,7 @@ const totalCells = (rep, g) => { const hi = rep.cols.findIndex(c => c.k === "hou
 const metaText = rep => `שם העובד: ${rep.o.name || "__________"}` + (rep.o.id && rep.o.tz ? `   ·   ת.ז.: ${rep.o.tz}` : "");
 const madeOn = () => "הופק: " + heDate(isoDate(new Date()));
 function fileBase(rep){
-  const wp = rep.o.workplaces.length === WORKPLACES.length ? "כל המקומות" : rep.o.workplaces.map(w => (WORKPLACES.find(x => x.name === w) || {short:w}).short).join("-");
+  const wp = rep.o.workplaces.length === rep.o.allCount ? "כל המקומות" : rep.o.workplaces.map(shortName).join("-");
   return `דוח נוכחות ${rep.ym} ${wp}`.replace(/[\\/:*?"<>|]/g, "");
 }
 
@@ -2641,15 +2677,152 @@ function renderPreview(){
 $("#ckReport").addEventListener("change", renderPreview);
 $("#ckPrevBox").addEventListener("toggle", renderPreview);
 
+/* ---------- מקומות העבודה שלי ---------- */
+const PLACES_FILE = () => P("clock/settings.json");
+let placesFor = null;   // לאיזה משתמש כבר נטענו ההגדרות
+function setPlaces(list){
+  WORKPLACES = list.filter(w => w && w.name).map((w,i) => ({ name: String(w.name).trim(), color: w.color || PALETTE[i % PALETTE.length] }));
+  try{ localStorage.setItem("ck_wps", JSON.stringify(WORKPLACES)); }catch(_){}
+}
+async function pushPlaces(){
+  if(!cloudReady()) return;
+  const blob = new Blob([JSON.stringify({ workplaces: WORKPLACES })], { type: "application/json" });
+  const { error } = await cloud.sb.storage.from(BUCKET).upload(PLACES_FILE(), blob, { upsert: true, contentType: "application/json" });
+  if(error) throw error;
+}
+async function derivePlaces(){   // משתמש ותיק בלי הגדרות: לוקחים את המקומות מהדיווחים הקיימים
+  let names = [];
+  if(cloudReady()){ const { data } = await cloud.sb.from(TBL).select("workplace").limit(2000); names = (data || []).map(x => x.workplace); }
+  else names = local.all().map(x => x.workplace);
+  const cnt = {}; names.filter(Boolean).forEach(n => cnt[n] = (cnt[n] || 0) + 1);
+  return Object.keys(cnt).sort((a,b) => cnt[b] - cnt[a]).map(name => ({ name }));
+}
+async function loadPlaces(){
+  const who = cloudReady() ? cloud.user.id : "local";
+  if(placesFor === who) return; placesFor = who;
+  try{
+    if(cloudReady()){
+      const { data } = await cloud.sb.storage.from(BUCKET).download(PLACES_FILE());
+      if(data){ const j = JSON.parse(await data.text()); setPlaces(j.workplaces || []); return; }
+      if(WORKPLACES.length){ await pushPlaces(); return; }
+    }
+    if(!WORKPLACES.length){ const d = await derivePlaces(); if(d.length){ setPlaces(d); await pushPlaces(); } }
+  }catch(_){ /* נשארים עם מה שיש במכשיר */ }
+}
+function renderPlaces(){
+  const box = $("#ckPlaceList");
+  box.innerHTML = WORKPLACES.length ? WORKPLACES.map((w,i) => `<div class="ck-place">
+      <button type="button" class="ck-color" style="background:${w.color}" data-i="${i}" aria-label="החלפת צבע"></button>
+      <input type="text" value="${e(w.name)}" data-i="${i}" aria-label="שם מקום העבודה">
+      <button type="button" class="x" data-del="${i}" aria-label="מחיקת ${e(w.name)}">✕</button></div>`).join("")
+    : '<div class="empty">עדיין אין מקומות עבודה. הוסיפו את הראשון כאן למטה.</div>';
+}
+async function placesChanged(msg){
+  try{ await pushPlaces(); setStatus("#ckPlaceStatus", msg, "ok"); }
+  catch(err){ setStatus("#ckPlaceStatus", "נשמר במכשיר, אבל השמירה בענן נכשלה.", "err"); }
+  renderPlaces(); renderChips(); renderStatus(); buildRepWps(); if(document.body.dataset.mode === "clock") loadMonth();
+}
+$("#ckPlaceAdd").onclick = () => {
+  const name = $("#ckPlaceNew").value.trim();
+  if(!name) return setStatus("#ckPlaceStatus", "כתבו שם למקום העבודה.", "err");
+  if(WORKPLACES.some(w => w.name === name)) return setStatus("#ckPlaceStatus", "המקום הזה כבר ברשימה.", "err");
+  setPlaces([...WORKPLACES, { name, color: PALETTE[WORKPLACES.length % PALETTE.length] }]);
+  if(!st.wp){ st.wp = name; try{ localStorage.setItem("ck_wp", name); }catch(_){} }
+  $("#ckPlaceNew").value = ""; placesChanged(`"${name}" נוסף.`);
+};
+$("#ckPlaceNew").addEventListener("keydown", ev => { if(ev.key === "Enter"){ ev.preventDefault(); $("#ckPlaceAdd").click(); } });
+$("#ckPlaceList").addEventListener("click", ev => {
+  const c = ev.target.closest(".ck-color");
+  if(c){ const w = WORKPLACES[+c.dataset.i], k = PALETTE.indexOf(w.color); w.color = PALETTE[(k + 1) % PALETTE.length]; setPlaces(WORKPLACES); placesChanged("הצבע עודכן."); return; }
+  const d = ev.target.closest("[data-del]");
+  if(d){ const w = WORKPLACES[+d.dataset.del];
+    if(!confirm(`להסיר את "${w.name}" מהרשימה?\nהדיווחים הקיימים לא יימחקו.`)) return;
+    setPlaces(WORKPLACES.filter((_,i) => i !== +d.dataset.del)); placesChanged(`"${w.name}" הוסר מהרשימה.`); }
+});
+$("#ckPlaceList").addEventListener("change", async ev => {
+  const inp = ev.target.closest("input[data-i]"); if(!inp) return;
+  const w = WORKPLACES[+inp.dataset.i], old = w.name, name = inp.value.trim();
+  if(!name || name === old){ inp.value = old; return; }
+  if(WORKPLACES.some(x => x.name === name)){ inp.value = old; return setStatus("#ckPlaceStatus", "כבר יש מקום בשם הזה.", "err"); }
+  w.name = name; setPlaces(WORKPLACES);
+  if(st.wp === old){ st.wp = name; try{ localStorage.setItem("ck_wp", name); }catch(_){} }
+  try{   // שינוי שם מעדכן גם את הדיווחים הקיימים
+    if(cloudReady()){ const { error } = await cloud.sb.from(TBL).update({ workplace: name }).eq("workplace", old); if(error) throw error; }
+    else local.save(local.all().map(x => x.workplace === old ? { ...x, workplace: name } : x));
+    if(st.open && st.open.workplace === old) st.open.workplace = name;
+  }catch(err){ setStatus("#ckPlaceStatus", errMsg(err), "err"); }
+  placesChanged(`השם עודכן ל"${name}", כולל בדיווחים הקיימים.`);
+});
+function goPlaces(){
+  setMode("clock");
+  setTimeout(() => { $("#ckPlaces").scrollIntoView({ behavior: "smooth", block: "start" }); $("#ckPlaceNew").focus({ preventScroll: true }); }, 150);
+}
+
+/* תיבות הסימון של הדו"ח: המקומות שלי + מקומות שמופיעים בדיווחי החודש */
+const repOff = new Set();
+async function buildRepWps(){
+  const box = $("#ckRepWps");
+  box.querySelectorAll("input").forEach(i => { if(i.checked) repOff.delete(i.value); else repOff.add(i.value); });
+  const names = WORKPLACES.map(w => w.name), m = $("#ckRepMonth").value;
+  if(m){ try{ const { from, to } = range(m); (await db.list(from, to)).forEach(x => { if(x.workplace && !names.includes(x.workplace)) names.push(x.workplace); }); }catch(_){} }
+  box.innerHTML = names.length ? names.map(n => `<label><input type="checkbox" value="${e(n)}" ${repOff.has(n) ? "" : "checked"}> ${e(n)}</label>`).join("")
+    : '<span class="hint" style="margin:0">אין עדיין מקומות עבודה.</span>';
+}
+$("#ckRepMonth").addEventListener("change", async () => { await buildRepWps(); renderPreview(); });
+
+/* ---------- כרטיס נוכחות: מקור השעות (שעון הנוכחות / אקסל / ידני) ---------- */
+const SRC_LBL = { clock: "השעון שלי", excel: "אקסל" };
+function showSrc(v){
+  S.hrsSrc = v;
+  const r = document.querySelector(`input[name="hrsSrc"][value="${v}"]`); if(r) r.checked = true;
+  $("#srcClock").hidden = v !== "clock"; $("#srcExcel").hidden = v !== "excel"; $("#srcManual").hidden = v !== "manual";
+}
+function workMonth(){ return `${calY}-${p2(calM)}`; }
+async function loadFromClock(){
+  const m = $("#srcMonth").value; if(!m) return setStatus("#s3status", "בחר חודש.", "err");
+  setStatus("#s3status", "טוען משעון הנוכחות…");
+  let list;
+  try{ const { from, to } = range(m); list = await db.list(from, to); }catch(err){ return setStatus("#s3status", errMsg(err), "err"); }
+  const map = {};
+  list.forEach(x => {
+    const tin = t5(x.time_in), tout = t5(x.time_out); if(!tin && !tout) return;
+    const p = map[x.work_date] || (map[x.work_date] = { in: "", out: "", notes: [], zero: false });
+    if(tin && (!p.in || tin < p.in)) p.in = tin;
+    if(tout && (!p.out || tout > p.out)) p.out = tout;
+    const n = x.workplace + (x.note ? " – " + x.note : ""); if(n && !p.notes.includes(n)) p.notes.push(n);
+  });
+  S.excel = map;
+  const n = Object.keys(map).length;
+  setStatus("#s3status", n ? `נטענו ${n} ימים משעון הנוכחות (${mLabel(m)}).` : `אין דיווחים בשעון הנוכחות ב${mLabel(m)}.`, n ? "ok" : "err");
+  if(!S.clock.length){ calY = +m.slice(0,4); calM = +m.slice(5,7); }
+  refreshFromExcel(); autoMonth(); renderCal(); renderRows(); renderCheck(); markDone();
+}
+document.querySelectorAll('input[name="hrsSrc"]').forEach(r => r.addEventListener("change", () => {
+  showSrc(r.value); store.set("att_hrs_src", r.value, true);
+  if(r.value === "clock") loadFromClock();
+  if(r.value === "manual"){ S.excel = {}; refreshFromExcel(); renderCal(); renderRows(); renderCheck(); markDone();
+    setStatus("#s3status", "השעות שנלקחו אוטומטית נוקו. השעות שהזנת ידנית נשארו.", "ok"); }
+  if(r.value === "excel") setStatus("#s3status", "");
+}));
+$("#srcClockLoad").onclick = loadFromClock;
+$("#srcMonth").addEventListener("change", loadFromClock);
+$("#srcMonth").value = workMonth();
+showSrc(store.get("att_hrs_src") || "clock");
+window.CKW = {
+  afterClockFile(){ $("#srcMonth").value = workMonth(); if(S.hrsSrc === "clock") loadFromClock(); },
+  excelLoaded(){ showSrc("excel"); store.set("att_hrs_src", "excel", true); },
+  label(){ return SRC_LBL[S.hrsSrc] || "אקסל"; }
+};
+
 /* ---------- אתחול ---------- */
 (function initReport(){
   const n = new Date(), d = n.getDate() <= 5 ? new Date(n.getFullYear(), n.getMonth()-1, 1) : n;
   $("#ckRepMonth").value = `${d.getFullYear()}-${p2(d.getMonth()+1)}`;
-  $("#ckRepWps").innerHTML = WORKPLACES.map(w => `<label><input type="checkbox" value="${e(w.name)}" checked> ${e(w.name)}</label>`).join("");
   const f = localStorage.getItem("ck_fmt"); if(f){ const r = document.querySelector(`input[name="ckFmt"][value="${f}"]`); if(r) r.checked = true; }
   document.querySelectorAll('input[name="ckFmt"]').forEach(r => r.addEventListener("change", () => { try{ localStorage.setItem("ck_fmt", r.value); }catch(_){} }));
 })();
 async function refresh(){
+  await loadPlaces(); renderPlaces(); buildRepWps();
   try{ st.open = await db.open(); }catch(err){ st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
   renderChips(); renderStatus();
   if(document.body.dataset.mode === "clock"){ await loadToday(); await loadMonth(); renderPreview(); }
@@ -2660,7 +2833,7 @@ setInterval(tick, 1000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && ["clock","dash"].includes(document.body.dataset.mode)) refresh(); });
 
 window.CK = {
-  refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, WORKPLACES,
+  refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, get WORKPLACES(){ return WORKPLACES; }, setPlaces,
   dashActs(acts){ const o = st.open; if(!o || o.work_date === isoDate(new Date())) return;
     const today = o.work_date === isoDate(new Date());
     acts.unshift({ text: today ? `שעון נוכחות – בעבודה ב${o.workplace}` : "שעון נוכחות – דיווח פתוח מיום קודם",
