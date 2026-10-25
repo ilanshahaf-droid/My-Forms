@@ -136,7 +136,8 @@ body[data-mode="files"] .tab:not(.m-files),
 body[data-mode="work"] .tab:not(.m-work),
 body[data-mode="gefen"] .tab:not(.m-gefen),
 body[data-mode="maanak"] .tab:not(.m-maanak),
-body[data-mode="hofesh"] .tab:not(.m-hofesh){display:none}
+body[data-mode="hofesh"] .tab:not(.m-hofesh),
+body[data-mode="clock"] .tab:not(.m-clock){display:none}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .dcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:22px 12px;text-align:center;min-height:104px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .dcard:hover,.dcard:focus-visible{border-color:var(--focus);box-shadow:0 6px 20px rgba(59,130,246,.12);outline:none}
@@ -208,7 +209,8 @@ details{margin-top:12px;font-size:14px;color:var(--soft)}
 body[data-mode="work"] .back-row,
 body[data-mode="gefen"] .back-row,
 body[data-mode="maanak"] .back-row,
-body[data-mode="hofesh"] .back-row{display:flex}
+body[data-mode="hofesh"] .back-row,
+body[data-mode="clock"] .back-row{display:flex}
 .back-row button{font:600 14px "Assistant",Arial,sans-serif;background:var(--card);border:1.5px solid var(--rule);border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .back-row button:hover{border-color:var(--btn);color:var(--btn)}
 
@@ -229,6 +231,54 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
 .amt input[type=text]{width:8em}
 .amt label{display:inline-flex;align-items:center;gap:6px}
 .activity-dot{margin-top:7px}
+/* ===== שעון נוכחות ===== */
+.ck-now{text-align:center;padding:4px 0 2px}
+.ck-time{font-size:52px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;direction:ltr;color:var(--ink)}
+.ck-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ck-chip{justify-content:center;border-radius:14px !important;padding:12px 4px !important;font-weight:700}
+.ck-chip[aria-pressed="true"]{border-color:var(--wp) !important;background:color-mix(in srgb,var(--wp) 13%,var(--card)) !important;color:var(--wp) !important}
+.ck-big{display:flex !important;justify-content:center;width:100%;margin-top:16px;border:none !important;border-radius:16px !important;padding:17px !important;font-size:21px !important;font-weight:700;color:#fff !important}
+.ck-big.in{background:var(--ok) !important} .ck-big.out{background:var(--stamp) !important}
+.ck-live{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-weight:700;font-size:15px}
+.ck-dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex-shrink:0;box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent)}
+.ck-num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.ck-warn{background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:600;margin:4px 0 8px}
+.ck-warn button{margin-top:8px}
+.ck-entry{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--rule)}
+.ck-entry:last-child{border-bottom:none}
+.ck-entry:focus-visible{outline:3px solid var(--focus);border-radius:8px}
+.ck-d{font-weight:700;text-align:center;min-width:42px;line-height:1.15}
+.ck-d small{display:block;font-weight:600;color:var(--soft);font-size:12px}
+.ck-pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;color:var(--wp);background:color-mix(in srgb,var(--wp) 14%,transparent)}
+.ck-times{color:var(--soft);font-size:14px;margin-inline-start:6px}
+.ck-hrs{font-weight:700}
+.ck-open{color:var(--amber);font-weight:700;font-size:13px}
+.ck-note{grid-column:2/4;color:var(--soft);font-size:13.5px}
+.ck-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.ck-sum div{border-radius:14px;padding:10px 12px;border:1px solid var(--rule);background:color-mix(in srgb,var(--wp,var(--btn)) 9%,var(--card))}
+.ck-sum b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.ck-sum span{font-size:12.5px;color:var(--soft)}
+.ck-prev{overflow:auto;border:1px solid var(--rule);border-radius:12px;background:#fff;max-height:440px;margin-top:10px}
+dialog.ck-dlg{border:none;border-radius:18px;padding:0;width:min(460px,calc(100% - 24px));background:var(--card);color:var(--ink)}
+dialog.ck-dlg::backdrop{background:rgba(15,23,42,.55)}
+dialog.ck-dlg form{padding:20px 18px}
+/* מסמך הדו"ח – תמיד בהיר ומימין לשמאל */
+.ck-report{background:#fff;color:#111;font-family:"Assistant",Arial,sans-serif;padding:28px 30px;width:760px;direction:rtl;text-align:right;font-size:13px;line-height:1.45}
+.ck-report h1{font-size:22px;margin:0 0 4px;color:#1C2541;text-align:center}
+.ck-report .sub{text-align:center;color:#444;margin-bottom:14px}
+.ck-report .meta{display:flex;justify-content:space-between;gap:12px;border-top:2px solid #1C2541;border-bottom:1px solid #c9d3e0;padding:6px 2px;margin-bottom:12px}
+.ck-report h2{font-size:15px;margin:16px 0 6px;color:#1C2541}
+.ck-report table{width:100%;min-width:0;border-collapse:collapse;direction:rtl}
+.ck-report th{background:#1C2541;color:#fff;padding:6px;font-weight:700;border:1px solid #1C2541;text-align:center;font-size:12.5px}
+.ck-report td{border:1px solid #c9d3e0;padding:5px 6px;text-align:center;font-size:12.5px;color:#111}
+.ck-report td.nt{text-align:right}
+.ck-report tr:nth-child(even) td{background:#f3f6fa}
+.ck-report tr.tot td{background:#e3eaf3;font-weight:700}
+.ck-report tr{page-break-inside:avoid}
+.ck-report .sign{display:flex;justify-content:space-between;margin-top:34px;align-items:flex-end}
+.ck-report .sign div{width:220px;text-align:center}
+.ck-report .sign .ln{border-top:1px solid #333;padding-top:4px}
+.ck-report .sign img{height:48px;display:block;margin:0 auto 2px}
 </style>
 
 </head>
@@ -302,6 +352,11 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   <h2>כל הטפסים</h2>
   <p class="hint">בחרו טופס למילוי. אפשר להוסיף טפסים נוספים בעתיד.</p>
   <div class="forms-list">
+    <button type="button" class="form-card-btn" data-open="clock">
+      <span class="ficon" aria-hidden="true">⏱</span>
+      <span class="finfo"><span class="ft">שעון נוכחות</span><span class="fd">כניסה ויציאה יומית ודו״ח חודשי – שפ״ח, גפ״ן, ק.ש.ר.</span><span class="badge new" data-ckbadge>דיווח יומי</span></span>
+      <span class="farrow" aria-hidden="true">‹</span>
+    </button>
     <button type="button" class="form-card-btn" data-open="maanak">
       <span class="ficon" aria-hidden="true">📄</span>
       <span class="finfo"><span class="ft">בקשה למענק השתלמות</span><span class="fd">פרטים אישיים, פרטי הלימודים וחתימה</span><span class="badge new" data-badge="maanak">חדש</span></span>
@@ -377,6 +432,69 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   <div class="status" id="s5status"></div>
   <div class="status" id="s5pdf"></div>
   <a id="dl" hidden></a>
+</section>
+
+<!-- ========== שעון נוכחות ========== -->
+<section class="step tab m-clock" id="ckToday"><span class="punch">⏱</span>
+  <h2>דיווח היום</h2>
+  <div class="ck-now"><div class="ck-time" id="ckTime">--:--</div><div class="hint" id="ckDate" style="margin:0"></div></div>
+  <div class="ck-warn" id="ckStale" hidden></div>
+  <label class="f">מקום עבודה</label>
+  <div class="ck-chips" id="ckChips"></div>
+  <label class="f" for="ckNote">איפה אני היום? (הערה)</label>
+  <input type="text" id="ckNote" placeholder="למשל: בי״ס אורט, ישיבת צוות, ביקור בית">
+  <button type="button" class="ck-big in" id="ckBtn">כניסה</button>
+  <div class="ck-live" id="ckLive" hidden><span class="ck-dot"></span><span id="ckLiveText"></span></div>
+  <div class="status" id="ckTodayStatus"></div>
+  <h3 class="ftitle">הדיווחים של היום</h3>
+  <div id="ckTodayList"></div>
+  <div class="bar"><button type="button" id="ckAddToday">+ הוספה ידנית</button></div>
+</section>
+
+<section class="step tab m-clock" id="ckMonth"><span class="punch">📅</span>
+  <h2>יומן חודשי</h2>
+  <p class="hint">לחיצה על דיווח פותחת אותו לעריכה או מחיקה.</p>
+  <div class="bar" style="justify-content:space-between;margin-top:0">
+    <button type="button" id="ckPrev" aria-label="חודש קודם">›</button>
+    <h3 id="ckMonthTitle"></h3>
+    <button type="button" id="ckNext" aria-label="חודש הבא">‹</button>
+  </div>
+  <div class="ck-sum" id="ckSum"></div>
+  <div id="ckMonthList" style="margin-top:8px"></div>
+  <div class="bar"><button type="button" id="ckAddMonth">+ הוספה ידנית</button></div>
+</section>
+
+<section class="step tab m-clock" id="ckReport"><span class="punch">📄</span>
+  <h2>דו״ח חודשי</h2>
+  <p class="hint">השם, ת.ז. והחתימה נלקחים מ"הפרטים שלי" בלוח הבקרה.</p>
+  <label class="f" for="ckRepMonth">חודש</label>
+  <input type="month" id="ckRepMonth">
+  <fieldset class="grp"><legend>מקומות עבודה</legend><div class="opts" id="ckRepWps"></div></fieldset>
+  <fieldset class="grp"><legend>מבנה</legend><div class="opts">
+    <label><input type="radio" name="ckGroup" value="single" checked> טבלה אחת</label>
+    <label><input type="radio" name="ckGroup" value="byWp"> טבלה לכל מקום</label>
+  </div></fieldset>
+  <fieldset class="grp"><legend>מה לכלול</legend><div class="opts">
+    <label><input type="checkbox" id="ckOptDow" checked> יום בשבוע</label>
+    <label><input type="checkbox" id="ckOptHours" checked> סה״כ שעות</label>
+    <label><input type="checkbox" id="ckOptNote" checked> מיקום / הערה</label>
+    <label><input type="checkbox" id="ckOptSummary" checked> סיכום לפי מקום</label>
+    <label><input type="checkbox" id="ckOptId"> ת.ז.</label>
+    <label><input type="checkbox" id="ckOptSign" checked> שורת חתימה</label>
+    <label><input type="checkbox" id="ckOptSig"> החתימה שלי</label>
+  </div></fieldset>
+  <fieldset class="grp"><legend>פורמט</legend><div class="opts">
+    <label><input type="radio" name="ckFmt" value="docx" checked> Word</label>
+    <label><input type="radio" name="ckFmt" value="xlsx"> Excel</label>
+    <label><input type="radio" name="ckFmt" value="pdf"> PDF</label>
+  </div></fieldset>
+  <div class="bar">
+    <button type="button" class="primary" id="ckMake">הפק והורד</button>
+    <button type="button" class="drivebtn" id="ckDrive">שמור בדרייב</button>
+    <button type="button" id="ckShare" hidden>שתף</button>
+  </div>
+  <div class="status" id="ckRepStatus"></div>
+  <details id="ckPrevBox"><summary>תצוגה מקדימה</summary><div class="ck-prev"><div id="ckPreview"></div></div></details>
 </section>
 
 <section class="step tab m-gefen" id="g1"><span class="punch">1</span>
@@ -601,6 +719,23 @@ fieldset.grp legend{font-weight:600;font-size:14px;margin:0 0 6px;padding:0}
   <div class="status" id="filesStatus"></div>
 </section>
 
+<dialog class="ck-dlg" id="ckDlg">
+  <form method="dialog">
+    <h2 id="ckDlgTitle" style="font-size:18px">עריכת דיווח</h2>
+    <label class="f" for="ckEdDate">תאריך</label><input type="date" id="ckEdDate" required>
+    <label class="f" for="ckEdWp">מקום עבודה</label><select id="ckEdWp"></select>
+    <div class="row2" style="grid-template-columns:1fr 1fr">
+      <div><label class="f" for="ckEdIn">כניסה</label><input type="time" id="ckEdIn" required></div>
+      <div><label class="f" for="ckEdOut">יציאה</label><input type="time" id="ckEdOut"></div>
+    </div>
+    <label class="f" for="ckEdNote">מיקום / הערה</label><input type="text" id="ckEdNote">
+    <div class="bar" style="margin-top:18px">
+      <button class="primary" value="save">שמירה</button>
+      <button value="cancel" formnovalidate>ביטול</button>
+      <button value="delete" id="ckEdDel" formnovalidate style="margin-inline-start:auto;color:var(--stamp);border-color:var(--stamp)">מחיקה</button>
+    </div>
+  </form>
+</dialog>
 </main>
 
 <script>
@@ -1712,6 +1847,7 @@ function renderDash(){
       Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
       Object.entries(cloudIndex.gef||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:'דיווח גפ"ן · '+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
     }
+    if(window.CK) CK.dashActs(acts);
     if(!profileOk) acts.unshift({text:"פרטים וחתימה – חסר",time:"השלימו בלוח הבקרה",dot:"warn",go:()=>{ const e=$("#s1"); if(e) e.scrollIntoView({behavior:"smooth"}); }});
     if(!acts.length){ rec.innerHTML='<div class="empty">עדיין אין פעילות. התחילו מטופס בטפסים.</div>'; }
     else acts.slice(0,6).forEach(a=>{
@@ -1725,12 +1861,13 @@ $("#month").addEventListener("input",renderDash);
 $("#gMonth").addEventListener("input",renderDash);
 
 /* mode tabs */
-const FORM_MODES=["work","gefen","maanak","hofesh"];
+const FORM_MODES=["work","gefen","maanak","hofesh","clock"];
 function setMode(m){
   const mainTab=FORM_MODES.includes(m)?"forms":m;
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
   document.querySelectorAll(".modes button").forEach(b=>{ if(b.dataset.mode===mainTab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   if(m==="maanak"||m==="hofesh") prefillForm(m);
+  if(m==="clock"&&window.CK) CK.enter();
   renderDash();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
@@ -1738,7 +1875,7 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{ btn.onclick=()=>setMo
 $("#backToForms").onclick=()=>setMode("forms");
 document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","polite"));
 
-const validModes=["dash","forms","files","work","gefen","maanak","hofesh"];
+const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock"];
 syncFormUi(); updateBadges();
 setMode(validModes.includes(store.get("att_mode"))?store.get("att_mode"):"dash");
 
@@ -1773,6 +1910,7 @@ function driveFolderName(kind){
   if(kind==="gefen") return 'גפ"ן';
   if(kind==="maanak") return "מענק השתלמות";
   if(kind==="hofesh") return "בקשות יציאה לחופש";
+  if(kind==="clock") return "שעון נוכחות";
   return "שעות עבודה";
 }
 async function driveUpload(file,kind){
@@ -1849,9 +1987,10 @@ async function onLogin(u){
   cloud.user=u; document.body.classList.remove("locked"); $("#auth").hidden=true;
   $("#acct").hidden=false; $("#acctEmail").textContent=u.email; $("#files").hidden=false; $("#filesOff").hidden=true; renderDash();
   await cloudPullProfile(); await cloudPullTemplate(); await cloudPullSettings(); renderFiles();
+  if(window.CK) CK.refresh();
 }
 function onLogout(){
-  cloud.user=null; cloudIndex=null; $("#files").hidden=true; $("#filesOff").hidden=false; ["att_name","att_tz","att_sig","att_tpl","att_school"].forEach(k=>store.set(k,null,true)); clearAllDrafts();
+  cloud.user=null; cloudIndex=null; $("#files").hidden=true; $("#filesOff").hidden=false; ["att_name","att_tz","att_sig","att_tpl","att_school"].forEach(k=>store.set(k,null,true)); clearAllDrafts(); if(window.CK) CK.refresh();
   $("#name").value=""; $("#tz").value=""; $("#school").value=""; G.rows=[]; renderG(); showSig(); loadTpl(); showAuth(false);
 }
 $("#login").onclick=async()=>{ setStatus("#authStatus","מתחבר…");
@@ -2025,6 +2164,477 @@ async function cloudDeleteMonth(m,ym){
 loadTpl(); showSig(); renderCal(); renderRows(); renderG(); renderDash();
 cloudInit();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+<script>
+/* ================= שעון נוכחות ================= */
+(function(){
+const WORKPLACES = [
+  { name: 'שפ"ח חיפה', short: 'שפח חיפה', color: '#2563EB' },
+  { name: 'גפ"ן',      short: 'גפן',      color: '#059669' },
+  { name: 'ק.ש.ר.',    short: 'קשר',      color: '#D97706' }
+];
+const TBL = "clock_entries";
+const DAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+const p2 = n => String(n).padStart(2,"0");
+const isoDate = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const hhmm = d => `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+const t5 = t => t ? String(t).slice(0,5) : "";
+const parseISO = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const heDate = s => { const d = parseISO(s); return `${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`; };
+const dowOf = s => DAYS[parseISO(s).getDay()];
+const mLabel = ym => HEB_MONTHS[+ym.slice(5,7)-1]+" "+ym.slice(0,4);
+const wpColor = n => (WORKPLACES.find(w => w.name === n) || {color:"#64748B"}).color;
+const e = s => esc(s == null ? "" : s);
+function minutesOf(x){
+  if(!x.time_in || !x.time_out) return 0;
+  const [a,b] = t5(x.time_in).split(":").map(Number), [c,d] = t5(x.time_out).split(":").map(Number);
+  let m = (c*60+d) - (a*60+b); if(m < 0) m += 1440; return m;
+}
+const fmtHM = m => `${Math.floor(m/60)}:${p2(m%60)}`;
+const hrsNum = m => Math.round(m/60*100)/100;
+const fmtDec = m => hrsNum(m).toFixed(2);
+function range(ym){ const [y,m] = ym.split("-").map(Number); return { from:`${y}-${p2(m)}-01`, to:`${y}-${p2(m)}-${p2(new Date(y,m,0).getDate())}` }; }
+const sortE = a => a.sort((x,y) => (x.work_date+t5(x.time_in)).localeCompare(y.work_date+t5(y.time_in)));
+
+/* ---------- נתונים: ענן כשמחוברים, אחרת במכשיר ---------- */
+const cloudReady = () => !!(window.cloud && cloud.sb && cloud.user);
+const local = {
+  all(){ try{ return JSON.parse(localStorage.getItem("ck_entries")||"[]"); }catch(_){ return []; } },
+  save(a){ try{ localStorage.setItem("ck_entries", JSON.stringify(a)); }catch(_){} }
+};
+const db = {
+  async list(from,to){
+    if(!cloudReady()) return sortE(local.all().filter(x => x.work_date>=from && x.work_date<=to));
+    const {data,error} = await cloud.sb.from(TBL).select("*").gte("work_date",from).lte("work_date",to).order("work_date").order("time_in");
+    if(error) throw error; return data;
+  },
+  async open(){
+    if(!cloudReady()) return sortE(local.all().filter(x => !x.time_out)).pop() || null;
+    const {data,error} = await cloud.sb.from(TBL).select("*").is("time_out",null).order("work_date",{ascending:false}).order("time_in",{ascending:false}).limit(1);
+    if(error) throw error; return data[0] || null;
+  },
+  async insert(r){
+    if(!cloudReady()){ const a = local.all(), row = {...r, id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))}; a.push(row); local.save(a); return row; }
+    const {data,error} = await cloud.sb.from(TBL).insert(r).select().single(); if(error) throw error; return data;
+  },
+  async update(id,p){
+    if(!cloudReady()){ const a = local.all(), i = a.findIndex(x => x.id === id); if(i<0) throw new Error("הדיווח לא נמצא"); a[i] = {...a[i],...p}; local.save(a); return a[i]; }
+    const {data,error} = await cloud.sb.from(TBL).update({...p, updated_at:new Date().toISOString()}).eq("id",id).select().single(); if(error) throw error; return data;
+  },
+  async remove(id){
+    if(!cloudReady()){ local.save(local.all().filter(x => x.id !== id)); return; }
+    const {error} = await cloud.sb.from(TBL).delete().eq("id",id); if(error) throw error;
+  }
+};
+function errMsg(err){ const m = (err && err.message) || String(err);
+  if(/permission denied|does not exist|relation/i.test(m)) return "הטבלה clock_entries עדיין לא קיימת או בלי הרשאות. צריך להריץ את קובץ ה-SQL ב-Supabase.";
+  return "שגיאה: " + m; }
+
+/* ---------- מצב ---------- */
+const st = { wp: localStorage.getItem("ck_wp") || WORKPLACES[0].name, open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
+
+/* ---------- היום ---------- */
+function renderChips(){
+  $("#ckChips").innerHTML = WORKPLACES.map(w =>
+    `<button type="button" class="ck-chip" style="--wp:${w.color}" aria-pressed="${w.name===st.wp}" data-wp="${e(w.name)}">${e(w.name)}</button>`).join("");
+}
+$("#ckChips").addEventListener("click", async ev => {
+  const b = ev.target.closest(".ck-chip"); if(!b) return;
+  st.wp = b.dataset.wp; try{ localStorage.setItem("ck_wp", st.wp); }catch(_){} renderChips();
+  if(st.open && st.open.work_date === isoDate(new Date()) && st.open.workplace !== st.wp){
+    try{ st.open = await db.update(st.open.id, {workplace: st.wp}); renderStatus(); loadToday(); setStatus("#ckTodayStatus","מקום העבודה עודכן","ok"); }
+    catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  }
+});
+$("#ckNote").addEventListener("change", async () => {
+  if(!st.open || st.open.work_date !== isoDate(new Date())) return;
+  try{ st.open = await db.update(st.open.id, {note: $("#ckNote").value.trim() || null}); loadToday(); setStatus("#ckTodayStatus","ההערה נשמרה","ok"); }
+  catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
+});
+function tick(){
+  if(document.body.dataset.mode !== "clock") return;
+  const n = new Date();
+  $("#ckTime").textContent = hhmm(n);
+  $("#ckDate").textContent = `יום ${DAYS[n.getDay()]}, ${n.getDate()} ב${HEB_MONTHS[n.getMonth()]} ${n.getFullYear()}`;
+  const el = $("#ckElapsed");
+  if(el && st.open) el.textContent = fmtHM(minutesOf({time_in: st.open.time_in, time_out: hhmm(n)}));
+}
+function renderStatus(){
+  const today = isoDate(new Date()), o = st.open, btn = $("#ckBtn"), stale = $("#ckStale");
+  stale.hidden = true;
+  if(o && o.work_date !== today){
+    stale.hidden = false;
+    stale.innerHTML = `נשאר דיווח פתוח מ-${heDate(o.work_date)} (${e(o.workplace)}, כניסה <span class="ck-num">${t5(o.time_in)}</span>).<br><button type="button" id="ckFixStale">הזנת שעת יציאה</button>`;
+    $("#ckFixStale").onclick = () => openEditor(o);
+  }
+  if(o && o.work_date === today){
+    btn.textContent = "יציאה"; btn.className = "ck-big out"; $("#ckLive").hidden = false;
+    $("#ckLiveText").innerHTML = `בעבודה ב${e(o.workplace)} מאז <span class="ck-num">${t5(o.time_in)}</span> · <span class="ck-num" id="ckElapsed"></span>`;
+    $("#ckNote").value = o.note || "";
+    if(o.workplace !== st.wp){ st.wp = o.workplace; renderChips(); }
+  } else {
+    btn.textContent = "כניסה"; btn.className = "ck-big in"; $("#ckLive").hidden = true;
+  }
+  tick(); updateBadge();
+}
+function updateBadge(){
+  const b = document.querySelector('[data-ckbadge]'); if(!b) return;
+  const on = st.open && st.open.work_date === isoDate(new Date());
+  b.className = "badge " + (on ? "pending" : "new"); b.textContent = on ? "בעבודה" : "דיווח יומי";
+}
+$("#ckBtn").addEventListener("click", async () => {
+  const btn = $("#ckBtn"); btn.disabled = true;
+  const now = new Date(), today = isoDate(now), note = $("#ckNote").value.trim() || null;
+  try{
+    if(st.open && st.open.work_date === today){
+      await db.update(st.open.id, {time_out: hhmm(now), note});
+      st.open = null; $("#ckNote").value = "";
+      setStatus("#ckTodayStatus", `יציאה נרשמה ב-${hhmm(now)}`, "ok");
+    } else {
+      st.open = await db.insert({work_date: today, workplace: st.wp, time_in: hhmm(now), time_out: null, note});
+      setStatus("#ckTodayStatus", `כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
+    }
+    renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
+  }catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  btn.disabled = false;
+});
+function entryRow(x, withDate){
+  const d = parseISO(x.work_date);
+  return `<button type="button" class="ck-entry" data-id="${e(x.id)}">
+    <span class="ck-d">${withDate ? `${d.getDate()}<small>${DAYS[d.getDay()]}</small>` : `<span class="ck-num">${t5(x.time_in)}</span>`}</span>
+    <span><span class="ck-pill" style="--wp:${wpColor(x.workplace)}">${e(x.workplace)}</span><span class="ck-times ck-num">${t5(x.time_in)}–${x.time_out ? t5(x.time_out) : "…"}</span></span>
+    <span>${x.time_out ? `<span class="ck-hrs ck-num">${fmtHM(minutesOf(x))}</span>` : '<span class="ck-open">פתוח</span>'}</span>
+    ${x.note ? `<span class="ck-note">${e(x.note)}</span>` : ""}
+  </button>`;
+}
+async function loadToday(){
+  const t = isoDate(new Date());
+  try{ st.today = await db.list(t,t); }catch(err){ st.today = []; setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  $("#ckTodayList").innerHTML = st.today.length ? st.today.map(x => entryRow(x,false)).join("") : '<div class="empty">עוד אין דיווחים היום</div>';
+}
+
+/* ---------- יומן ---------- */
+function summarize(list){
+  const by = {}; let total = 0; const days = new Set();
+  list.forEach(x => { const m = minutesOf(x); total += m; days.add(x.work_date);
+    (by[x.workplace] = by[x.workplace] || {min:0, days:new Set()}); by[x.workplace].min += m; by[x.workplace].days.add(x.work_date); });
+  return {by, total, days: days.size};
+}
+async function loadMonth(){
+  $("#ckMonthTitle").textContent = mLabel(st.month);
+  const {from,to} = range(st.month);
+  try{ st.monthList = await db.list(from,to); }catch(err){ st.monthList = []; $("#ckMonthList").innerHTML = `<div class="empty">${e(errMsg(err))}</div>`; return; }
+  const s = summarize(st.monthList);
+  $("#ckSum").innerHTML = `<div><b class="ck-num">${fmtHM(s.total)}</b><span>סה״כ · ${s.days} ימים</span></div>` +
+    WORKPLACES.map(w => { const x = s.by[w.name]; return `<div style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span>${e(w.name)} · ${x ? x.days.size : 0} ימים</span></div>`; }).join("");
+  $("#ckMonthList").innerHTML = st.monthList.length ? st.monthList.map(x => entryRow(x,true)).join("") : '<div class="empty">אין דיווחים בחודש הזה</div>';
+}
+function shiftMonth(k){ const [y,m] = st.month.split("-").map(Number), d = new Date(y, m-1+k, 1); st.month = `${d.getFullYear()}-${p2(d.getMonth()+1)}`; loadMonth(); }
+$("#ckPrev").onclick = () => shiftMonth(-1);
+$("#ckNext").onclick = () => shiftMonth(1);
+
+/* ---------- עריכה ---------- */
+$("#ckEdWp").innerHTML = WORKPLACES.map(w => `<option>${e(w.name)}</option>`).join("");
+function openEditor(x, date){
+  st.editing = x || null;
+  $("#ckDlgTitle").textContent = x ? "עריכת דיווח" : "הוספת דיווח ידני";
+  $("#ckEdDate").value = x ? x.work_date : (date || isoDate(new Date()));
+  $("#ckEdWp").value = x ? x.workplace : st.wp;
+  $("#ckEdIn").value = x ? t5(x.time_in) : "08:00";
+  $("#ckEdOut").value = x ? t5(x.time_out) : "";
+  $("#ckEdNote").value = x ? (x.note || "") : "";
+  $("#ckEdDel").hidden = !x;
+  $("#ckDlg").returnValue = "";
+  $("#ckDlg").showModal();
+}
+const findE = id => [...st.today, ...st.monthList, st.open].find(x => x && x.id === id);
+["#ckTodayList","#ckMonthList"].forEach(sel => $(sel).addEventListener("click", ev => {
+  const r = ev.target.closest(".ck-entry"); if(r){ const x = findE(r.dataset.id); if(x) openEditor(x); } }));
+$("#ckAddToday").onclick = () => openEditor(null);
+$("#ckAddMonth").onclick = () => { const t = isoDate(new Date()); openEditor(null, t.startsWith(st.month) ? t : st.month + "-01"); };
+$("#ckDlg").addEventListener("close", async () => {
+  const act = $("#ckDlg").returnValue, x = st.editing;
+  try{
+    if(act === "delete" && x){ if(!confirm("למחוק את הדיווח?")) return; await db.remove(x.id); }
+    else if(act === "save"){
+      const row = {work_date: $("#ckEdDate").value, workplace: $("#ckEdWp").value, time_in: $("#ckEdIn").value, time_out: $("#ckEdOut").value || null, note: $("#ckEdNote").value.trim() || null};
+      if(x) await db.update(x.id, row); else await db.insert(row);
+    } else return;
+    await refresh();
+  }catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); alert(errMsg(err)); }
+});
+
+/* ---------- דו"ח ---------- */
+function opts(){
+  return {
+    month: $("#ckRepMonth").value,
+    workplaces: [...document.querySelectorAll("#ckRepWps input:checked")].map(i => i.value),
+    grouping: document.querySelector('input[name="ckGroup"]:checked').value,
+    dow: $("#ckOptDow").checked, hours: $("#ckOptHours").checked, note: $("#ckOptNote").checked,
+    summary: $("#ckOptSummary").checked, id: $("#ckOptId").checked, sign: $("#ckOptSign").checked, sig: $("#ckOptSig").checked,
+    fmt: document.querySelector('input[name="ckFmt"]:checked').value,
+    name: (store.get("att_name") || "").trim(), tz: (store.get("att_tz") || "").trim(), sigData: store.get("att_sig") || null
+  };
+}
+function buildReport(o, entries){
+  const rows = sortE(entries.filter(x => o.workplaces.includes(x.workplace))).map(x => ({
+    date: heDate(x.work_date), dow: dowOf(x.work_date), workplace: x.workplace, in: t5(x.time_in),
+    out: x.time_out ? t5(x.time_out) : "—", minutes: minutesOf(x), note: x.note || "", iso: x.work_date }));
+  const mk = (wp, rs) => ({workplace: wp, rows: rs, totalMin: rs.reduce((a,r) => a + r.minutes, 0), days: new Set(rs.map(r => r.iso)).size});
+  const groups = o.grouping === "byWp" ? o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))).filter(g => g.rows.length) : [mk(null, rows)];
+  const cols = [{k:"date",h:"תאריך",w:12}];
+  if(o.dow) cols.push({k:"dow",h:"יום",w:8});
+  if(o.grouping !== "byWp") cols.push({k:"workplace",h:"מקום עבודה",w:13});
+  cols.push({k:"in",h:"כניסה",w:8},{k:"out",h:"יציאה",w:8});
+  if(o.hours) cols.push({k:"hours",h:"סה״כ שעות",w:10});
+  if(o.note) cols.push({k:"note",h:"מיקום / הערה",w:34});
+  return { title: "דו״ח נוכחות חודשי", month: mLabel(o.month), ym: o.month,
+    wpText: o.workplaces.length === WORKPLACES.length ? "כל מקומות העבודה" : o.workplaces.join(", "),
+    groups, summary: o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))), all: mk(null, rows), cols, o };
+}
+const cellVal = (r,k) => k === "hours" ? (r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
+const totalCells = (rep, g) => { const hi = rep.cols.findIndex(c => c.k === "hours");
+  return hi < 0 ? null : rep.cols.map((c,i) => i===0 ? "סה״כ" : i===hi ? fmtHM(g.totalMin) : i===1 ? `${g.days} ימים` : ""); };
+const metaText = rep => `שם העובד: ${rep.o.name || "__________"}` + (rep.o.id && rep.o.tz ? `   ·   ת.ז.: ${rep.o.tz}` : "");
+const madeOn = () => "הופק: " + heDate(isoDate(new Date()));
+function fileBase(rep){
+  const wp = rep.o.workplaces.length === WORKPLACES.length ? "כל המקומות" : rep.o.workplaces.map(w => (WORKPLACES.find(x => x.name === w) || {short:w}).short).join("-");
+  return `דוח נוכחות ${rep.ym} ${wp}`.replace(/[\\/:*?"<>|]/g, "");
+}
+
+function reportHTML(rep){
+  const table = g => {
+    const tot = totalCells(rep, g);
+    return `<table><thead><tr>${rep.cols.map(c => `<th>${c.h}</th>`).join("")}</tr></thead><tbody>` +
+      (g.rows.map(r => `<tr>${rep.cols.map(c => `<td class="${c.k==="note"?"nt":""}">${e(cellVal(r,c.k))}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${rep.cols.length}">אין דיווחים</td></tr>`) +
+      (tot ? `<tr class="tot">${tot.map(v => `<td>${e(v)}</td>`).join("")}</tr>` : "") + `</tbody></table>`;
+  };
+  let h = `<div class="ck-report" dir="rtl"><h1>${rep.title}</h1><div class="sub">${e(rep.month)} · ${e(rep.wpText)}</div>
+    <div class="meta"><span>${e(metaText(rep))}</span><span>${madeOn()}</span></div>`;
+  rep.groups.forEach(g => { if(g.workplace) h += `<h2>${e(g.workplace)}</h2>`; h += table(g); });
+  if(!rep.groups.length) h += "<p>אין דיווחים לחודש ולמקומות שנבחרו.</p>";
+  if(rep.o.summary){
+    h += `<h2>סיכום</h2><table><thead><tr><th>מקום עבודה</th><th>ימי עבודה</th><th>סה״כ שעות</th><th>שעות (עשרוני)</th></tr></thead><tbody>` +
+      rep.summary.map(s => `<tr><td>${e(s.workplace)}</td><td>${s.days}</td><td>${fmtHM(s.totalMin)}</td><td>${fmtDec(s.totalMin)}</td></tr>`).join("") +
+      `<tr class="tot"><td>סה״כ</td><td>${rep.all.days}</td><td>${fmtHM(rep.all.totalMin)}</td><td>${fmtDec(rep.all.totalMin)}</td></tr></tbody></table>`;
+  }
+  if(rep.o.sign) h += `<div class="sign"><div>${rep.o.sig && rep.o.sigData ? `<img src="${e(rep.o.sigData)}" alt="">` : ""}<div class="ln">חתימת העובד</div></div><div><div class="ln">חתימת הממונה</div></div></div>`;
+  return h + "</div>";
+}
+
+/* טעינת ספריות רק כשצריך */
+const LIBS = { docx: ["https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js","docx"],
+  xlsx: ["https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js","ExcelJS"],
+  pdf: ["https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js","html2pdf"] };
+function needLib(fmt){
+  const [src, g] = LIBS[fmt]; if(window[g]) return Promise.resolve();
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src;
+    s.onload = () => res(); s.onerror = () => rej(new Error("טעינת ספריית הייצוא נכשלה. בדוק חיבור לאינטרנט.")); document.head.appendChild(s); });
+}
+async function sigInfo(dataUrl){
+  if(!dataUrl) return null;
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; }).catch(() => null);
+  if(!img) return null;
+  const h = 48, w = Math.round(img.width * h / img.height);
+  const b64 = dataUrl.split(",")[1], bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { bytes, b64, w, h };
+}
+
+async function makeDocx(rep){
+  const D = window.docx, font = "Arial", NAVY = "1C2541", LINE = "C9D3E0";
+  // בפסקה מימין לשמאל (bidirectional) וורד מפרש "LEFT" כ"תחילת השורה" = ימין
+  const START = D.AlignmentType.LEFT, CENTER = D.AlignmentType.CENTER;
+  const run = (t, o) => new D.TextRun({ text: String(t == null ? "" : t), rightToLeft: true, font, size: o.size || 20, bold: !!o.bold, color: o.color });
+  const P = (t, o = {}) => new D.Paragraph({ bidirectional: true, alignment: o.align || START, spacing: { after: o.after == null ? 80 : o.after, before: o.before || 0 }, children: [run(t, o)] });
+  const bd = { style: D.BorderStyle.SINGLE, size: 4, color: LINE }, borders = { top: bd, bottom: bd, left: bd, right: bd };
+  const cell = (t, o = {}) => new D.TableCell({ borders, verticalAlign: D.VerticalAlign.CENTER,
+    width: o.w ? { size: o.w, type: D.WidthType.PERCENTAGE } : undefined,
+    shading: o.fill ? { fill: o.fill, type: D.ShadingType.CLEAR, color: "auto" } : undefined,
+    margins: { top: 50, bottom: 50, left: 80, right: 80 },
+    children: [P(t, { align: o.align || CENTER, after: 0, bold: o.bold, color: o.color, size: 18 })] });
+  const table = (heads, rows, widths, tot) => new D.Table({ visuallyRightToLeft: true, width: { size: 100, type: D.WidthType.PERCENTAGE },
+    rows: [ new D.TableRow({ tableHeader: true, children: heads.map((h,i) => cell(h, { fill: NAVY, color: "FFFFFF", bold: true, w: widths[i] })) }),
+      ...rows.map((r, ri) => new D.TableRow({ cantSplit: true, children: r.map((v,i) => cell(v, { w: widths[i], fill: ri % 2 ? "F3F6FA" : undefined, align: heads[i] === "מיקום / הערה" ? START : CENTER })) })),
+      ...(tot ? [new D.TableRow({ children: tot.map((v,i) => cell(v, { w: widths[i], fill: "E3EAF3", bold: true })) })] : []) ] });
+  const sw = rep.cols.reduce((a,c) => a + c.w, 0), widths = rep.cols.map(c => Math.round(c.w / sw * 100));
+  const ch = [
+    P(rep.title, { align: CENTER, size: 36, bold: true, color: NAVY, after: 40 }),
+    P(`${rep.month} · ${rep.wpText}`, { align: CENTER, size: 22, color: "444444", after: 200 }),
+    P(`${metaText(rep)}          ${madeOn()}`, { after: 200 })
+  ];
+  rep.groups.forEach(g => {
+    if(g.workplace) ch.push(P(g.workplace, { size: 26, bold: true, color: NAVY, before: 200 }));
+    ch.push(table(rep.cols.map(c => c.h), g.rows.map(r => rep.cols.map(c => cellVal(r, c.k))), widths, totalCells(rep, g)));
+  });
+  if(!rep.groups.length) ch.push(P("אין דיווחים לחודש ולמקומות שנבחרו."));
+  if(rep.o.summary){
+    ch.push(P("סיכום", { size: 26, bold: true, color: NAVY, before: 300 }));
+    ch.push(table(["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)"],
+      rep.summary.map(s => [s.workplace, String(s.days), fmtHM(s.totalMin), fmtDec(s.totalMin)]), [34,22,22,22],
+      ["סה״כ", String(rep.all.days), fmtHM(rep.all.totalMin), fmtDec(rep.all.totalMin)]));
+  }
+  if(rep.o.sign){
+    ch.push(P("", { after: 500 }));
+    const sig = rep.o.sig ? await sigInfo(rep.o.sigData) : null;
+    const kids = [run("חתימת העובד: ", {})];
+    if(sig) kids.push(new D.ImageRun({ data: sig.bytes, transformation: { width: sig.w, height: sig.h } }));
+    else kids.push(run("____________________", {}));
+    kids.push(run("          חתימת הממונה: ____________________", {}));
+    ch.push(new D.Paragraph({ bidirectional: true, alignment: START, children: kids }));
+  }
+  const doc = new D.Document({ creator: rep.o.name || "שעון נוכחות", title: `${rep.title} ${rep.month}`,
+    styles: { default: { document: { run: { font, rightToLeft: true } } } },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 900, bottom: 900, left: 900, right: 900 } } }, children: ch }] });
+  return D.Packer.toBlob(doc);
+}
+
+async function makeXlsx(rep){
+  const wb = new ExcelJS.Workbook(); wb.creator = rep.o.name || "שעון נוכחות";
+  const NAVY = "FF1C2541", thin = { style: "thin", color: { argb: "FFC9D3E0" } }, box = { top: thin, bottom: thin, left: thin, right: thin };
+  const fill = c => ({ type: "pattern", pattern: "solid", fgColor: { argb: c } });
+  const setRow = (ws, ri, vals) => { const row = ws.getRow(ri); vals.forEach((v,i) => { row.getCell(i+1).value = v; }); return row; };
+  const sig = rep.o.sign && rep.o.sig ? await sigInfo(rep.o.sigData) : null;
+  const sheets = rep.o.grouping === "byWp" && rep.groups.length ? rep.groups : [rep.groups[0] || { workplace: null, rows: [], totalMin: 0, days: 0 }];
+  sheets.forEach(g => {
+    const name = (g.workplace || "נוכחות").replace(/[\\/*?:\[\]]/g, "").slice(0,31) || "נוכחות";
+    const ws = wb.addWorksheet(name, { views: [{ rightToLeft: true, state: "frozen", ySplit: 4 }],
+      pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    const n = rep.cols.length;
+    ws.columns = rep.cols.map(c => ({ width: c.k === "note" ? 34 : c.w + 2 }));
+    ws.mergeCells(1,1,1,n); const t = ws.getCell(1,1); t.value = `${rep.title} · ${rep.month}`; t.font = { bold: true, size: 16, color: { argb: NAVY } }; t.alignment = { horizontal: "center" };
+    ws.mergeCells(2,1,2,n); const s2 = ws.getCell(2,1); s2.value = `${metaText(rep)} · ${g.workplace || rep.wpText}`; s2.alignment = { horizontal: "center" }; s2.font = { color: { argb: "FF444444" } };
+    const hr = setRow(ws, 4, rep.cols.map(c => c.h)); hr.height = 22;
+    hr.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill(NAVY); c.alignment = { horizontal: "center", vertical: "middle" }; c.border = box; });
+    let ri = 5;
+    g.rows.forEach(r => {
+      const row = setRow(ws, ri, rep.cols.map(c => c.k === "hours" ? (r.out === "—" ? null : hrsNum(r.minutes)) : r[c.k]));
+      rep.cols.forEach((c, ci) => { const x = row.getCell(ci+1); x.border = box;
+        x.alignment = { horizontal: c.k === "note" ? "right" : "center", vertical: "middle", wrapText: c.k === "note", readingOrder: "rtl" };
+        if(c.k === "hours") x.numFmt = "0.00"; if((ri-5) % 2) x.fill = fill("FFF3F6FA"); });
+      ri++;
+    });
+    const hi = rep.cols.findIndex(c => c.k === "hours"), tr = ws.getRow(ri);
+    tr.getCell(1).value = "סה״כ"; if(n > 1) tr.getCell(2).value = `${g.days} ימים`;
+    if(hi >= 0){ const L = ws.getColumn(hi+1).letter; tr.getCell(hi+1).value = g.rows.length ? { formula: `SUM(${L}5:${L}${ri-1})`, result: hrsNum(g.totalMin) } : 0; tr.getCell(hi+1).numFmt = "0.00"; }
+    for(let i = 1; i <= n; i++){ const c = tr.getCell(i); c.font = { bold: true }; c.border = box; c.alignment = { horizontal: "center" }; c.fill = fill("FFE3EAF3"); }
+    if(rep.o.sign){
+      ws.getCell(ri+3, 1).value = "חתימת העובד:"; ws.getCell(ri+3, Math.max(3, n-1)).value = "חתימת הממונה: ______________";
+      if(sig){ const id = wb.addImage({ base64: sig.b64, extension: "png" }); ws.addImage(id, { tl: { col: 1, row: ri+1.6 }, ext: { width: sig.w, height: sig.h } }); }
+      else ws.getCell(ri+3, 2).value = "______________";
+    }
+  });
+  if(rep.o.summary){
+    const ws = wb.addWorksheet("סיכום", { views: [{ rightToLeft: true }] });
+    ws.columns = [{ width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }];
+    ws.mergeCells("A1:D1"); const t = ws.getCell("A1"); t.value = `סיכום · ${rep.month}`; t.font = { bold: true, size: 15, color: { argb: NAVY } }; t.alignment = { horizontal: "center" };
+    const h = setRow(ws, 3, ["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)"]);
+    h.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill(NAVY); c.alignment = { horizontal: "center" }; c.border = box; });
+    let r = 4;
+    [...rep.summary, { workplace: "סה״כ", days: rep.all.days, totalMin: rep.all.totalMin, tot: true }].forEach(s => {
+      const row = setRow(ws, r++, [s.workplace, s.days, fmtHM(s.totalMin), hrsNum(s.totalMin)]);
+      for(let i = 1; i <= 4; i++){ const c = row.getCell(i); c.border = box; c.alignment = { horizontal: "center" }; if(s.tot){ c.font = { bold: true }; c.fill = fill("FFE3EAF3"); } }
+      row.getCell(4).numFmt = "0.00";
+    });
+  }
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+async function makePdf(rep){
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff";
+  host.innerHTML = reportHTML(rep); document.body.appendChild(host);
+  try{
+    return await html2pdf().set({ margin: [8,8,8,8], image: { type: "jpeg", quality: 0.96 },
+      html2canvas: { scale: 2, backgroundColor: "#ffffff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css","legacy"], avoid: "tr" } }).from(host.firstElementChild).outputPdf("blob");
+  } finally { host.remove(); }
+}
+
+const MIME = { docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", pdf: "application/pdf" };
+async function generate(){
+  const o = opts();
+  if(!o.month) throw new Error("יש לבחור חודש");
+  if(!o.workplaces.length) throw new Error("יש לבחור לפחות מקום עבודה אחד");
+  await needLib(o.fmt);
+  const {from,to} = range(o.month), rep = buildReport(o, await db.list(from,to));
+  const blob = o.fmt === "docx" ? await makeDocx(rep) : o.fmt === "xlsx" ? await makeXlsx(rep) : await makePdf(rep);
+  return new File([blob], `${fileBase(rep)}.${o.fmt}`, { type: MIME[o.fmt] });
+}
+function download(f){ const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+$("#ckMake").onclick = async () => {
+  const b = $("#ckMake"); b.disabled = true; setStatus("#ckRepStatus","מכין את הקובץ…");
+  try{ const f = await generate(); download(f); setStatus("#ckRepStatus", `הקובץ "${f.name}" ירד.`, "ok"); }
+  catch(err){ setStatus("#ckRepStatus", err.message || String(err), "err"); }
+  b.disabled = false;
+};
+$("#ckDrive").onclick = async () => {
+  const b = $("#ckDrive");
+  if(!(typeof driveOn === "function" && driveOn())) return setStatus("#ckRepStatus","ההתחברות ל-Google לא נטענה. רענן ונסה שוב.","err");
+  let tokenP; try{ tokenP = driveToken(); }catch(_){ return setStatus("#ckRepStatus","ההתחברות ל-Google לא נטענה. רענן ונסה שוב.","err"); }
+  tokenP.catch(() => {});
+  b.disabled = true; setStatus("#ckRepStatus","מכין את הקובץ…");
+  try{
+    const f = await generate();
+    setStatus("#ckRepStatus","מתחבר ל-Google Drive…"); await tokenP;
+    setStatus("#ckRepStatus","מעלה לדרייב…");
+    let r; try{ r = await driveUpload(f, "clock"); }catch(err){ if(err && err.code === "auth"){ await driveToken(); r = await driveUpload(f, "clock"); } else throw err; }
+    const folder = `${DRIVE_ROOT} / ${driveFolderName("clock")}`;
+    $("#ckRepStatus").className = "status ok";
+    $("#ckRepStatus").innerHTML = `נשמר בדרייב, בתיקייה ${e(folder)}. ` + (r && r.webViewLink ? `<a href="${e(r.webViewLink)}" target="_blank" rel="noopener">פתח בדרייב</a>` : "");
+  }catch(err){
+    const t = (err && (err.type || err.error)) || "";
+    setStatus("#ckRepStatus", /popup_closed|access_denied|popup_failed/.test(t) ? "ההתחברות ל-Google בוטלה. לחץ שוב כדי לנסות." : (err && err.message && !/^drive /.test(err.message) ? err.message : "השמירה בדרייב נכשלה. נסה שוב בעוד רגע."), "err");
+  }finally{ b.disabled = false; }
+};
+if(navigator.canShare) $("#ckShare").hidden = false;
+$("#ckShare").onclick = async () => {
+  setStatus("#ckRepStatus","מכין את הקובץ…");
+  try{ const f = await generate();
+    if(navigator.canShare && navigator.canShare({ files: [f] })){ await navigator.share({ files: [f], title: f.name }); setStatus("#ckRepStatus",""); }
+    else { download(f); setStatus("#ckRepStatus","הטלפון לא מאפשר לשתף את סוג הקובץ הזה, אז הוא ירד למכשיר.","ok"); }
+  }catch(err){ if(!err || err.name !== "AbortError") setStatus("#ckRepStatus", err.message || String(err), "err"); else setStatus("#ckRepStatus",""); }
+};
+let pvT;
+function renderPreview(){
+  if(!$("#ckPrevBox").open) return;
+  clearTimeout(pvT); pvT = setTimeout(async () => {
+    const o = opts(); if(!o.month) return; const {from,to} = range(o.month);
+    try{ $("#ckPreview").innerHTML = reportHTML(buildReport(o, await db.list(from,to))); }catch(err){ $("#ckPreview").textContent = errMsg(err); }
+  }, 150);
+}
+$("#ckReport").addEventListener("change", renderPreview);
+$("#ckPrevBox").addEventListener("toggle", renderPreview);
+
+/* ---------- אתחול ---------- */
+(function initReport(){
+  const n = new Date(), d = n.getDate() <= 5 ? new Date(n.getFullYear(), n.getMonth()-1, 1) : n;
+  $("#ckRepMonth").value = `${d.getFullYear()}-${p2(d.getMonth()+1)}`;
+  $("#ckRepWps").innerHTML = WORKPLACES.map(w => `<label><input type="checkbox" value="${e(w.name)}" checked> ${e(w.name)}</label>`).join("");
+  const f = localStorage.getItem("ck_fmt"); if(f){ const r = document.querySelector(`input[name="ckFmt"][value="${f}"]`); if(r) r.checked = true; }
+  document.querySelectorAll('input[name="ckFmt"]').forEach(r => r.addEventListener("change", () => { try{ localStorage.setItem("ck_fmt", r.value); }catch(_){} }));
+})();
+async function refresh(){
+  try{ st.open = await db.open(); }catch(err){ st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  renderChips(); renderStatus();
+  if(document.body.dataset.mode === "clock"){ await loadToday(); await loadMonth(); renderPreview(); }
+  if(typeof renderDash === "function") renderDash();
+}
+setInterval(tick, 1000);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && document.body.dataset.mode === "clock") refresh(); });
+
+window.CK = {
+  refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, WORKPLACES,
+  dashActs(acts){ const o = st.open; if(!o) return;
+    const today = o.work_date === isoDate(new Date());
+    acts.unshift({ text: today ? `שעון נוכחות – בעבודה ב${o.workplace}` : "שעון נוכחות – דיווח פתוח מיום קודם",
+      time: today ? `מאז ${t5(o.time_in)}` : `${heDate(o.work_date)} · חסרה שעת יציאה`, dot: "warn", go: () => setMode("clock") }); }
+};
+renderChips(); refresh();
+})();
 </script>
 </body>
 </html>
