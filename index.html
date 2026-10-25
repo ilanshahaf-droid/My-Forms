@@ -279,6 +279,11 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-report .sign div{width:220px;text-align:center}
 .ck-report .sign .ln{border-top:1px solid #333;padding-top:4px}
 .ck-report .sign img{height:48px;display:block;margin:0 auto 2px}
+.ck-quick{border:1.5px solid var(--btn) !important;margin-top:0 !important}
+.ck-qhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.ck-qhead h2{margin:0 !important}
+.ck-qtime{font-size:26px;font-weight:700}
+.ck-quick .ck-big{margin-top:12px}
 </style>
 
 </head>
@@ -290,6 +295,18 @@ dialog.ck-dlg form{padding:20px 18px}
   <p>אפליקציה למילוי טפסים לשימוש השוטף של הפסיכולוג</p>
   <span class="stamp">טפסים</span>
 </header>
+
+<!-- כרטיס שעון מהיר – ראש לוח הבקרה -->
+<section class="step tab m-dash ck-quick" id="ckQuick">
+  <div class="ck-qhead"><h2>שעון נוכחות</h2><span class="ck-qtime ck-num" id="ckQTime">--:--</span></div>
+  <div class="ck-warn" id="ckQStale" hidden></div>
+  <div class="ck-chips" id="ckQChips"></div>
+  <input type="text" id="ckQNote" placeholder="איפה אני היום? (לא חובה)" style="margin-top:10px">
+  <button type="button" class="ck-big in" id="ckQBtn">כניסה</button>
+  <div class="ck-live" id="ckQLive" hidden><span class="ck-dot"></span><span id="ckQLiveText"></span></div>
+  <div class="status" id="ckQStatus" style="text-align:center"></div>
+  <div style="text-align:center"><button type="button" class="x" id="ckQMore">יומן חודשי ודו״ח ‹</button></div>
+</section>
 
 <nav class="modes" aria-label="ניווט ראשי">
   <button type="button" data-mode="dash" aria-current="page">לוח בקרה</button>
@@ -2233,48 +2250,59 @@ function errMsg(err){ const m = (err && err.message) || String(err);
 /* ---------- מצב ---------- */
 const st = { wp: localStorage.getItem("ck_wp") || WORKPLACES[0].name, open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
 
-/* ---------- היום ---------- */
+/* ---------- היום (מסך מלא + כרטיס מהיר בלוח הבקרה) ---------- */
+const VIEWS = [
+  { chips:"#ckChips",  note:"#ckNote",  btn:"#ckBtn",  live:"#ckLive",  liveText:"#ckLiveText",  status:"#ckTodayStatus", stale:"#ckStale" },
+  { chips:"#ckQChips", note:"#ckQNote", btn:"#ckQBtn", live:"#ckQLive", liveText:"#ckQLiveText", status:"#ckQStatus",     stale:"#ckQStale" }
+];
+const statusAll = (msg, kind) => VIEWS.forEach(v => setStatus(v.status, msg, kind));
 function renderChips(){
-  $("#ckChips").innerHTML = WORKPLACES.map(w =>
+  const html = WORKPLACES.map(w =>
     `<button type="button" class="ck-chip" style="--wp:${w.color}" aria-pressed="${w.name===st.wp}" data-wp="${e(w.name)}">${e(w.name)}</button>`).join("");
+  VIEWS.forEach(v => { $(v.chips).innerHTML = html; });
 }
-$("#ckChips").addEventListener("click", async ev => {
-  const b = ev.target.closest(".ck-chip"); if(!b) return;
-  st.wp = b.dataset.wp; try{ localStorage.setItem("ck_wp", st.wp); }catch(_){} renderChips();
-  if(st.open && st.open.work_date === isoDate(new Date()) && st.open.workplace !== st.wp){
-    try{ st.open = await db.update(st.open.id, {workplace: st.wp}); renderStatus(); loadToday(); setStatus("#ckTodayStatus","מקום העבודה עודכן","ok"); }
-    catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
-  }
-});
-$("#ckNote").addEventListener("change", async () => {
-  if(!st.open || st.open.work_date !== isoDate(new Date())) return;
-  try{ st.open = await db.update(st.open.id, {note: $("#ckNote").value.trim() || null}); loadToday(); setStatus("#ckTodayStatus","ההערה נשמרה","ok"); }
-  catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
+VIEWS.forEach(v => {
+  $(v.chips).addEventListener("click", async ev => {
+    const b = ev.target.closest(".ck-chip"); if(!b) return;
+    st.wp = b.dataset.wp; try{ localStorage.setItem("ck_wp", st.wp); }catch(_){} renderChips();
+    if(st.open && st.open.work_date === isoDate(new Date()) && st.open.workplace !== st.wp){
+      try{ st.open = await db.update(st.open.id, {workplace: st.wp}); renderStatus(); loadToday(); statusAll("מקום העבודה עודכן","ok"); }
+      catch(err){ statusAll(errMsg(err), "err"); }
+    }
+  });
+  $(v.note).addEventListener("input", () => VIEWS.forEach(o => { if(o !== v) $(o.note).value = $(v.note).value; }));
+  $(v.note).addEventListener("change", async () => {
+    if(!st.open || st.open.work_date !== isoDate(new Date())) return;
+    try{ st.open = await db.update(st.open.id, {note: $(v.note).value.trim() || null}); loadToday(); statusAll("ההערה נשמרה","ok"); }
+    catch(err){ statusAll(errMsg(err), "err"); }
+  });
+  $(v.btn).addEventListener("click", () => clockToggle(v));
 });
 function tick(){
-  if(document.body.dataset.mode !== "clock") return;
+  const mode = document.body.dataset.mode; if(mode !== "clock" && mode !== "dash") return;
   const n = new Date();
-  $("#ckTime").textContent = hhmm(n);
+  $("#ckTime").textContent = hhmm(n); $("#ckQTime").textContent = hhmm(n);
   $("#ckDate").textContent = `יום ${DAYS[n.getDay()]}, ${n.getDate()} ב${HEB_MONTHS[n.getMonth()]} ${n.getFullYear()}`;
-  const el = $("#ckElapsed");
-  if(el && st.open) el.textContent = fmtHM(minutesOf({time_in: st.open.time_in, time_out: hhmm(n)}));
+  if(st.open) document.querySelectorAll(".ck-elapsed").forEach(el => { el.textContent = fmtHM(minutesOf({time_in: st.open.time_in, time_out: hhmm(n)})); });
 }
 function renderStatus(){
-  const today = isoDate(new Date()), o = st.open, btn = $("#ckBtn"), stale = $("#ckStale");
-  stale.hidden = true;
-  if(o && o.work_date !== today){
-    stale.hidden = false;
-    stale.innerHTML = `נשאר דיווח פתוח מ-${heDate(o.work_date)} (${e(o.workplace)}, כניסה <span class="ck-num">${t5(o.time_in)}</span>).<br><button type="button" id="ckFixStale">הזנת שעת יציאה</button>`;
-    $("#ckFixStale").onclick = () => openEditor(o);
-  }
-  if(o && o.work_date === today){
-    btn.textContent = "יציאה"; btn.className = "ck-big out"; $("#ckLive").hidden = false;
-    $("#ckLiveText").innerHTML = `בעבודה ב${e(o.workplace)} מאז <span class="ck-num">${t5(o.time_in)}</span> · <span class="ck-num" id="ckElapsed"></span>`;
-    $("#ckNote").value = o.note || "";
-    if(o.workplace !== st.wp){ st.wp = o.workplace; renderChips(); }
-  } else {
-    btn.textContent = "כניסה"; btn.className = "ck-big in"; $("#ckLive").hidden = true;
-  }
+  const today = isoDate(new Date()), o = st.open, on = !!(o && o.work_date === today);
+  VIEWS.forEach(v => {
+    const stale = $(v.stale), btn = $(v.btn); stale.hidden = true;
+    if(o && !on){
+      stale.hidden = false;
+      stale.innerHTML = `נשאר דיווח פתוח מ-${heDate(o.work_date)} (${e(o.workplace)}, כניסה <span class="ck-num">${t5(o.time_in)}</span>).<br><button type="button" class="ck-fix">הזנת שעת יציאה</button>`;
+      stale.querySelector(".ck-fix").onclick = () => openEditor(o);
+    }
+    if(on){
+      btn.textContent = "יציאה"; btn.className = "ck-big out"; $(v.live).hidden = false;
+      $(v.liveText).innerHTML = `בעבודה ב${e(o.workplace)} מאז <span class="ck-num">${t5(o.time_in)}</span> · <span class="ck-num ck-elapsed"></span>`;
+      if(document.activeElement !== $(v.note)) $(v.note).value = o.note || "";
+    } else {
+      btn.textContent = "כניסה"; btn.className = "ck-big in"; $(v.live).hidden = true;
+    }
+  });
+  if(on && o.workplace !== st.wp){ st.wp = o.workplace; renderChips(); }
   tick(); updateBadge();
 }
 function updateBadge(){
@@ -2282,22 +2310,26 @@ function updateBadge(){
   const on = st.open && st.open.work_date === isoDate(new Date());
   b.className = "badge " + (on ? "pending" : "new"); b.textContent = on ? "בעבודה" : "דיווח יומי";
 }
-$("#ckBtn").addEventListener("click", async () => {
-  const btn = $("#ckBtn"); btn.disabled = true;
-  const now = new Date(), today = isoDate(now), note = $("#ckNote").value.trim() || null;
+let busy = false;
+async function clockToggle(v){
+  if(busy) return; busy = true;
+  VIEWS.forEach(o => { $(o.btn).disabled = true; });
+  const now = new Date(), today = isoDate(now), note = $(v.note).value.trim() || null;
   try{
     if(st.open && st.open.work_date === today){
       await db.update(st.open.id, {time_out: hhmm(now), note});
-      st.open = null; $("#ckNote").value = "";
-      setStatus("#ckTodayStatus", `יציאה נרשמה ב-${hhmm(now)}`, "ok");
+      st.open = null; VIEWS.forEach(o => { $(o.note).value = ""; });
+      statusAll(`✓ יציאה נרשמה ב-${hhmm(now)}`, "ok");
     } else {
       st.open = await db.insert({work_date: today, workplace: st.wp, time_in: hhmm(now), time_out: null, note});
-      setStatus("#ckTodayStatus", `כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
+      statusAll(`✓ כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
     }
+    if(navigator.vibrate) navigator.vibrate(40);
     renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
-  }catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); }
-  btn.disabled = false;
-});
+  }catch(err){ statusAll(errMsg(err), "err"); }
+  VIEWS.forEach(o => { $(o.btn).disabled = false; }); busy = false;
+}
+$("#ckQMore").onclick = () => setMode("clock");
 function entryRow(x, withDate){
   const d = parseISO(x.work_date);
   return `<button type="button" class="ck-entry" data-id="${e(x.id)}">
@@ -2621,19 +2653,22 @@ async function refresh(){
   try{ st.open = await db.open(); }catch(err){ st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
   renderChips(); renderStatus();
   if(document.body.dataset.mode === "clock"){ await loadToday(); await loadMonth(); renderPreview(); }
+  else loadToday();
   if(typeof renderDash === "function") renderDash();
 }
 setInterval(tick, 1000);
-document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && document.body.dataset.mode === "clock") refresh(); });
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && ["clock","dash"].includes(document.body.dataset.mode)) refresh(); });
 
 window.CK = {
   refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, WORKPLACES,
-  dashActs(acts){ const o = st.open; if(!o) return;
+  dashActs(acts){ const o = st.open; if(!o || o.work_date === isoDate(new Date())) return;
     const today = o.work_date === isoDate(new Date());
     acts.unshift({ text: today ? `שעון נוכחות – בעבודה ב${o.workplace}` : "שעון נוכחות – דיווח פתוח מיום קודם",
       time: today ? `מאז ${t5(o.time_in)}` : `${heDate(o.work_date)} · חסרה שעת יציאה`, dot: "warn", go: () => setMode("clock") }); }
 };
-renderChips(); refresh();
+renderChips();
+if(location.hash === "#clock") setMode("clock");
+refresh();
 })();
 </script>
 </body>
