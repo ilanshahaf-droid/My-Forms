@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כניסה</title>
+<meta name="theme-color" content="#059669">
+<link rel="icon" href="shortcut-in.png">
+<link rel="apple-touch-icon" href="shortcut-in.png">
+<style>
+  :root{--bg:#F4F6FA;--ink:#0F172A}
+  @media (prefers-color-scheme:dark){:root{--bg:#0F172A;--ink:#F1F5F9}}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:600 20px "Assistant",Arial,sans-serif}
+  body{display:grid;place-items:center;text-align:center}
+  img{width:96px;height:96px;display:block;margin:0 auto 14px}
+</style>
+</head>
+<body>
+<div><img src="shortcut-in.png" alt=""><div>רושם כניסה…</div></div>
+<script>
+// קיצור דרך למסך הבית: מעביר לאפליקציה עם פקודת החתמה
+location.replace("index.html?ck=in");
+</script>
+</body>
+</html>
