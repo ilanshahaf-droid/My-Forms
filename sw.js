@@ -12,9 +12,7 @@ const PRECACHE = [
   "./favicon-16.png",
   "./logo.png",
   "./shortcut-in.png",
-  "./shortcut-out.png",
-  "./in.html",
-  "./out.html"
+  "./shortcut-out.png"
 ];
 // ספריות חיצוניות שהאפליקציה צריכה כדי לעלות גם בלי חיבור
 const LIBS = [

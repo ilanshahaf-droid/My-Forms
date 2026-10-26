@@ -1927,7 +1927,7 @@ document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","po
 
 const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock"];
 syncFormUi(); updateBadges();
-setMode(validModes.includes(store.get("att_mode"))?store.get("att_mode"):"dash");
+setMode("dash");   // תמיד נפתח בלוח הבקרה, עם כרטיס השעון למעלה
 
 /* ================= Google Drive ================= */
 // scope drive.file: the app sees only files and folders it created itself
