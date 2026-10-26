@@ -316,6 +316,21 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-rtime{color:var(--soft);font-size:14px}
 .ck-rdur{font-weight:700;font-size:15px}
 .ck-rnote{grid-column:1/-1;color:var(--soft);font-size:13px}
+/* טבלת הדיווחים של היום */
+.ck-tt{width:100%;min-width:0;border-collapse:collapse;margin-top:6px;font-variant-numeric:tabular-nums}
+.ck-tt th{background:none;color:var(--soft);font-size:13px;font-weight:700;padding:6px 6px 8px;border-bottom:1.5px solid var(--rule);text-align:center}
+.ck-tt th:first-child{text-align:start}
+.ck-tt td{padding:12px 6px;border-bottom:1px solid var(--rule);font-size:19px;font-weight:600;text-align:center;vertical-align:middle}
+.ck-tt td.wp{text-align:start;border-inline-start:4px solid var(--wp);padding-inline-start:10px}
+.ck-tt td:last-child{font-weight:800}
+.ck-tt .ck-rwp{font-size:16px;font-weight:700;display:block}
+.ck-tt .ck-tnote{display:block;font-size:12.5px;font-weight:500;color:var(--soft);margin-top:2px}
+.ck-tt .ck-open{font-size:14px}
+.ck-trow{cursor:pointer}
+.ck-trow:hover td{background:var(--paper)}
+.ck-trow:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ck-tt tfoot td{border-bottom:none;padding-top:12px;font-size:20px;font-weight:800}
+.ck-tt tfoot td:first-child{text-align:start;font-size:15px;color:var(--soft);font-weight:700}
 </style>
 
 </head>
@@ -2069,8 +2084,8 @@ function showAuth(recovery){
 async function onLogin(u){
   cloud.user=u; document.body.classList.remove("locked"); $("#auth").hidden=true;
   $("#acct").hidden=false; $("#acctEmail").textContent=u.email; $("#files").hidden=false; $("#filesOff").hidden=true; renderDash();
+  if(window.CK) CK.refresh();   // השעון קודם – בלי לחכות להורדת התבנית והפרופיל
   await cloudPullProfile(); await cloudPullTemplate(); await cloudPullSettings(); renderFiles();
-  if(window.CK) CK.refresh();
 }
 function onLogout(){
   cloud.user=null; cloudIndex=null; $("#files").hidden=true; $("#filesOff").hidden=false; ["att_name","att_tz","att_sig","att_tpl","att_school"].forEach(k=>store.set(k,null,true)); clearAllDrafts(); if(window.CK) CK.refresh();
@@ -2323,7 +2338,7 @@ const OB = {
   get(){ try{ return JSON.parse(localStorage.getItem("ck_outbox") || "[]"); }catch(_){ return []; } },
   set(a){ try{ localStorage.setItem("ck_outbox", JSON.stringify(a)); }catch(_){} }
 };
-function cacheOpen(){ try{ localStorage.setItem("ck_open", JSON.stringify(st.open || null)); }catch(_){} }
+function cacheOpen(){ try{ localStorage.setItem("ck_open", JSON.stringify(st.open || null)); if(cloudReady()) localStorage.setItem("ck_cache_owner", cloud.user.id); }catch(_){} }
 function cachedOpen(){ try{ return JSON.parse(localStorage.getItem("ck_open") || "null"); }catch(_){ return null; } }
 function offlinePunch(now, note){
   const q = OB.get(), today = isoDate(now);
@@ -2420,6 +2435,8 @@ function tick(){
   $("#ckTime").textContent = hhmm(n); $("#ckQTime").textContent = hhmm(n);
   $("#ckDate").textContent = `יום ${DAYS[n.getDay()]}, ${n.getDate()} ב${HEB_MONTHS[n.getMonth()]} ${n.getFullYear()}`;
   if(st.open) document.querySelectorAll(".ck-elapsed").forEach(el => { el.textContent = fmtHM(minutesOf({time_in: st.open.time_in, time_out: hhmm(n)})); });
+  const dl = $("#ckTodayList .ck-daylive");
+  if(dl) dl.textContent = fmtHM(+dl.dataset.closed + (st.open && st.open.work_date === isoDate(n) ? minutesOf({time_in: st.open.time_in, time_out: hhmm(n)}) : 0));
 }
 function renderStatus(){
   const today = isoDate(new Date()), o = st.open, on = !!(o && o.work_date === today);
@@ -2449,22 +2466,24 @@ function updateBadge(){
 let busy = false;
 async function clockToggle(v){
   if(busy) return; busy = true;
-  VIEWS.forEach(o => { $(o.btn).disabled = true; });
   const now = new Date(), today = isoDate(now), note = $(v.note).value.trim() || null;
-  const goOffline = () => {
-    const wasIn = !!(st.open && st.open.work_date === today);
-    offlinePunch(now, note);
-    if(wasIn) VIEWS.forEach(o => { $(o.note).value = ""; });
-    statusAll(`✓ ${wasIn ? "יציאה" : "כניסה"} נרשמה ב-${hhmm(now)}${wasIn ? "" : " · " + st.wp} (נשמר בטלפון, אין חיבור)`, "ok");
-    if(navigator.vibrate) navigator.vibrate(40);
-    renderStatus(); loadToday(); pendingNote();
-  };
+  const wasIn = !!(st.open && st.open.work_date === today);
   try{
-    if(cloudReady() && (!navigator.onLine || OB.get().length || String((st.open || {}).id || "").startsWith("tmp-"))){
-      await flushOutbox();
-      if(!navigator.onLine || OB.get().length){ goOffline(); VIEWS.forEach(o => { $(o.btn).disabled = false; }); busy = false; return; }
+    if(cloudReady()){
+      offlinePunch(now, note);               // נרשם מיד בטלפון
+      if(wasIn) VIEWS.forEach(o => { $(o.note).value = ""; });
+      if(navigator.vibrate) navigator.vibrate(40);
+      statusAll(`✓ ${wasIn ? "יציאה" : "כניסה"} נרשמה ב-${hhmm(now)}${wasIn ? "" : " · " + st.wp}`, "ok");
+      st.today = offlineToday(today); renderToday(); renderStatus(); pendingNote();
+      if(typeof renderDash === "function") renderDash();
+      busy = false;
+      if(navigator.onLine){                  // ועולה לענן ברקע
+        await flushOutbox(); cacheOpen(); pendingNote();
+        if(!OB.get().length){ try{ st.today = await db.list(today, today); localStorage.setItem("ck_today", JSON.stringify({ date: today, list: st.today })); }catch(_){} renderToday(); }
+      } else statusAll(`✓ ${wasIn ? "יציאה" : "כניסה"} נרשמה ב-${hhmm(now)} (נשמר בטלפון, יעלה לענן כשיהיה חיבור)`, "ok");
+      return;
     }
-    if(st.open && st.open.work_date === today){
+    if(wasIn){
       await db.update(st.open.id, {time_out: hhmm(now), note});
       st.open = null; VIEWS.forEach(o => { $(o.note).value = ""; });
       statusAll(`✓ יציאה נרשמה ב-${hhmm(now)}`, "ok");
@@ -2474,12 +2493,9 @@ async function clockToggle(v){
       statusAll(`✓ כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
     }
     if(navigator.vibrate) navigator.vibrate(40);
-    cacheOpen(); renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
-  }catch(err){
-    if(cloudReady() && isNetErr(err)){ try{ goOffline(); }catch(e2){ statusAll(e2.message, "err"); } }
-    else statusAll(errMsg(err), "err");
-  }
-  VIEWS.forEach(o => { $(o.btn).disabled = false; }); busy = false;
+    renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
+  }catch(err){ statusAll(errMsg(err), "err"); }
+  busy = false;
 }
 $("#ckQMore").onclick = () => setMode("clock");
 function entryRow(x, withDate){
@@ -2498,7 +2514,21 @@ async function loadToday(){
     if(cloudReady()) try{ localStorage.setItem("ck_today", JSON.stringify({ date: t, list: st.today })); }catch(_){}
     if(OB.get().length) st.today = offlineToday(t);
   }catch(err){ st.today = isNetErr(err) ? offlineToday(t) : []; if(!isNetErr(err)) setStatus("#ckTodayStatus", errMsg(err), "err"); }
-  $("#ckTodayList").innerHTML = st.today.length ? st.today.map(x => entryRow(x,false)).join("") : '<div class="empty">עוד אין דיווחים היום</div>';
+  renderToday();
+}
+function renderToday(){
+  const list = st.today || [];
+  if(!list.length){ $("#ckTodayList").innerHTML = '<div class="empty">עוד אין דיווחים היום</div>'; return; }
+  const now = hhmm(new Date());
+  const tot = list.reduce((a, x) => a + minutesOf(x.time_out ? x : { time_in: x.time_in, time_out: now }), 0);
+  $("#ckTodayList").innerHTML = `<table class="ck-tt"><thead><tr><th>מקום</th><th>כניסה</th><th>יציאה</th><th>סה״כ</th></tr></thead><tbody>` +
+    list.map(x => `<tr class="ck-trow" data-id="${e(x.id)}" tabindex="0" style="--wp:${wpColor(x.workplace)}">
+      <td class="wp"><span class="ck-rwp">${e(canonWp(x.workplace))}</span>${x.note ? `<span class="ck-tnote">${e(x.note)}</span>` : ""}</td>
+      <td class="ck-num">${t5(x.time_in)}</td>
+      <td class="ck-num">${x.time_out ? t5(x.time_out) : '<span class="ck-open">פתוח</span>'}</td>
+      <td class="ck-num">${x.pending ? '<span title="ממתין לסנכרון">⏳</span>' : ""}${x.time_out ? fmtHM(minutesOf(x)) : `<span class="ck-elapsed"></span>`}</td></tr>`).join("") +
+    `</tbody><tfoot><tr><td colspan="3">סה״כ היום</td><td class="ck-num ck-daylive" data-closed="${list.reduce((a, x) => a + (x.time_out ? minutesOf(x) : 0), 0)}">${fmtHM(tot)}</td></tr></tfoot></table>`;
+  tick();
 }
 
 /* ---------- יומן ---------- */
@@ -2566,8 +2596,9 @@ function openEditor(x, date){
   $("#ckDlg").showModal();
 }
 const findE = id => [...st.today, ...st.monthList, st.open].find(x => x && x.id === id);
+$("#ckTodayList").addEventListener("keydown", ev => { if(ev.key === "Enter" && ev.target.closest(".ck-trow")) ev.target.click(); });
 ["#ckTodayList","#ckMonthList"].forEach(sel => $(sel).addEventListener("click", ev => {
-  const r = ev.target.closest(".ck-entry, .ck-row"); if(r){ const x = findE(r.dataset.id);
+  const r = ev.target.closest(".ck-entry, .ck-row, .ck-trow"); if(r){ const x = findE(r.dataset.id);
     if(x && (x.pending || String(x.id).startsWith("tmp-"))) return statusAll("ההחתמה הזאת עוד לא עלתה לענן. אפשר לערוך אותה אחרי הסנכרון.", "err");
     if(x) openEditor(x); } }));
 $("#ckAddToday").onclick = () => openEditor(null);
@@ -3015,24 +3046,48 @@ async function migrateLocal(){
   return rows.length;
 }
 async function doRefresh(){
+  const t = isoDate(new Date());
   if(cloudReady() && navigator.onLine){
     const n = await flushOutbox(); if(n) statusAll(n === 1 ? "✓ ההחתמה שנרשמה בלי חיבור עלתה לענן." : `✓ ${n} החתמות שנרשמו בלי חיבור עלו לענן.`, "ok");
-    try{ const m = await migrateLocal(); if(m) statusAll(`${m} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); }
+  }
+  // 1) מצב השעון ורשימת היום – בבת אחת, ומיד למסך
+  if(OB.get().length && cloudReady()){ st.open = cachedOpen(); st.today = offlineToday(t); }
+  else {
+    const [o, l] = await Promise.allSettled([db.open(), db.list(t, t)]);
+    if(o.status === "fulfilled"){ st.open = o.value; if(cloudReady()) cacheOpen(); }
+    else if(cloudReady() && isNetErr(o.reason)) st.open = cachedOpen();
+    else { st.open = null; setStatus("#ckTodayStatus", errMsg(o.reason), "err"); }
+    if(l.status === "fulfilled"){ st.today = l.value; if(cloudReady()) try{ localStorage.setItem("ck_today", JSON.stringify({ date: t, list: st.today })); localStorage.setItem("ck_cache_owner", cloud.user.id); }catch(_){} }
+    else st.today = offlineToday(t);
+  }
+  renderChips(); renderStatus(); renderToday(); pendingNote();
+  if(typeof renderDash === "function") renderDash();
+  // 2) כל השאר ברקע
+  if(cloudReady() && navigator.onLine){
+    try{ const m = await migrateLocal(); if(m){ statusAll(`${m} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); again = true; } }
     catch(err){ if(!isNetErr(err)) statusAll(errMsg(err), "err"); }
   }
-  await loadPlaces(); if(navigator.onLine) await unifyNames(); renderPlaces(); buildRepWps();
-  try{
-    if(OB.get().length) throw new Error("network: pending");
-    st.open = await db.open(); if(cloudReady()) cacheOpen();
-  }catch(err){
-    if(cloudReady() && isNetErr(err)) st.open = cachedOpen();
-    else { st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
-  }
-  renderChips(); renderStatus(); pendingNote();
-  if(document.body.dataset.mode === "clock"){ await loadToday(); try{ await loadMonth(); }catch(_){} renderPreview(); }
-  else loadToday();
-  if(typeof renderDash === "function") renderDash();
+  await loadPlaces(); renderChips(); renderPlaces();
+  if(navigator.onLine) await unifyNames();
+  buildRepWps();
+  if(document.body.dataset.mode === "clock"){ try{ await loadMonth(); }catch(_){} renderPreview(); }
 }
+/* בדיקה קלה של מצב השעון בלבד – לסנכרון מהיר בין מכשירים */
+async function quickSync(){
+  if(refreshing || busy || !cloudReady() || !navigator.onLine || OB.get().length || document.visibilityState !== "visible") return;
+  const t = isoDate(new Date());
+  try{
+    const [o, l] = await Promise.all([db.open(), db.list(t, t)]);
+    const changed = JSON.stringify([o && o.id, o && o.workplace, l.map(x => x.id + x.time_out + x.workplace + x.note)]) !==
+                    JSON.stringify([st.open && st.open.id, st.open && st.open.workplace, (st.today || []).map(x => x.id + x.time_out + x.workplace + x.note)]);
+    if(!changed) return;
+    st.open = o; st.today = l; cacheOpen();
+    try{ localStorage.setItem("ck_today", JSON.stringify({ date: t, list: l })); }catch(_){}
+    renderStatus(); renderToday(); if(typeof renderDash === "function") renderDash();
+    if(document.body.dataset.mode === "clock") loadMonth();
+  }catch(_){}
+}
+setInterval(quickSync, 15000);
 let refreshing = null, again = false;
 function refresh(){
   if(refreshing){ again = true; return refreshing; }
@@ -3058,6 +3113,7 @@ async function shortcutAction(){
 }
 setInterval(tick, 1000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && ["clock","dash"].includes(document.body.dataset.mode)) refresh(); });
+window.addEventListener("focus", () => quickSync());
 
 window.CK = {
   refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, get WORKPLACES(){ return WORKPLACES; }, setPlaces,
@@ -3067,6 +3123,15 @@ window.CK = {
       time: today ? `מאז ${t5(o.time_in)}` : `${heDate(o.work_date)} · חסרה שעת יציאה`, dot: "warn", go: () => setMode("clock") }); }
 };
 renderChips();
+(function instantStart(){   // מציגים מיד את המצב האחרון שנשמר במכשיר, ומעדכנים מהענן ברקע
+  try{
+    const owner = localStorage.getItem("ck_cache_owner"), u = (typeof storedUser === "function") ? storedUser() : null;
+    if(!owner || !u || u.id !== owner) return;
+    const t = isoDate(new Date());
+    st.open = cachedOpen(); st.today = offlineToday(t);
+    renderStatus(); renderToday(); pendingNote();
+  }catch(_){}
+})();
 if(location.hash === "#clock") setMode("clock");
 if(new URLSearchParams(location.search).get("ck")) shortcutAction(); else refresh();
 })();
