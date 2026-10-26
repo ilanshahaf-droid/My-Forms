@@ -311,6 +311,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <button type="button" class="ck-big in" id="ckQBtn">כניסה</button>
   <div class="ck-live" id="ckQLive" hidden><span class="ck-dot"></span><span id="ckQLiveText"></span></div>
   <div class="status" id="ckQStatus" style="text-align:center"></div>
+  <div class="status ck-pending" hidden style="text-align:center;color:var(--amber)"></div>
   <div style="text-align:center"><button type="button" class="x" id="ckQMore">יומן חודשי ודו״ח ‹</button></div>
 </section>
 
@@ -485,6 +486,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <button type="button" class="ck-big in" id="ckBtn">כניסה</button>
   <div class="ck-live" id="ckLive" hidden><span class="ck-dot"></span><span id="ckLiveText"></span></div>
   <div class="status" id="ckTodayStatus"></div>
+  <div class="status ck-pending" hidden style="color:var(--amber)"></div>
   <h3 class="ftitle">הדיווחים של היום</h3>
   <div id="ckTodayList"></div>
   <div class="bar"><button type="button" id="ckAddToday">+ הוספה ידנית</button></div>
@@ -2024,8 +2026,14 @@ async function cloudInit(){
     if(!u && cloud.user) onLogout();
   });
   const {data}=await cloud.sb.auth.getSession();
-  if(data&&data.session&&data.session.user) onLogin(data.session.user); else showAuth(false);
+  if(data&&data.session&&data.session.user) onLogin(data.session.user);
+  else { const u=storedUser(); if(u&&!navigator.onLine){ cloud.offline=true; onLogin(u); } else showAuth(false); }
 }
+/* the user saved by Supabase on this device – used only when starting without internet */
+function storedUser(){ try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i);
+  if(/^sb-.*-auth-token$/.test(k)){ const j=JSON.parse(localStorage.getItem(k)); const u=j&&(j.user||(j.currentSession&&j.currentSession.user)); if(u&&u.id) return u; } } }catch(e){} return null; }
+window.addEventListener("online",async()=>{ if(!cloud.sb||!cloud.offline) return; cloud.offline=false;
+  const {data}=await cloud.sb.auth.getSession(); if(data&&data.session&&data.session.user){ cloud.user=data.session.user; await cloudPullProfile(); renderFiles(); if(window.CK) CK.refresh(); } });
 function showAuth(recovery){
   document.body.classList.add("locked"); $("#auth").hidden=false; $("#acct").hidden=true; $("#files").hidden=true;
   $("#authForm").hidden=!!recovery; $("#newPassForm").hidden=!recovery;
@@ -2250,33 +2258,98 @@ const local = {
   all(){ try{ return JSON.parse(localStorage.getItem("ck_entries")||"[]"); }catch(_){ return []; } },
   save(a){ try{ localStorage.setItem("ck_entries", JSON.stringify(a)); }catch(_){} }
 };
+const tmo = p => Promise.race([p, new Promise((_,rej) => setTimeout(() => rej(new Error("network timeout")), 9000))]);
+const isNetErr = err => !navigator.onLine || /fetch|network|load failed|timeout|offline/i.test((err && (err.message || err.details)) || String(err));
 const db = {
   async list(from,to){
     if(!cloudReady()) return sortE(local.all().filter(x => x.work_date>=from && x.work_date<=to));
-    const {data,error} = await cloud.sb.from(TBL).select("*").gte("work_date",from).lte("work_date",to).order("work_date").order("time_in");
+    const {data,error} = await tmo(cloud.sb.from(TBL).select("*").gte("work_date",from).lte("work_date",to).order("work_date").order("time_in"));
     if(error) throw error; return data;
   },
   async open(){
     if(!cloudReady()) return sortE(local.all().filter(x => !x.time_out)).pop() || null;
-    const {data,error} = await cloud.sb.from(TBL).select("*").is("time_out",null).order("work_date",{ascending:false}).order("time_in",{ascending:false}).limit(1);
+    const {data,error} = await tmo(cloud.sb.from(TBL).select("*").is("time_out",null).order("work_date",{ascending:false}).order("time_in",{ascending:false}).limit(1));
     if(error) throw error; return data[0] || null;
   },
   async insert(r){
     if(!cloudReady()){ const a = local.all(), row = {...r, id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))}; a.push(row); local.save(a); return row; }
-    const {data,error} = await cloud.sb.from(TBL).insert(r).select().single(); if(error) throw error; return data;
+    const {data,error} = await tmo(cloud.sb.from(TBL).insert(r).select().single()); if(error) throw error; return data;
   },
   async update(id,p){
     if(!cloudReady()){ const a = local.all(), i = a.findIndex(x => x.id === id); if(i<0) throw new Error("הדיווח לא נמצא"); a[i] = {...a[i],...p}; local.save(a); return a[i]; }
-    const {data,error} = await cloud.sb.from(TBL).update({...p, updated_at:new Date().toISOString()}).eq("id",id).select().single(); if(error) throw error; return data;
+    const {data,error} = await tmo(cloud.sb.from(TBL).update({...p, updated_at:new Date().toISOString()}).eq("id",id).select().single()); if(error) throw error; return data;
   },
   async remove(id){
     if(!cloudReady()){ local.save(local.all().filter(x => x.id !== id)); return; }
-    const {error} = await cloud.sb.from(TBL).delete().eq("id",id); if(error) throw error;
+    const {error} = await tmo(cloud.sb.from(TBL).delete().eq("id",id)); if(error) throw error;
   }
 };
 function errMsg(err){ const m = (err && err.message) || String(err);
+  if(isNetErr(err)) return "אין חיבור לאינטרנט. נסה שוב כשהחיבור יחזור.";
   if(/permission denied|does not exist|relation/i.test(m)) return "הטבלה clock_entries עדיין לא קיימת או בלי הרשאות. צריך להריץ את קובץ ה-SQL ב-Supabase.";
   return "שגיאה: " + m; }
+
+/* ---------- עבודה בלי אינטרנט: תור החתמות שממתינות לענן ---------- */
+const OB = {
+  get(){ try{ return JSON.parse(localStorage.getItem("ck_outbox") || "[]"); }catch(_){ return []; } },
+  set(a){ try{ localStorage.setItem("ck_outbox", JSON.stringify(a)); }catch(_){} }
+};
+function cacheOpen(){ try{ localStorage.setItem("ck_open", JSON.stringify(st.open || null)); }catch(_){} }
+function cachedOpen(){ try{ return JSON.parse(localStorage.getItem("ck_open") || "null"); }catch(_){ return null; } }
+function offlinePunch(now, note){
+  const q = OB.get(), today = isoDate(now);
+  if(st.open && st.open.work_date === today){
+    const id = st.open.id, ins = q.find(x => x.t === "ins" && x.tmp === id);
+    if(ins){ ins.row.time_out = hhmm(now); ins.row.note = note; }
+    else q.push({ t: "upd", id, patch: { time_out: hhmm(now), note } });
+    st.open = null;
+  } else {
+    if(!st.wp) throw new Error("קודם צריך להגדיר מקום עבודה.");
+    const tmp = "tmp-" + Date.now(), row = { work_date: today, workplace: st.wp, time_in: hhmm(now), time_out: null, note };
+    q.push({ t: "ins", tmp, row }); st.open = { ...row, id: tmp, pending: true };
+  }
+  OB.set(q); cacheOpen();
+}
+let flushing = null;
+function flushOutbox(){
+  if(flushing) return flushing;
+  flushing = (async () => {
+    let q = OB.get(), done = 0; if(!q.length || !cloudReady() || !navigator.onLine) return 0;
+    const map = {};
+    try{
+      while(q.length){
+        const it = q[0];
+        if(it.t === "ins"){
+          const { data, error } = await tmo(cloud.sb.from(TBL).insert(it.row).select().single()); if(error) throw error;
+          map[it.tmp] = data.id;
+          if(st.open && st.open.id === it.tmp) st.open = data;
+        } else {
+          const id = map[it.id] || it.id;
+          if(!String(id).startsWith("tmp-")){ const { error } = await tmo(cloud.sb.from(TBL).update({ ...it.patch, updated_at: new Date().toISOString() }).eq("id", id)); if(error) throw error; }
+        }
+        q.shift(); done++;
+        q.forEach(x => { if(x.t === "upd" && map[x.id]) x.id = map[x.id]; });
+        OB.set(q);
+      }
+    }catch(err){ OB.set(q); if(!isNetErr(err)) statusAll(errMsg(err), "err"); }
+    return done;
+  })().finally(() => { flushing = null; });
+  return flushing;
+}
+function pendingNote(){
+  const n = OB.get().length;
+  document.querySelectorAll(".ck-pending").forEach(el => { el.hidden = !n; el.textContent = n ? (n === 1 ? "⏳ החתמה אחת ממתינה לסנכרון – תעלה לענן כשיהיה חיבור" : `⏳ ${n} החתמות ממתינות לסנכרון – יעלו לענן כשיהיה חיבור`) : ""; });
+}
+/* רשימת היום כשאין חיבור: המטמון האחרון + ההחתמות שבתור */
+function offlineToday(t){
+  let list = []; try{ const c = JSON.parse(localStorage.getItem("ck_today") || "null"); if(c && c.date === t) list = c.list; }catch(_){}
+  list = list.map(x => ({ ...x }));
+  OB.get().forEach(it => {
+    if(it.t === "ins" && it.row.work_date === t) list.push({ ...it.row, id: it.tmp, pending: true });
+    if(it.t === "upd"){ const x = list.find(y => y.id === it.id); if(x) Object.assign(x, it.patch, { pending: true }); }
+  });
+  return sortE(list);
+}
 
 /* ---------- מצב ---------- */
 const st = { wp: localStorage.getItem("ck_wp") || "", open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
@@ -2349,7 +2422,19 @@ async function clockToggle(v){
   if(busy) return; busy = true;
   VIEWS.forEach(o => { $(o.btn).disabled = true; });
   const now = new Date(), today = isoDate(now), note = $(v.note).value.trim() || null;
+  const goOffline = () => {
+    const wasIn = !!(st.open && st.open.work_date === today);
+    offlinePunch(now, note);
+    if(wasIn) VIEWS.forEach(o => { $(o.note).value = ""; });
+    statusAll(`✓ ${wasIn ? "יציאה" : "כניסה"} נרשמה ב-${hhmm(now)}${wasIn ? "" : " · " + st.wp} (נשמר בטלפון, אין חיבור)`, "ok");
+    if(navigator.vibrate) navigator.vibrate(40);
+    renderStatus(); loadToday(); pendingNote();
+  };
   try{
+    if(cloudReady() && (!navigator.onLine || OB.get().length || String((st.open || {}).id || "").startsWith("tmp-"))){
+      await flushOutbox();
+      if(!navigator.onLine || OB.get().length){ goOffline(); VIEWS.forEach(o => { $(o.btn).disabled = false; }); busy = false; return; }
+    }
     if(st.open && st.open.work_date === today){
       await db.update(st.open.id, {time_out: hhmm(now), note});
       st.open = null; VIEWS.forEach(o => { $(o.note).value = ""; });
@@ -2360,8 +2445,11 @@ async function clockToggle(v){
       statusAll(`✓ כניסה נרשמה ב-${hhmm(now)} · ${st.wp}`, "ok");
     }
     if(navigator.vibrate) navigator.vibrate(40);
-    renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
-  }catch(err){ statusAll(errMsg(err), "err"); }
+    cacheOpen(); renderStatus(); loadToday(); if(typeof renderDash === "function") renderDash();
+  }catch(err){
+    if(cloudReady() && isNetErr(err)){ try{ goOffline(); }catch(e2){ statusAll(e2.message, "err"); } }
+    else statusAll(errMsg(err), "err");
+  }
   VIEWS.forEach(o => { $(o.btn).disabled = false; }); busy = false;
 }
 $("#ckQMore").onclick = () => setMode("clock");
@@ -2370,13 +2458,17 @@ function entryRow(x, withDate){
   return `<button type="button" class="ck-entry" data-id="${e(x.id)}">
     <span class="ck-d">${withDate ? `${d.getDate()}<small>${DAYS[d.getDay()]}</small>` : `<span class="ck-num">${t5(x.time_in)}</span>`}</span>
     <span><span class="ck-pill" style="--wp:${wpColor(x.workplace)}">${e(x.workplace)}</span><span class="ck-times ck-num">${t5(x.time_in)}–${x.time_out ? t5(x.time_out) : "…"}</span></span>
-    <span>${x.time_out ? `<span class="ck-hrs ck-num">${fmtHM(minutesOf(x))}</span>` : '<span class="ck-open">פתוח</span>'}</span>
+    <span>${x.pending ? '<span title="ממתין לסנכרון">⏳</span> ' : ""}${x.time_out ? `<span class="ck-hrs ck-num">${fmtHM(minutesOf(x))}</span>` : '<span class="ck-open">פתוח</span>'}</span>
     ${x.note ? `<span class="ck-note">${e(x.note)}</span>` : ""}
   </button>`;
 }
 async function loadToday(){
   const t = isoDate(new Date());
-  try{ st.today = await db.list(t,t); }catch(err){ st.today = []; setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  try{
+    st.today = await db.list(t,t);
+    if(cloudReady()) try{ localStorage.setItem("ck_today", JSON.stringify({ date: t, list: st.today })); }catch(_){}
+    if(OB.get().length) st.today = offlineToday(t);
+  }catch(err){ st.today = isNetErr(err) ? offlineToday(t) : []; if(!isNetErr(err)) setStatus("#ckTodayStatus", errMsg(err), "err"); }
   $("#ckTodayList").innerHTML = st.today.length ? st.today.map(x => entryRow(x,false)).join("") : '<div class="empty">עוד אין דיווחים היום</div>';
 }
 
@@ -2417,7 +2509,9 @@ function openEditor(x, date){
 }
 const findE = id => [...st.today, ...st.monthList, st.open].find(x => x && x.id === id);
 ["#ckTodayList","#ckMonthList"].forEach(sel => $(sel).addEventListener("click", ev => {
-  const r = ev.target.closest(".ck-entry"); if(r){ const x = findE(r.dataset.id); if(x) openEditor(x); } }));
+  const r = ev.target.closest(".ck-entry"); if(r){ const x = findE(r.dataset.id);
+    if(x && (x.pending || String(x.id).startsWith("tmp-"))) return statusAll("ההחתמה הזאת עוד לא עלתה לענן. אפשר לערוך אותה אחרי הסנכרון.", "err");
+    if(x) openEditor(x); } }));
 $("#ckAddToday").onclick = () => openEditor(null);
 $("#ckAddMonth").onclick = () => { const t = isoDate(new Date()); openEditor(null, t.startsWith(st.month) ? t : st.month + "-01"); };
 $("#ckDlg").addEventListener("close", async () => {
@@ -2845,15 +2939,47 @@ async function migrateLocal(){
   local.save([]);
   return rows.length;
 }
-async function refresh(){
-  try{ const n = await migrateLocal(); if(n) statusAll(`${n} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); }
-  catch(err){ statusAll(errMsg(err), "err"); }
+async function doRefresh(){
+  if(cloudReady() && navigator.onLine){
+    const n = await flushOutbox(); if(n) statusAll(n === 1 ? "✓ ההחתמה שנרשמה בלי חיבור עלתה לענן." : `✓ ${n} החתמות שנרשמו בלי חיבור עלו לענן.`, "ok");
+    try{ const m = await migrateLocal(); if(m) statusAll(`${m} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); }
+    catch(err){ if(!isNetErr(err)) statusAll(errMsg(err), "err"); }
+  }
   await loadPlaces(); renderPlaces(); buildRepWps();
-  try{ st.open = await db.open(); }catch(err){ st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
-  renderChips(); renderStatus();
-  if(document.body.dataset.mode === "clock"){ await loadToday(); await loadMonth(); renderPreview(); }
+  try{
+    if(OB.get().length) throw new Error("network: pending");
+    st.open = await db.open(); if(cloudReady()) cacheOpen();
+  }catch(err){
+    if(cloudReady() && isNetErr(err)) st.open = cachedOpen();
+    else { st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
+  }
+  renderChips(); renderStatus(); pendingNote();
+  if(document.body.dataset.mode === "clock"){ await loadToday(); try{ await loadMonth(); }catch(_){} renderPreview(); }
   else loadToday();
   if(typeof renderDash === "function") renderDash();
+}
+let refreshing = null, again = false;
+function refresh(){
+  if(refreshing){ again = true; return refreshing; }
+  refreshing = (async () => { try{ do{ again = false; await doRefresh(); } while(again); } finally { refreshing = null; } })();
+  return refreshing;
+}
+window.addEventListener("online", () => refresh());
+window.addEventListener("offline", () => statusAll("אין חיבור לאינטרנט – אפשר להחתים כרגיל, וההחתמות יעלו לענן אחר כך.", ""));
+
+/* ---------- קיצורי דרך: ?ck=in / ?ck=out / ?ck=toggle ---------- */
+async function shortcutAction(){
+  const a = new URLSearchParams(location.search).get("ck"); if(!a) return;
+  try{ history.replaceState(null, "", location.pathname + location.hash); }catch(_){}
+  setMode("dash"); window.scrollTo({ top: 0 });
+  const usesCloud = (() => { try{ return cloudOn(); }catch(_){ return false; } })();
+  for(let i = 0; i < 60 && usesCloud && !cloudReady(); i++) await new Promise(r => setTimeout(r, 100));
+  if(usesCloud && !cloudReady()) return statusAll("צריך להתחבר לחשבון לפני ההחתמה.", "err");
+  await refresh();
+  const on = !!(st.open && st.open.work_date === isoDate(new Date()));
+  if(a === "in" && on) return statusAll(`כבר בעבודה ב${st.open.workplace} מאז ${t5(st.open.time_in)}.`, "ok");
+  if(a === "out" && !on) return statusAll("אין כניסה פתוחה היום.", "err");
+  await clockToggle(VIEWS[1]);
 }
 setInterval(tick, 1000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && ["clock","dash"].includes(document.body.dataset.mode)) refresh(); });
@@ -2867,7 +2993,7 @@ window.CK = {
 };
 renderChips();
 if(location.hash === "#clock") setMode("clock");
-refresh();
+if(new URLSearchParams(location.search).get("ck")) shortcutAction(); else refresh();
 })();
 </script>
 </body>

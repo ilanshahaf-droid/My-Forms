@@ -29,5 +29,45 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "כניסה לעבודה",
+      "short_name": "כניסה",
+      "description": "החתמת כניסה במקום העבודה האחרון",
+      "url": "./index.html?ck=in",
+      "icons": [
+        {
+          "src": "shortcut-in.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "יציאה מהעבודה",
+      "short_name": "יציאה",
+      "description": "החתמת יציאה",
+      "url": "./index.html?ck=out",
+      "icons": [
+        {
+          "src": "shortcut-out.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "שעון נוכחות",
+      "short_name": "שעון",
+      "url": "./index.html#clock",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
