@@ -331,6 +331,13 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-trow:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 .ck-tt tfoot td{border-bottom:none;padding-top:12px;font-size:20px;font-weight:800}
 .ck-tt tfoot td:first-child{text-align:start;font-size:15px;color:var(--soft);font-weight:700}
+/* יומן חודשי בתצוגת טבלה, מחולק לימים */
+#ckMonthList{display:block}
+.ck-month .ck-dayrow td{background:var(--paper);font-size:15px;font-weight:600;padding:9px 10px;border-bottom:1px solid var(--rule);border-top:10px solid var(--card)}
+.ck-month .ck-dayrow td:first-child{text-align:start;border-radius:0 10px 10px 0}
+.ck-month .ck-dayrow td:last-child{font-size:17px;font-weight:800;border-radius:10px 0 0 10px}
+.ck-month .ck-dayblock.today .ck-dayrow td{background:var(--blue-soft)}
+.ck-month tbody:first-of-type .ck-dayrow td{border-top-width:6px}
 </style>
 
 </head>
@@ -2516,17 +2523,20 @@ async function loadToday(){
   }catch(err){ st.today = isNetErr(err) ? offlineToday(t) : []; if(!isNetErr(err)) setStatus("#ckTodayStatus", errMsg(err), "err"); }
   renderToday();
 }
+function ttRow(x){
+  return `<tr class="ck-trow" data-id="${e(x.id)}" tabindex="0" style="--wp:${wpColor(x.workplace)}">
+      <td class="wp"><span class="ck-rwp">${e(canonWp(x.workplace))}</span>${x.note ? `<span class="ck-tnote">${e(x.note)}</span>` : ""}</td>
+      <td class="ck-num">${t5(x.time_in)}</td>
+      <td class="ck-num">${x.time_out ? t5(x.time_out) : '<span class="ck-open">פתוח</span>'}</td>
+      <td class="ck-num">${x.pending ? '<span title="ממתין לסנכרון">⏳</span>' : ""}${x.time_out ? fmtHM(minutesOf(x)) : `<span class="ck-elapsed"></span>`}</td></tr>`;
+}
+const TT_HEAD = `<thead><tr><th>מקום</th><th>כניסה</th><th>יציאה</th><th>סה״כ</th></tr></thead>`;
 function renderToday(){
   const list = st.today || [];
   if(!list.length){ $("#ckTodayList").innerHTML = '<div class="empty">עוד אין דיווחים היום</div>'; return; }
   const now = hhmm(new Date());
   const tot = list.reduce((a, x) => a + minutesOf(x.time_out ? x : { time_in: x.time_in, time_out: now }), 0);
-  $("#ckTodayList").innerHTML = `<table class="ck-tt"><thead><tr><th>מקום</th><th>כניסה</th><th>יציאה</th><th>סה״כ</th></tr></thead><tbody>` +
-    list.map(x => `<tr class="ck-trow" data-id="${e(x.id)}" tabindex="0" style="--wp:${wpColor(x.workplace)}">
-      <td class="wp"><span class="ck-rwp">${e(canonWp(x.workplace))}</span>${x.note ? `<span class="ck-tnote">${e(x.note)}</span>` : ""}</td>
-      <td class="ck-num">${t5(x.time_in)}</td>
-      <td class="ck-num">${x.time_out ? t5(x.time_out) : '<span class="ck-open">פתוח</span>'}</td>
-      <td class="ck-num">${x.pending ? '<span title="ממתין לסנכרון">⏳</span>' : ""}${x.time_out ? fmtHM(minutesOf(x)) : `<span class="ck-elapsed"></span>`}</td></tr>`).join("") +
+  $("#ckTodayList").innerHTML = `<table class="ck-tt">${TT_HEAD}<tbody>` + list.map(ttRow).join("") +
     `</tbody><tfoot><tr><td colspan="3">סה״כ היום</td><td class="ck-num ck-daylive" data-closed="${list.reduce((a, x) => a + (x.time_out ? minutesOf(x) : 0), 0)}">${fmtHM(tot)}</td></tr></tfoot></table>`;
   tick();
 }
@@ -2547,18 +2557,12 @@ function renderMonthList(){
   if(f) $("#ckClearF").onclick = () => { st.filter = null; renderMonthList(); };
   if(!list.length){ $("#ckMonthList").innerHTML = `<div class="empty">${f ? "אין דיווחים של " + e(f) + " בחודש הזה" : "אין דיווחים בחודש הזה"}</div>`; return; }
   const byDay = {}; list.forEach(x => (byDay[x.work_date] = byDay[x.work_date] || []).push(x));
-  const today = isoDate(new Date());
-  $("#ckMonthList").innerHTML = Object.keys(byDay).sort().map(dt => {
+  const today = isoDate(new Date()), total = list.reduce((a, x) => a + minutesOf(x), 0);
+  $("#ckMonthList").innerHTML = `<table class="ck-tt ck-month">${TT_HEAD}` + Object.keys(byDay).sort().map(dt => {
     const items = byDay[dt], d = parseISO(dt), tot = items.reduce((a, x) => a + minutesOf(x), 0);
-    return `<div class="ck-day${dt === today ? " today" : ""}">
-      <div class="ck-dayhead"><span><b>יום ${DAYS[d.getDay()]}</b> <span class="ck-num">${d.getDate()}.${d.getMonth()+1}</span>${dt === today ? ' <span class="ck-today">היום</span>' : ""}</span><span class="ck-num ck-daytot">${fmtHM(tot)}</span></div>
-      ${items.map(x => `<button type="button" class="ck-row" data-id="${e(x.id)}" style="--wp:${wpColor(x.workplace)}">
-        <span class="ck-rmain"><span class="ck-rwp">${e(canonWp(x.workplace))}</span><span class="ck-num ck-rtime">${t5(x.time_in)}–${x.time_out ? t5(x.time_out) : "…"}</span></span>
-        <span class="ck-rdur">${x.pending ? "⏳ " : ""}${x.time_out ? `<span class="ck-num">${fmtHM(minutesOf(x))}</span>` : '<span class="ck-open">פתוח</span>'}</span>
-        ${x.note ? `<span class="ck-rnote">${e(x.note)}</span>` : ""}
-      </button>`).join("")}
-    </div>`;
-  }).join("");
+    return `<tbody class="ck-dayblock${dt === today ? " today" : ""}"><tr class="ck-dayrow"><td colspan="3"><b>יום ${DAYS[d.getDay()]}</b> <span class="ck-num">${d.getDate()}.${d.getMonth()+1}</span>${dt === today ? ' <span class="ck-today">היום</span>' : ""}</td><td class="ck-num">${fmtHM(tot)}</td></tr>` +
+      items.map(ttRow).join("") + `</tbody>`;
+  }).join("") + `<tfoot><tr><td colspan="3">סה״כ ${f ? e(f) : "החודש"}</td><td class="ck-num">${fmtHM(total)}</td></tr></tfoot></table>`;
 }
 async function loadMonth(){
   $("#ckMonthTitle").textContent = mLabel(st.month);
