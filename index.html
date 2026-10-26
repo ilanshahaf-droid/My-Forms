@@ -1915,7 +1915,7 @@ function setMode(m){
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
   document.querySelectorAll(".modes button").forEach(b=>{ if(b.dataset.mode===mainTab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   if(m==="maanak"||m==="hofesh") prefillForm(m);
-  if(m==="clock"&&window.CK) CK.enter();
+  if((m==="clock"||m==="dash")&&window.CK) CK.enter();
   renderDash();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
@@ -2244,7 +2244,8 @@ function range(ym){ const [y,m] = ym.split("-").map(Number); return { from:`${y}
 const sortE = a => a.sort((x,y) => (x.work_date+t5(x.time_in)).localeCompare(y.work_date+t5(y.time_in)));
 
 /* ---------- נתונים: ענן כשמחוברים, אחרת במכשיר ---------- */
-const cloudReady = () => !!(window.cloud && cloud.sb && cloud.user);
+// cloud מוגדר ב-const בסקריפט הראשי, ולכן אינו window.cloud – בודקים אותו ישירות
+const cloudReady = () => { try{ return !!(cloud && cloud.sb && cloud.user); }catch(_){ return false; } };
 const local = {
   all(){ try{ return JSON.parse(localStorage.getItem("ck_entries")||"[]"); }catch(_){ return []; } },
   save(a){ try{ localStorage.setItem("ck_entries", JSON.stringify(a)); }catch(_){} }
@@ -2703,10 +2704,19 @@ async function loadPlaces(){
   try{
     if(cloudReady()){
       const { data } = await cloud.sb.storage.from(BUCKET).download(PLACES_FILE());
-      if(data){ const j = JSON.parse(await data.text()); setPlaces(j.workplaces || []); return; }
-      if(WORKPLACES.length){ await pushPlaces(); return; }
+      const mine = localStorage.getItem("ck_wps_owner") === who;
+      if(data){
+        const j = JSON.parse(await data.text()), cloudList = j.workplaces || [];
+        // פעם ראשונה במכשיר הזה: מצרפים מקומות שהוגדרו בו לפני הסנכרון
+        const extra = mine ? [] : WORKPLACES.filter(w => !cloudList.some(c => c.name === w.name));
+        setPlaces([...cloudList, ...extra]); if(extra.length) await pushPlaces();
+        try{ localStorage.setItem("ck_wps_owner", who); }catch(_){}
+        return;
+      }
+      if(WORKPLACES.length){ await pushPlaces(); try{ localStorage.setItem("ck_wps_owner", who); }catch(_){} return; }
     }
     if(!WORKPLACES.length){ const d = await derivePlaces(); if(d.length){ setPlaces(d); await pushPlaces(); } }
+    if(cloudReady()) try{ localStorage.setItem("ck_wps_owner", who); }catch(_){}
   }catch(_){ /* נשארים עם מה שיש במכשיר */ }
 }
 function renderPlaces(){
@@ -2821,7 +2831,23 @@ window.CKW = {
   const f = localStorage.getItem("ck_fmt"); if(f){ const r = document.querySelector(`input[name="ckFmt"][value="${f}"]`); if(r) r.checked = true; }
   document.querySelectorAll('input[name="ckFmt"]').forEach(r => r.addEventListener("change", () => { try{ localStorage.setItem("ck_fmt", r.value); }catch(_){} }));
 })();
+/* דיווחים שנשמרו במכשיר בלבד (לפני ההתחברות / לפני התיקון) עולים לחשבון */
+async function migrateLocal(){
+  if(!cloudReady()) return 0;
+  const loc = local.all(); if(!loc.length) return 0;
+  const dates = loc.map(x => x.work_date).sort();
+  const { data: have, error } = await cloud.sb.from(TBL).select("work_date,time_in,workplace").gte("work_date", dates[0]).lte("work_date", dates[dates.length-1]);
+  if(error) throw error;
+  const key = x => x.work_date + "|" + t5(x.time_in) + "|" + x.workplace;
+  const seen = new Set((have || []).map(key));
+  const rows = loc.filter(x => !seen.has(key(x))).map(x => ({ work_date: x.work_date, workplace: x.workplace, time_in: t5(x.time_in), time_out: x.time_out ? t5(x.time_out) : null, note: x.note || null }));
+  if(rows.length){ const { error: e2 } = await cloud.sb.from(TBL).insert(rows); if(e2) throw e2; }
+  local.save([]);
+  return rows.length;
+}
 async function refresh(){
+  try{ const n = await migrateLocal(); if(n) statusAll(`${n} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); }
+  catch(err){ statusAll(errMsg(err), "err"); }
   await loadPlaces(); renderPlaces(); buildRepWps();
   try{ st.open = await db.open(); }catch(err){ st.open = null; setStatus("#ckTodayStatus", errMsg(err), "err"); }
   renderChips(); renderStatus();
