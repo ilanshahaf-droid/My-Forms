@@ -290,6 +290,32 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-place input{flex:1;min-width:0}
 .ck-color{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--rule)}
 .ck-color:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+/* יומן חודשי – כרטיסי סינון ורשימה לפי ימים */
+.ck-sum{grid-template-columns:repeat(2,1fr)}
+.ck-card{all:unset;box-sizing:border-box;cursor:pointer;border-radius:14px;padding:10px 12px;border:1.5px solid var(--rule);background:color-mix(in srgb,var(--wp,var(--btn)) 8%,var(--card));transition:border-color .15s,box-shadow .15s}
+.ck-card.all{grid-column:1/-1;--wp:var(--btn)}
+.ck-card b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.ck-card span{font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:6px}
+.ck-card .ck-sw{width:9px;height:9px;border-radius:50%;background:var(--wp);display:inline-block;flex-shrink:0}
+.ck-card[aria-pressed="true"]{border-color:var(--wp);box-shadow:inset 0 0 0 1px var(--wp);background:color-mix(in srgb,var(--wp) 16%,var(--card))}
+.ck-card:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ck-fnote{margin:12px 0 0;font-size:13.5px;color:var(--soft)}
+.ck-fnote .x{padding:2px 6px;color:var(--btn);font-weight:700}
+#ckMonthList{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.ck-day{border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--card)}
+.ck-day.today{border-color:var(--btn)}
+.ck-dayhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--paper);font-size:14px;border-bottom:1px solid var(--rule)}
+.ck-daytot{font-weight:700}
+.ck-today{font-size:11px;font-weight:700;color:var(--btn);background:var(--blue-soft);border-radius:99px;padding:1px 8px;margin-inline-start:4px}
+.ck-row{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:10px 12px;border-inline-start:4px solid var(--wp)}
+.ck-row+.ck-row{border-top:1px solid var(--rule)}
+.ck-row:hover{background:var(--paper)}
+.ck-row:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ck-rmain{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
+.ck-rwp{font-weight:700;font-size:15px}
+.ck-rtime{color:var(--soft);font-size:14px}
+.ck-rdur{font-weight:700;font-size:15px}
+.ck-rnote{grid-column:1/-1;color:var(--soft);font-size:13px}
 </style>
 
 </head>
@@ -494,14 +520,15 @@ dialog.ck-dlg form{padding:20px 18px}
 
 <section class="step tab m-clock" id="ckMonth"><span class="punch">📅</span>
   <h2>יומן חודשי</h2>
-  <p class="hint">לחיצה על דיווח פותחת אותו לעריכה או מחיקה.</p>
+  <p class="hint">לחיצה על מקום עבודה מציגה רק את הדיווחים שלו. לחיצה על דיווח פותחת אותו לעריכה.</p>
   <div class="bar" style="justify-content:space-between;margin-top:0">
     <button type="button" id="ckPrev" aria-label="חודש קודם">›</button>
     <h3 id="ckMonthTitle"></h3>
     <button type="button" id="ckNext" aria-label="חודש הבא">‹</button>
   </div>
   <div class="ck-sum" id="ckSum"></div>
-  <div id="ckMonthList" style="margin-top:8px"></div>
+  <div class="ck-fnote" id="ckFilterNote" hidden></div>
+  <div id="ckMonthList"></div>
   <div class="bar"><button type="button" id="ckAddMonth">+ הוספה ידנית</button></div>
 </section>
 
@@ -2237,7 +2264,9 @@ const parseISO = s => { const [y,m,d] = s.split("-").map(Number); return new Dat
 const heDate = s => { const d = parseISO(s); return `${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`; };
 const dowOf = s => DAYS[parseISO(s).getDay()];
 const mLabel = ym => HEB_MONTHS[+ym.slice(5,7)-1]+" "+ym.slice(0,4);
-const wpColor = n => (WORKPLACES.find(w => w.name === n) || {color:"#64748B"}).color;
+const wpColor = n => (WORKPLACES.find(w => wpKey(w.name) === wpKey(n)) || {color:"#64748B"}).color;
+const wpKey = n => String(n || "").replace(/["'״׳`.\s]/g, "");
+const canonWp = n => { const k = wpKey(n), w = WORKPLACES.find(x => wpKey(x.name) === k); return w ? w.name : n; };
 const shortName = n => String(n).replace(/["'״׳.]/g, "").trim();
 const e = s => esc(s == null ? "" : s);
 function minutesOf(x){
@@ -2352,7 +2381,7 @@ function offlineToday(t){
 }
 
 /* ---------- מצב ---------- */
-const st = { wp: localStorage.getItem("ck_wp") || "", open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
+const st = { filter: null, wp: localStorage.getItem("ck_wp") || "", open: null, month: isoDate(new Date()).slice(0,7), today: [], monthList: [], editing: null };
 
 /* ---------- היום (מסך מלא + כרטיס מהיר בלוח הבקרה) ---------- */
 const VIEWS = [
@@ -2473,21 +2502,50 @@ async function loadToday(){
 }
 
 /* ---------- יומן ---------- */
+const daysTxt = n => n === 1 ? "יום אחד" : `${n} ימים`;
 function summarize(list){
   const by = {}; let total = 0; const days = new Set();
-  list.forEach(x => { const m = minutesOf(x); total += m; days.add(x.work_date);
-    (by[x.workplace] = by[x.workplace] || {min:0, days:new Set()}); by[x.workplace].min += m; by[x.workplace].days.add(x.work_date); });
+  list.forEach(x => { const m = minutesOf(x), w = canonWp(x.workplace); total += m; days.add(x.work_date);
+    (by[w] = by[w] || {min:0, days:new Set()}); by[w].min += m; by[w].days.add(x.work_date); });
   return {by, total, days: days.size};
+}
+function renderMonthList(){
+  const f = st.filter, list = st.monthList.filter(x => !f || canonWp(x.workplace) === f);
+  document.querySelectorAll("#ckSum [data-f]").forEach(b => b.setAttribute("aria-pressed", (b.dataset.f || null) === (f || null) ? "true" : "false"));
+  $("#ckFilterNote").hidden = !f;
+  if(f) $("#ckFilterNote").innerHTML = `מוצגים רק הדיווחים של <b>${e(f)}</b> · <button type="button" class="x" id="ckClearF">הצג הכול</button>`;
+  if(f) $("#ckClearF").onclick = () => { st.filter = null; renderMonthList(); };
+  if(!list.length){ $("#ckMonthList").innerHTML = `<div class="empty">${f ? "אין דיווחים של " + e(f) + " בחודש הזה" : "אין דיווחים בחודש הזה"}</div>`; return; }
+  const byDay = {}; list.forEach(x => (byDay[x.work_date] = byDay[x.work_date] || []).push(x));
+  const today = isoDate(new Date());
+  $("#ckMonthList").innerHTML = Object.keys(byDay).sort().map(dt => {
+    const items = byDay[dt], d = parseISO(dt), tot = items.reduce((a, x) => a + minutesOf(x), 0);
+    return `<div class="ck-day${dt === today ? " today" : ""}">
+      <div class="ck-dayhead"><span><b>יום ${DAYS[d.getDay()]}</b> <span class="ck-num">${d.getDate()}.${d.getMonth()+1}</span>${dt === today ? ' <span class="ck-today">היום</span>' : ""}</span><span class="ck-num ck-daytot">${fmtHM(tot)}</span></div>
+      ${items.map(x => `<button type="button" class="ck-row" data-id="${e(x.id)}" style="--wp:${wpColor(x.workplace)}">
+        <span class="ck-rmain"><span class="ck-rwp">${e(canonWp(x.workplace))}</span><span class="ck-num ck-rtime">${t5(x.time_in)}–${x.time_out ? t5(x.time_out) : "…"}</span></span>
+        <span class="ck-rdur">${x.pending ? "⏳ " : ""}${x.time_out ? `<span class="ck-num">${fmtHM(minutesOf(x))}</span>` : '<span class="ck-open">פתוח</span>'}</span>
+        ${x.note ? `<span class="ck-rnote">${e(x.note)}</span>` : ""}
+      </button>`).join("")}
+    </div>`;
+  }).join("");
 }
 async function loadMonth(){
   $("#ckMonthTitle").textContent = mLabel(st.month);
   const {from,to} = range(st.month);
-  try{ st.monthList = await db.list(from,to); }catch(err){ st.monthList = []; $("#ckMonthList").innerHTML = `<div class="empty">${e(errMsg(err))}</div>`; return; }
+  try{ st.monthList = await db.list(from,to); }catch(err){ st.monthList = []; $("#ckSum").innerHTML = ""; $("#ckMonthList").innerHTML = `<div class="empty">${e(errMsg(err))}</div>`; return; }
   const s = summarize(st.monthList);
-  $("#ckSum").innerHTML = `<div><b class="ck-num">${fmtHM(s.total)}</b><span>סה״כ · ${s.days} ימים</span></div>` +
-    [...WORKPLACES, ...Object.keys(s.by).filter(n => !WORKPLACES.some(w => w.name === n)).map(n => ({name:n, color:"#64748B"}))].map(w => { const x = s.by[w.name]; return `<div style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span>${e(w.name)} · ${x ? x.days.size : 0} ימים</span></div>`; }).join("");
-  $("#ckMonthList").innerHTML = st.monthList.length ? st.monthList.map(x => entryRow(x,true)).join("") : '<div class="empty">אין דיווחים בחודש הזה</div>';
+  const places = [...WORKPLACES, ...Object.keys(s.by).filter(n => !WORKPLACES.some(w => w.name === n)).map(n => ({name:n, color:"#64748B"}))];
+  if(st.filter && !places.some(w => w.name === st.filter)) st.filter = null;
+  $("#ckSum").innerHTML = `<button type="button" class="ck-card all" data-f=""><b class="ck-num">${fmtHM(s.total)}</b><span>הכול · ${daysTxt(s.days)}</span></button>` +
+    places.map(w => { const x = s.by[w.name];
+      return `<button type="button" class="ck-card" data-f="${e(w.name)}" style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span><i class="ck-sw"></i>${e(w.name)} · ${daysTxt(x ? x.days.size : 0)}</span></button>`; }).join("");
+  renderMonthList();
 }
+$("#ckSum").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-f]"); if(!b) return;
+  const f = b.dataset.f || null; st.filter = (f && st.filter === f) ? null : f; renderMonthList();
+});
 function shiftMonth(k){ const [y,m] = st.month.split("-").map(Number), d = new Date(y, m-1+k, 1); st.month = `${d.getFullYear()}-${p2(d.getMonth()+1)}`; loadMonth(); }
 $("#ckPrev").onclick = () => shiftMonth(-1);
 $("#ckNext").onclick = () => shiftMonth(1);
@@ -2509,7 +2567,7 @@ function openEditor(x, date){
 }
 const findE = id => [...st.today, ...st.monthList, st.open].find(x => x && x.id === id);
 ["#ckTodayList","#ckMonthList"].forEach(sel => $(sel).addEventListener("click", ev => {
-  const r = ev.target.closest(".ck-entry"); if(r){ const x = findE(r.dataset.id);
+  const r = ev.target.closest(".ck-entry, .ck-row"); if(r){ const x = findE(r.dataset.id);
     if(x && (x.pending || String(x.id).startsWith("tmp-"))) return statusAll("ההחתמה הזאת עוד לא עלתה לענן. אפשר לערוך אותה אחרי הסנכרון.", "err");
     if(x) openEditor(x); } }));
 $("#ckAddToday").onclick = () => openEditor(null);
@@ -2540,6 +2598,7 @@ function opts(){
   };
 }
 function buildReport(o, entries){
+  entries = entries.map(x => ({ ...x, workplace: canonWp(x.workplace) }));
   const rows = sortE(entries.filter(x => o.workplaces.includes(x.workplace))).map(x => ({
     date: heDate(x.work_date), dow: dowOf(x.work_date), workplace: x.workplace, in: t5(x.time_in),
     out: x.time_out ? t5(x.time_out) : "—", minutes: minutesOf(x), note: x.note || "", iso: x.work_date }));
@@ -2792,6 +2851,22 @@ async function derivePlaces(){   // משתמש ותיק בלי הגדרות: ל�
   const cnt = {}; names.filter(Boolean).forEach(n => cnt[n] = (cnt[n] || 0) + 1);
   return Object.keys(cnt).sort((a,b) => cnt[b] - cnt[a]).map(name => ({ name }));
 }
+/* דיווחים שהשם שלהם שונה רק בגרשיים/נקודות (למשל שפ"ח מול שפ''ח) מאוחדים לשם שבהגדרות */
+let unifiedFor = null;
+async function unifyNames(){
+  const who = cloudReady() ? cloud.user.id : "local";
+  if(unifiedFor === who || !WORKPLACES.length) return; unifiedFor = who;
+  try{
+    let names;
+    if(cloudReady()){ const { data, error } = await tmo(cloud.sb.from(TBL).select("workplace").limit(5000)); if(error) throw error; names = (data || []).map(x => x.workplace); }
+    else names = local.all().map(x => x.workplace);
+    for(const n of [...new Set(names)]){
+      const c = canonWp(n); if(c === n) continue;
+      if(cloudReady()){ const { error } = await tmo(cloud.sb.from(TBL).update({ workplace: c }).eq("workplace", n)); if(error) throw error; }
+      else local.save(local.all().map(x => x.workplace === n ? { ...x, workplace: c } : x));
+    }
+  }catch(_){ unifiedFor = null; }
+}
 async function loadPlaces(){
   const who = cloudReady() ? cloud.user.id : "local";
   if(placesFor === who) return; placesFor = who;
@@ -2829,7 +2904,7 @@ async function placesChanged(msg){
 $("#ckPlaceAdd").onclick = () => {
   const name = $("#ckPlaceNew").value.trim();
   if(!name) return setStatus("#ckPlaceStatus", "כתבו שם למקום העבודה.", "err");
-  if(WORKPLACES.some(w => w.name === name)) return setStatus("#ckPlaceStatus", "המקום הזה כבר ברשימה.", "err");
+  if(WORKPLACES.some(w => wpKey(w.name) === wpKey(name))) return setStatus("#ckPlaceStatus", "המקום הזה כבר ברשימה.", "err");
   setPlaces([...WORKPLACES, { name, color: PALETTE[WORKPLACES.length % PALETTE.length] }]);
   if(!st.wp){ st.wp = name; try{ localStorage.setItem("ck_wp", name); }catch(_){} }
   $("#ckPlaceNew").value = ""; placesChanged(`"${name}" נוסף.`);
@@ -2868,7 +2943,7 @@ async function buildRepWps(){
   const box = $("#ckRepWps");
   box.querySelectorAll("input").forEach(i => { if(i.checked) repOff.delete(i.value); else repOff.add(i.value); });
   const names = WORKPLACES.map(w => w.name), m = $("#ckRepMonth").value;
-  if(m){ try{ const { from, to } = range(m); (await db.list(from, to)).forEach(x => { if(x.workplace && !names.includes(x.workplace)) names.push(x.workplace); }); }catch(_){} }
+  if(m){ try{ const { from, to } = range(m); (await db.list(from, to)).forEach(x => { const c = canonWp(x.workplace); if(c && !names.includes(c)) names.push(c); }); }catch(_){} }
   box.innerHTML = names.length ? names.map(n => `<label><input type="checkbox" value="${e(n)}" ${repOff.has(n) ? "" : "checked"}> ${e(n)}</label>`).join("")
     : '<span class="hint" style="margin:0">אין עדיין מקומות עבודה.</span>';
 }
@@ -2945,7 +3020,7 @@ async function doRefresh(){
     try{ const m = await migrateLocal(); if(m) statusAll(`${m} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); }
     catch(err){ if(!isNetErr(err)) statusAll(errMsg(err), "err"); }
   }
-  await loadPlaces(); renderPlaces(); buildRepWps();
+  await loadPlaces(); if(navigator.onLine) await unifyNames(); renderPlaces(); buildRepWps();
   try{
     if(OB.get().length) throw new Error("network: pending");
     st.open = await db.open(); if(cloudReady()) cacheOpen();
