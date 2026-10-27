@@ -338,6 +338,13 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-month .ck-dayrow td:last-child{font-size:17px;font-weight:800;border-radius:10px 0 0 10px}
 .ck-month .ck-dayblock.today .ck-dayrow td{background:var(--blue-soft)}
 .ck-month tbody:first-of-type .ck-dayrow td{border-top-width:6px}
+/* ימי היעדרות */
+.ck-absbadge{display:inline-flex;align-items:center;gap:6px;font-size:16px;font-weight:700;color:var(--violet);background:var(--violet-bg);border-radius:99px;padding:4px 14px}
+.ck-tt tr.ck-abs td.wp{border-inline-start-style:dashed}
+.ck-month .ck-dayblock.absday .ck-dayrow td{background:var(--violet-bg)}
+.ck-qlinks{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px}
+.ck-qlinks .x{font-size:14px}
+.ck-kind label{flex:1;justify-content:center}
 </style>
 
 </head>
@@ -360,7 +367,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="ck-live" id="ckQLive" hidden><span class="ck-dot"></span><span id="ckQLiveText"></span></div>
   <div class="status" id="ckQStatus" style="text-align:center"></div>
   <div class="status ck-pending" hidden style="text-align:center;color:var(--amber)"></div>
-  <div style="text-align:center"><button type="button" class="x" id="ckQMore">יומן חודשי ודו״ח ‹</button></div>
+  <div class="ck-qlinks"><button type="button" class="x" id="ckQAbs">🤒 לא עובד היום</button><button type="button" class="x" id="ckQMore">יומן חודשי ודו״ח ‹</button></div>
 </section>
 
 <nav class="modes" aria-label="ניווט ראשי">
@@ -537,7 +544,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="status ck-pending" hidden style="color:var(--amber)"></div>
   <h3 class="ftitle">הדיווחים של היום</h3>
   <div id="ckTodayList"></div>
-  <div class="bar"><button type="button" id="ckAddToday">+ הוספה ידנית</button></div>
+  <div class="bar"><button type="button" id="ckAddToday">+ הוספה ידנית</button><button type="button" id="ckAbsToday">🤒 היעדרות</button></div>
 </section>
 
 <section class="step tab m-clock" id="ckMonth"><span class="punch">📅</span>
@@ -551,7 +558,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="ck-sum" id="ckSum"></div>
   <div class="ck-fnote" id="ckFilterNote" hidden></div>
   <div id="ckMonthList"></div>
-  <div class="bar"><button type="button" id="ckAddMonth">+ הוספה ידנית</button></div>
+  <div class="bar"><button type="button" id="ckAddMonth">+ הוספה ידנית</button><button type="button" id="ckAbsMonth">🤒 היעדרות</button></div>
 </section>
 
 <section class="step tab m-clock" id="ckReport"><span class="punch">📄</span>
@@ -820,13 +827,21 @@ dialog.ck-dlg form{padding:20px 18px}
 <dialog class="ck-dlg" id="ckDlg">
   <form method="dialog">
     <h2 id="ckDlgTitle" style="font-size:18px">עריכת דיווח</h2>
+    <div class="opts ck-kind" role="radiogroup" aria-label="סוג הדיווח" style="margin-top:10px">
+      <label><input type="radio" name="ckKind" value="work" checked> שעות עבודה</label>
+      <label><input type="radio" name="ckKind" value="absence"> היעדרות</label>
+    </div>
     <label class="f" for="ckEdDate">תאריך</label><input type="date" id="ckEdDate" required>
     <label class="f" for="ckEdWp">מקום עבודה</label><select id="ckEdWp"></select>
-    <div class="row2" style="grid-template-columns:1fr 1fr">
-      <div><label class="f" for="ckEdIn">כניסה</label><input type="time" id="ckEdIn" required></div>
+    <div id="ckEdTimes" class="row2" style="grid-template-columns:1fr 1fr">
+      <div><label class="f" for="ckEdIn">כניסה</label><input type="time" id="ckEdIn"></div>
       <div><label class="f" for="ckEdOut">יציאה</label><input type="time" id="ckEdOut"></div>
     </div>
-    <label class="f" for="ckEdNote">מיקום / הערה</label><input type="text" id="ckEdNote">
+    <div id="ckEdAbs" hidden>
+      <label class="f">סוג ההיעדרות</label>
+      <div class="opts" id="ckEdAbsType"></div>
+    </div>
+    <label class="f" for="ckEdNote" id="ckEdNoteLbl">מיקום / הערה</label><input type="text" id="ckEdNote">
     <div class="bar" style="margin-top:18px">
       <button class="primary" value="save">שמירה</button>
       <button value="cancel" formnovalidate>ביטול</button>
@@ -2273,6 +2288,11 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigat
 <script>
 /* ================= שעון נוכחות ================= */
 (function(){
+const ABSENCES = [
+  { v: "מחלה", icon: "🤒" }, { v: "מחלת ילד", icon: "🧒" }, { v: "חופשה", icon: "🏖️" },
+  { v: "מילואים", icon: "🎖️" }, { v: "השתלמות", icon: "📚" }, { v: "אחר", icon: "📝" }
+];
+const absIcon = a => (ABSENCES.find(x => x.v === a) || { icon: "📝" }).icon;
 const PALETTE = ["#2563EB","#059669","#D97706","#7C3AED","#DC2626","#0891B2","#DB2777","#65A30D"];
 let WORKPLACES = [];   // [{name, color}] – מוגדר ע"י המשתמש ונשמר בענן
 try{ WORKPLACES = JSON.parse(localStorage.getItem("ck_wps") || "[]"); }catch(_){ WORKPLACES = []; }
@@ -2300,7 +2320,7 @@ const fmtHM = m => `${Math.floor(m/60)}:${p2(m%60)}`;
 const hrsNum = m => Math.round(m/60*100)/100;
 const fmtDec = m => hrsNum(m).toFixed(2);
 function range(ym){ const [y,m] = ym.split("-").map(Number); return { from:`${y}-${p2(m)}-01`, to:`${y}-${p2(m)}-${p2(new Date(y,m,0).getDate())}` }; }
-const sortE = a => a.sort((x,y) => (x.work_date+t5(x.time_in)).localeCompare(y.work_date+t5(y.time_in)));
+const sortE = a => a.sort((x,y) => (x.work_date+(x.absence ? "" : t5(x.time_in))).localeCompare(y.work_date+(y.absence ? "" : t5(y.time_in))));
 
 /* ---------- נתונים: ענן כשמחוברים, אחרת במכשיר ---------- */
 // cloud מוגדר ב-const בסקריפט הראשי, ולכן אינו window.cloud – בודקים אותו ישירות
@@ -2318,8 +2338,8 @@ const db = {
     if(error) throw error; return data;
   },
   async open(){
-    if(!cloudReady()) return sortE(local.all().filter(x => !x.time_out)).pop() || null;
-    const {data,error} = await tmo(cloud.sb.from(TBL).select("*").is("time_out",null).order("work_date",{ascending:false}).order("time_in",{ascending:false}).limit(1));
+    if(!cloudReady()) return sortE(local.all().filter(x => !x.time_out && !x.absence && x.time_in)).pop() || null;
+    const {data,error} = await tmo(cloud.sb.from(TBL).select("*").is("time_out",null).not("time_in","is",null).order("work_date",{ascending:false}).order("time_in",{ascending:false}).limit(1));
     if(error) throw error; return data[0] || null;
   },
   async insert(r){
@@ -2524,6 +2544,9 @@ async function loadToday(){
   renderToday();
 }
 function ttRow(x){
+  if(x.absence) return `<tr class="ck-trow ck-abs" data-id="${e(x.id)}" tabindex="0" style="--wp:${wpColor(x.workplace)}">
+      <td class="wp"><span class="ck-rwp">${e(canonWp(x.workplace))}</span>${x.note ? `<span class="ck-tnote">${e(x.note)}</span>` : ""}</td>
+      <td colspan="3"><span class="ck-absbadge">${absIcon(x.absence)} ${e(x.absence)}</span></td></tr>`;
   return `<tr class="ck-trow" data-id="${e(x.id)}" tabindex="0" style="--wp:${wpColor(x.workplace)}">
       <td class="wp"><span class="ck-rwp">${e(canonWp(x.workplace))}</span>${x.note ? `<span class="ck-tnote">${e(x.note)}</span>` : ""}</td>
       <td class="ck-num">${t5(x.time_in)}</td>
@@ -2544,10 +2567,12 @@ function renderToday(){
 /* ---------- יומן ---------- */
 const daysTxt = n => n === 1 ? "יום אחד" : `${n} ימים`;
 function summarize(list){
-  const by = {}; let total = 0; const days = new Set();
-  list.forEach(x => { const m = minutesOf(x), w = canonWp(x.workplace); total += m; days.add(x.work_date);
-    (by[w] = by[w] || {min:0, days:new Set()}); by[w].min += m; by[w].days.add(x.work_date); });
-  return {by, total, days: days.size};
+  const by = {}; let total = 0; const days = new Set(), abs = {};
+  list.forEach(x => { const w = canonWp(x.workplace);
+    (by[w] = by[w] || {min:0, days:new Set(), abs:0});
+    if(x.absence){ abs[x.absence] = (abs[x.absence] || 0) + 1; by[w].abs++; return; }
+    const m = minutesOf(x); total += m; days.add(x.work_date); by[w].min += m; by[w].days.add(x.work_date); });
+  return {by, total, days: days.size, abs};
 }
 function renderMonthList(){
   const f = st.filter, list = st.monthList.filter(x => !f || canonWp(x.workplace) === f);
@@ -2559,8 +2584,8 @@ function renderMonthList(){
   const byDay = {}; list.forEach(x => (byDay[x.work_date] = byDay[x.work_date] || []).push(x));
   const today = isoDate(new Date()), total = list.reduce((a, x) => a + minutesOf(x), 0);
   $("#ckMonthList").innerHTML = `<table class="ck-tt ck-month">${TT_HEAD}` + Object.keys(byDay).sort().map(dt => {
-    const items = byDay[dt], d = parseISO(dt), tot = items.reduce((a, x) => a + minutesOf(x), 0);
-    return `<tbody class="ck-dayblock${dt === today ? " today" : ""}"><tr class="ck-dayrow"><td colspan="3"><b>יום ${DAYS[d.getDay()]}</b> <span class="ck-num">${d.getDate()}.${d.getMonth()+1}</span>${dt === today ? ' <span class="ck-today">היום</span>' : ""}</td><td class="ck-num">${fmtHM(tot)}</td></tr>` +
+    const items = byDay[dt], d = parseISO(dt), tot = items.reduce((a, x) => a + minutesOf(x), 0), onlyAbs = items.every(x => x.absence);
+    return `<tbody class="ck-dayblock${dt === today ? " today" : ""}${onlyAbs ? " absday" : ""}"><tr class="ck-dayrow"><td colspan="3"><b>יום ${DAYS[d.getDay()]}</b> <span class="ck-num">${d.getDate()}.${d.getMonth()+1}</span>${dt === today ? ' <span class="ck-today">היום</span>' : ""}</td><td class="ck-num">${onlyAbs ? absIcon(items[0].absence) : fmtHM(tot)}</td></tr>` +
       items.map(ttRow).join("") + `</tbody>`;
   }).join("") + `<tfoot><tr><td colspan="3">סה״כ ${f ? e(f) : "החודש"}</td><td class="ck-num">${fmtHM(total)}</td></tr></tfoot></table>`;
 }
@@ -2571,7 +2596,8 @@ async function loadMonth(){
   const s = summarize(st.monthList);
   const places = [...WORKPLACES, ...Object.keys(s.by).filter(n => !WORKPLACES.some(w => w.name === n)).map(n => ({name:n, color:"#64748B"}))];
   if(st.filter && !places.some(w => w.name === st.filter)) st.filter = null;
-  $("#ckSum").innerHTML = `<button type="button" class="ck-card all" data-f=""><b class="ck-num">${fmtHM(s.total)}</b><span>הכול · ${daysTxt(s.days)}</span></button>` +
+  const absTxt = Object.entries(s.abs).map(([k, n]) => `${absIcon(k)} ${k} ${n}`).join(" · ");
+  $("#ckSum").innerHTML = `<button type="button" class="ck-card all" data-f=""><b class="ck-num">${fmtHM(s.total)}</b><span>הכול · ${daysTxt(s.days)} עבודה${absTxt ? " · " + absTxt : ""}</span></button>` +
     places.map(w => { const x = s.by[w.name];
       return `<button type="button" class="ck-card" data-f="${e(w.name)}" style="--wp:${w.color}"><b class="ck-num">${x ? fmtHM(x.min) : "0:00"}</b><span><i class="ck-sw"></i>${e(w.name)} · ${daysTxt(x ? x.days.size : 0)}</span></button>`; }).join("");
   renderMonthList();
@@ -2585,14 +2611,27 @@ $("#ckPrev").onclick = () => shiftMonth(-1);
 $("#ckNext").onclick = () => shiftMonth(1);
 
 /* ---------- עריכה ---------- */
-function openEditor(x, date){
+$("#ckEdAbsType").innerHTML = ABSENCES.map((a, i) => `<label><input type="radio" name="ckAbsType" value="${e(a.v)}" ${i ? "" : "checked"}> ${a.icon} ${e(a.v)}</label>`).join("");
+function setKind(k){
+  const r = document.querySelector(`input[name="ckKind"][value="${k}"]`); if(r) r.checked = true;
+  const abs = k === "absence";
+  $("#ckEdTimes").hidden = abs; $("#ckEdAbs").hidden = !abs;
+  $("#ckEdNoteLbl").textContent = abs ? "סיבה / הערה" : "מיקום / הערה";
+  $("#ckEdNote").placeholder = abs ? "למשל: שפעת, אישור מחלה יישלח" : "";
+}
+document.querySelectorAll('input[name="ckKind"]').forEach(r => r.addEventListener("change", () => setKind(r.value)));
+function openEditor(x, date, kind){
   st.editing = x || null;
-  $("#ckDlgTitle").textContent = x ? "עריכת דיווח" : "הוספת דיווח ידני";
+  kind = x ? (x.absence ? "absence" : "work") : (kind || "work");
+  $("#ckDlgTitle").textContent = x ? "עריכת דיווח" : kind === "absence" ? "דיווח היעדרות" : "הוספת דיווח ידני";
+  setKind(kind);
+  { const a = (x && x.absence) || ABSENCES[0].v, rs = [...document.querySelectorAll('input[name="ckAbsType"]')];
+    (rs.find(r => r.value === a) || rs.find(r => r.value === "אחר")).checked = true; }
   $("#ckEdDate").value = x ? x.work_date : (date || isoDate(new Date()));
   const names = WORKPLACES.map(w => w.name); if(x && !names.includes(x.workplace)) names.push(x.workplace);
   $("#ckEdWp").innerHTML = names.map(n => `<option>${e(n)}</option>`).join("");
   $("#ckEdWp").value = x ? x.workplace : st.wp;
-  $("#ckEdIn").value = x ? t5(x.time_in) : "08:00";
+  $("#ckEdIn").value = x && x.time_in ? t5(x.time_in) : "08:00";
   $("#ckEdOut").value = x ? t5(x.time_out) : "";
   $("#ckEdNote").value = x ? (x.note || "") : "";
   $("#ckEdDel").hidden = !x;
@@ -2606,17 +2645,29 @@ $("#ckTodayList").addEventListener("keydown", ev => { if(ev.key === "Enter" && e
     if(x && (x.pending || String(x.id).startsWith("tmp-"))) return statusAll("ההחתמה הזאת עוד לא עלתה לענן. אפשר לערוך אותה אחרי הסנכרון.", "err");
     if(x) openEditor(x); } }));
 $("#ckAddToday").onclick = () => openEditor(null);
+$("#ckAbsToday").onclick = () => openEditor(null, isoDate(new Date()), "absence");
+$("#ckQAbs").onclick = () => openEditor(null, isoDate(new Date()), "absence");
+$("#ckAbsMonth").onclick = () => { const t = isoDate(new Date()); openEditor(null, t.startsWith(st.month) ? t : st.month + "-01", "absence"); };
 $("#ckAddMonth").onclick = () => { const t = isoDate(new Date()); openEditor(null, t.startsWith(st.month) ? t : st.month + "-01"); };
 $("#ckDlg").addEventListener("close", async () => {
   const act = $("#ckDlg").returnValue, x = st.editing;
   try{
     if(act === "delete" && x){ if(!confirm("למחוק את הדיווח?")) return; await db.remove(x.id); }
     else if(act === "save"){
-      const row = {work_date: $("#ckEdDate").value, workplace: $("#ckEdWp").value, time_in: $("#ckEdIn").value, time_out: $("#ckEdOut").value || null, note: $("#ckEdNote").value.trim() || null};
+      const abs = document.querySelector('input[name="ckKind"]:checked').value === "absence";
+      if(!$("#ckEdDate").value) throw new Error("צריך לבחור תאריך.");
+      if(!abs && !$("#ckEdIn").value) throw new Error("צריך שעת כניסה.");
+      const row = abs
+        ? {work_date: $("#ckEdDate").value, workplace: $("#ckEdWp").value, time_in: null, time_out: null, absence: document.querySelector('input[name="ckAbsType"]:checked').value, note: $("#ckEdNote").value.trim() || null}
+        : {work_date: $("#ckEdDate").value, workplace: $("#ckEdWp").value, time_in: $("#ckEdIn").value, time_out: $("#ckEdOut").value || null, absence: null, note: $("#ckEdNote").value.trim() || null};
       if(x) await db.update(x.id, row); else await db.insert(row);
     } else return;
     await refresh();
-  }catch(err){ setStatus("#ckTodayStatus", errMsg(err), "err"); alert(errMsg(err)); }
+  }catch(err){
+    const m = (err && err.message) || "";
+    const msg = /absence|null value in column "time_in"/i.test(m) ? "כדי לשמור ימי היעדרות צריך להריץ פעם אחת את הקובץ absence_update.sql ב-Supabase." : errMsg(err);
+    setStatus("#ckTodayStatus", msg, "err"); alert(msg);
+  }
 });
 
 /* ---------- דו"ח ---------- */
@@ -2635,9 +2686,12 @@ function opts(){
 function buildReport(o, entries){
   entries = entries.map(x => ({ ...x, workplace: canonWp(x.workplace) }));
   const rows = sortE(entries.filter(x => o.workplaces.includes(x.workplace))).map(x => ({
-    date: heDate(x.work_date), dow: dowOf(x.work_date), workplace: x.workplace, in: t5(x.time_in),
-    out: x.time_out ? t5(x.time_out) : "—", minutes: minutesOf(x), note: x.note || "", iso: x.work_date }));
-  const mk = (wp, rs) => ({workplace: wp, rows: rs, totalMin: rs.reduce((a,r) => a + r.minutes, 0), days: new Set(rs.map(r => r.iso)).size});
+    date: heDate(x.work_date), dow: dowOf(x.work_date), workplace: x.workplace, in: x.absence ? "" : t5(x.time_in),
+    out: x.absence ? "" : x.time_out ? t5(x.time_out) : "—", minutes: minutesOf(x), absence: x.absence || "",
+    note: x.absence && !o.hours ? [x.absence, x.note].filter(Boolean).join(" – ") : (x.note || ""), iso: x.work_date }));
+  const mk = (wp, rs) => { const abs = {}; rs.forEach(r => { if(r.absence) abs[r.absence] = (abs[r.absence] || 0) + 1; });
+    return {workplace: wp, rows: rs, totalMin: rs.reduce((a,r) => a + r.minutes, 0), days: new Set(rs.filter(r => !r.absence).map(r => r.iso)).size,
+      absDays: new Set(rs.filter(r => r.absence).map(r => r.iso)).size, abs}; };
   const groups = o.grouping === "byWp" ? o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))).filter(g => g.rows.length) : [mk(null, rows)];
   const cols = [{k:"date",h:"תאריך",w:12}];
   if(o.dow) cols.push({k:"dow",h:"יום",w:8});
@@ -2649,7 +2703,8 @@ function buildReport(o, entries){
     wpText: o.workplaces.length === o.allCount ? "כל מקומות העבודה" : o.workplaces.join(", "),
     groups, summary: o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))), all: mk(null, rows), cols, o };
 }
-const cellVal = (r,k) => k === "hours" ? (r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
+const cellVal = (r,k) => k === "hours" ? (r.absence ? r.absence : r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
+const absSummary = g => Object.entries(g.abs || {}).map(([k, n]) => `${k}: ${n}`).join(", ");
 const totalCells = (rep, g) => { const hi = rep.cols.findIndex(c => c.k === "hours");
   return hi < 0 ? null : rep.cols.map((c,i) => i===0 ? "סה״כ" : i===hi ? fmtHM(g.totalMin) : i===1 ? `${g.days} ימים` : ""); };
 const metaText = rep => `שם העובד: ${rep.o.name || "__________"}` + (rep.o.id && rep.o.tz ? `   ·   ת.ז.: ${rep.o.tz}` : "");
@@ -2671,9 +2726,9 @@ function reportHTML(rep){
   rep.groups.forEach(g => { if(g.workplace) h += `<h2>${e(g.workplace)}</h2>`; h += table(g); });
   if(!rep.groups.length) h += "<p>אין דיווחים לחודש ולמקומות שנבחרו.</p>";
   if(rep.o.summary){
-    h += `<h2>סיכום</h2><table><thead><tr><th>מקום עבודה</th><th>ימי עבודה</th><th>סה״כ שעות</th><th>שעות (עשרוני)</th></tr></thead><tbody>` +
-      rep.summary.map(s => `<tr><td>${e(s.workplace)}</td><td>${s.days}</td><td>${fmtHM(s.totalMin)}</td><td>${fmtDec(s.totalMin)}</td></tr>`).join("") +
-      `<tr class="tot"><td>סה״כ</td><td>${rep.all.days}</td><td>${fmtHM(rep.all.totalMin)}</td><td>${fmtDec(rep.all.totalMin)}</td></tr></tbody></table>`;
+    h += `<h2>סיכום</h2><table><thead><tr><th>מקום עבודה</th><th>ימי עבודה</th><th>סה״כ שעות</th><th>שעות (עשרוני)</th><th>ימי היעדרות</th></tr></thead><tbody>` +
+      rep.summary.map(s => `<tr><td>${e(s.workplace)}</td><td>${s.days}</td><td>${fmtHM(s.totalMin)}</td><td>${fmtDec(s.totalMin)}</td><td>${e(absSummary(s) || "—")}</td></tr>`).join("") +
+      `<tr class="tot"><td>סה״כ</td><td>${rep.all.days}</td><td>${fmtHM(rep.all.totalMin)}</td><td>${fmtDec(rep.all.totalMin)}</td><td>${e(absSummary(rep.all) || "—")}</td></tr></tbody></table>`;
   }
   if(rep.o.sign) h += `<div class="sign"><div>${rep.o.sig && rep.o.sigData ? `<img src="${e(rep.o.sigData)}" alt="">` : ""}<div class="ln">חתימת העובד</div></div><div><div class="ln">חתימת הממונה</div></div></div>`;
   return h + "</div>";
@@ -2727,9 +2782,9 @@ async function makeDocx(rep){
   if(!rep.groups.length) ch.push(P("אין דיווחים לחודש ולמקומות שנבחרו."));
   if(rep.o.summary){
     ch.push(P("סיכום", { size: 26, bold: true, color: NAVY, before: 300 }));
-    ch.push(table(["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)"],
-      rep.summary.map(s => [s.workplace, String(s.days), fmtHM(s.totalMin), fmtDec(s.totalMin)]), [34,22,22,22],
-      ["סה״כ", String(rep.all.days), fmtHM(rep.all.totalMin), fmtDec(rep.all.totalMin)]));
+    ch.push(table(["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)","ימי היעדרות"],
+      rep.summary.map(s => [s.workplace, String(s.days), fmtHM(s.totalMin), fmtDec(s.totalMin), absSummary(s) || "—"]), [24,15,15,16,30],
+      ["סה״כ", String(rep.all.days), fmtHM(rep.all.totalMin), fmtDec(rep.all.totalMin), absSummary(rep.all) || "—"]));
   }
   if(rep.o.sign){
     ch.push(P("", { after: 500 }));
@@ -2765,7 +2820,7 @@ async function makeXlsx(rep){
     hr.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill(NAVY); c.alignment = { horizontal: "center", vertical: "middle" }; c.border = box; });
     let ri = 5;
     g.rows.forEach(r => {
-      const row = setRow(ws, ri, rep.cols.map(c => c.k === "hours" ? (r.out === "—" ? null : hrsNum(r.minutes)) : r[c.k]));
+      const row = setRow(ws, ri, rep.cols.map(c => c.k === "hours" ? (r.absence ? r.absence : r.out === "—" ? null : hrsNum(r.minutes)) : r[c.k]));
       rep.cols.forEach((c, ci) => { const x = row.getCell(ci+1); x.border = box;
         x.alignment = { horizontal: c.k === "note" ? "right" : "center", vertical: "middle", wrapText: c.k === "note", readingOrder: "rtl" };
         if(c.k === "hours") x.numFmt = "0.00"; if((ri-5) % 2) x.fill = fill("FFF3F6FA"); });
@@ -2783,14 +2838,14 @@ async function makeXlsx(rep){
   });
   if(rep.o.summary){
     const ws = wb.addWorksheet("סיכום", { views: [{ rightToLeft: true }] });
-    ws.columns = [{ width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }];
-    ws.mergeCells("A1:D1"); const t = ws.getCell("A1"); t.value = `סיכום · ${rep.month}`; t.font = { bold: true, size: 15, color: { argb: NAVY } }; t.alignment = { horizontal: "center" };
-    const h = setRow(ws, 3, ["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)"]);
+    ws.columns = [{ width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 26 }];
+    ws.mergeCells("A1:E1"); const t = ws.getCell("A1"); t.value = `סיכום · ${rep.month}`; t.font = { bold: true, size: 15, color: { argb: NAVY } }; t.alignment = { horizontal: "center" };
+    const h = setRow(ws, 3, ["מקום עבודה","ימי עבודה","סה״כ שעות","שעות (עשרוני)","ימי היעדרות"]);
     h.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill(NAVY); c.alignment = { horizontal: "center" }; c.border = box; });
     let r = 4;
-    [...rep.summary, { workplace: "סה״כ", days: rep.all.days, totalMin: rep.all.totalMin, tot: true }].forEach(s => {
-      const row = setRow(ws, r++, [s.workplace, s.days, fmtHM(s.totalMin), hrsNum(s.totalMin)]);
-      for(let i = 1; i <= 4; i++){ const c = row.getCell(i); c.border = box; c.alignment = { horizontal: "center" }; if(s.tot){ c.font = { bold: true }; c.fill = fill("FFE3EAF3"); } }
+    [...rep.summary, { ...rep.all, workplace: "סה״כ", tot: true }].forEach(s => {
+      const row = setRow(ws, r++, [s.workplace, s.days, fmtHM(s.totalMin), hrsNum(s.totalMin), absSummary(s) || "—"]);
+      for(let i = 1; i <= 5; i++){ const c = row.getCell(i); c.border = box; c.alignment = { horizontal: "center" }; if(s.tot){ c.font = { bold: true }; c.fill = fill("FFE3EAF3"); } }
       row.getCell(4).numFmt = "0.00";
     });
   }
@@ -2999,8 +3054,15 @@ async function loadFromClock(){
   try{ const { from, to } = range(m); list = await db.list(from, to); }catch(err){ return setStatus("#s3status", errMsg(err), "err"); }
   const map = {};
   list.forEach(x => {
+    if(x.absence){   // יום היעדרות: יום בלי שעות, וסוג ההיעדרות בהערה (מחלה / חופשה מזוהים אוטומטית)
+      const p = map[x.work_date] || (map[x.work_date] = { in: "", out: "", notes: [], zero: false });
+      const n = x.absence + (x.note ? " – " + x.note : ""); if(!p.notes.includes(n)) p.notes.unshift(n);
+      if(!p.in && !p.out) p.zero = true;
+      return;
+    }
     const tin = t5(x.time_in), tout = t5(x.time_out); if(!tin && !tout) return;
     const p = map[x.work_date] || (map[x.work_date] = { in: "", out: "", notes: [], zero: false });
+    p.zero = false;
     if(tin && (!p.in || tin < p.in)) p.in = tin;
     if(tout && (!p.out || tout > p.out)) p.out = tout;
     const n = x.workplace + (x.note ? " – " + x.note : ""); if(n && !p.notes.includes(n)) p.notes.push(n);
@@ -3044,7 +3106,7 @@ async function migrateLocal(){
   if(error) throw error;
   const key = x => x.work_date + "|" + t5(x.time_in) + "|" + x.workplace;
   const seen = new Set((have || []).map(key));
-  const rows = loc.filter(x => !seen.has(key(x))).map(x => ({ work_date: x.work_date, workplace: x.workplace, time_in: t5(x.time_in), time_out: x.time_out ? t5(x.time_out) : null, note: x.note || null }));
+  const rows = loc.filter(x => !seen.has(key(x))).map(x => ({ work_date: x.work_date, workplace: x.workplace, time_in: x.time_in ? t5(x.time_in) : null, time_out: x.time_out ? t5(x.time_out) : null, note: x.note || null, ...(x.absence ? { absence: x.absence } : {}) }));
   if(rows.length){ const { error: e2 } = await cloud.sb.from(TBL).insert(rows); if(e2) throw e2; }
   local.save([]);
   return rows.length;
