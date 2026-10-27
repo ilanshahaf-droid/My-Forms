@@ -2289,9 +2289,10 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigat
 /* ================= שעון נוכחות ================= */
 (function(){
 const ABSENCES = [
-  { v: "מחלה", icon: "🤒" }, { v: "מחלת ילד", icon: "🧒" }, { v: "חופשה", icon: "🏖️" },
+  { v: "מחלה", icon: "🤒" }, { v: "מחלת ילד", icon: "🧒" }, { v: "חופש", icon: "🏖️" },
   { v: "מילואים", icon: "🎖️" }, { v: "השתלמות", icon: "📚" }, { v: "אחר", icon: "📝" }
 ];
+const normAbs = a => a === "חופשה" ? "חופש" : a;   // שם קודם של הסוג
 const absIcon = a => (ABSENCES.find(x => x.v === a) || { icon: "📝" }).icon;
 const PALETTE = ["#2563EB","#059669","#D97706","#7C3AED","#DC2626","#0891B2","#DB2777","#65A30D"];
 let WORKPLACES = [];   // [{name, color}] – מוגדר ע"י המשתמש ונשמר בענן
@@ -2331,11 +2332,12 @@ const local = {
 };
 const tmo = p => Promise.race([p, new Promise((_,rej) => setTimeout(() => rej(new Error("network timeout")), 9000))]);
 const isNetErr = err => !navigator.onLine || /fetch|network|load failed|timeout|offline/i.test((err && (err.message || err.details)) || String(err));
+const fixAbs = list => (list || []).map(x => x && x.absence === "חופשה" ? { ...x, absence: "חופש" } : x);
 const db = {
   async list(from,to){
-    if(!cloudReady()) return sortE(local.all().filter(x => x.work_date>=from && x.work_date<=to));
+    if(!cloudReady()) return fixAbs(sortE(local.all().filter(x => x.work_date>=from && x.work_date<=to)));
     const {data,error} = await tmo(cloud.sb.from(TBL).select("*").gte("work_date",from).lte("work_date",to).order("work_date").order("time_in"));
-    if(error) throw error; return data;
+    if(error) throw error; return fixAbs(data);
   },
   async open(){
     if(!cloudReady()) return sortE(local.all().filter(x => !x.time_out && !x.absence && x.time_in)).pop() || null;
@@ -2625,7 +2627,7 @@ function openEditor(x, date, kind){
   kind = x ? (x.absence ? "absence" : "work") : (kind || "work");
   $("#ckDlgTitle").textContent = x ? "עריכת דיווח" : kind === "absence" ? "דיווח היעדרות" : "הוספת דיווח ידני";
   setKind(kind);
-  { const a = (x && x.absence) || ABSENCES[0].v, rs = [...document.querySelectorAll('input[name="ckAbsType"]')];
+  { const a = normAbs(x && x.absence) || ABSENCES[0].v, rs = [...document.querySelectorAll('input[name="ckAbsType"]')];
     (rs.find(r => r.value === a) || rs.find(r => r.value === "אחר")).checked = true; }
   $("#ckEdDate").value = x ? x.work_date : (date || isoDate(new Date()));
   const names = WORKPLACES.map(w => w.name); if(x && !names.includes(x.workplace)) names.push(x.workplace);
@@ -2684,11 +2686,12 @@ function opts(){
   };
 }
 function buildReport(o, entries){
-  entries = entries.map(x => ({ ...x, workplace: canonWp(x.workplace) }));
+  entries = entries.map(x => ({ ...x, workplace: canonWp(x.workplace), absence: normAbs(x.absence) }));
   const rows = sortE(entries.filter(x => o.workplaces.includes(x.workplace))).map(x => ({
     date: heDate(x.work_date), dow: dowOf(x.work_date), workplace: x.workplace, in: x.absence ? "" : t5(x.time_in),
     out: x.absence ? "" : x.time_out ? t5(x.time_out) : "—", minutes: minutesOf(x), absence: x.absence || "",
-    note: x.absence && !o.hours ? [x.absence, x.note].filter(Boolean).join(" – ") : (x.note || ""), iso: x.work_date }));
+    // ביום היעדרות: בהערה מופיע סוג ההיעדרות, ואם נבחר "אחר" – הסיבה שנכתבה ידנית
+    note: x.absence ? (x.absence === "אחר" ? (x.note || "אחר") : x.absence) : (x.note || ""), iso: x.work_date }));
   const mk = (wp, rs) => { const abs = {}; rs.forEach(r => { if(r.absence) abs[r.absence] = (abs[r.absence] || 0) + 1; });
     return {workplace: wp, rows: rs, totalMin: rs.reduce((a,r) => a + r.minutes, 0), days: new Set(rs.filter(r => !r.absence).map(r => r.iso)).size,
       absDays: new Set(rs.filter(r => r.absence).map(r => r.iso)).size, abs}; };
@@ -2703,7 +2706,7 @@ function buildReport(o, entries){
     wpText: o.workplaces.length === o.allCount ? "כל מקומות העבודה" : o.workplaces.join(", "),
     groups, summary: o.workplaces.map(w => mk(w, rows.filter(r => r.workplace === w))), all: mk(null, rows), cols, o };
 }
-const cellVal = (r,k) => k === "hours" ? (r.absence ? r.absence : r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
+const cellVal = (r,k) => k === "hours" ? (r.absence || r.out === "—" ? "" : fmtHM(r.minutes)) : r[k];
 const absSummary = g => Object.entries(g.abs || {}).map(([k, n]) => `${k}: ${n}`).join(", ");
 const totalCells = (rep, g) => { const hi = rep.cols.findIndex(c => c.k === "hours");
   return hi < 0 ? null : rep.cols.map((c,i) => i===0 ? "סה״כ" : i===hi ? fmtHM(g.totalMin) : i===1 ? `${g.days} ימים` : ""); };
@@ -2820,7 +2823,7 @@ async function makeXlsx(rep){
     hr.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill(NAVY); c.alignment = { horizontal: "center", vertical: "middle" }; c.border = box; });
     let ri = 5;
     g.rows.forEach(r => {
-      const row = setRow(ws, ri, rep.cols.map(c => c.k === "hours" ? (r.absence ? r.absence : r.out === "—" ? null : hrsNum(r.minutes)) : r[c.k]));
+      const row = setRow(ws, ri, rep.cols.map(c => c.k === "hours" ? (r.absence || r.out === "—" ? null : hrsNum(r.minutes)) : r[c.k]));
       rep.cols.forEach((c, ci) => { const x = row.getCell(ci+1); x.border = box;
         x.alignment = { horizontal: c.k === "note" ? "right" : "center", vertical: "middle", wrapText: c.k === "note", readingOrder: "rtl" };
         if(c.k === "hours") x.numFmt = "0.00"; if((ri-5) % 2) x.fill = fill("FFF3F6FA"); });
@@ -2950,6 +2953,8 @@ async function unifyNames(){
     let names;
     if(cloudReady()){ const { data, error } = await tmo(cloud.sb.from(TBL).select("workplace").limit(5000)); if(error) throw error; names = (data || []).map(x => x.workplace); }
     else names = local.all().map(x => x.workplace);
+    if(cloudReady()){ await tmo(cloud.sb.from(TBL).update({ absence: "חופש" }).eq("absence", "חופשה")); }
+    else local.save(local.all().map(x => x.absence === "חופשה" ? { ...x, absence: "חופש" } : x));
     for(const n of [...new Set(names)]){
       const c = canonWp(n); if(c === n) continue;
       if(cloudReady()){ const { error } = await tmo(cloud.sb.from(TBL).update({ workplace: c }).eq("workplace", n)); if(error) throw error; }
