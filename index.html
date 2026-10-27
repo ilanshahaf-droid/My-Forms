@@ -2738,13 +2738,14 @@ function reportHTML(rep){
 }
 
 /* טעינת ספריות רק כשצריך */
-const LIBS = { docx: ["https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js","docx"],
-  xlsx: ["https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js","ExcelJS"],
-  pdf: ["https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js","html2pdf"] };
+const LIBS = { docx: [["https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js","docx"]],
+  xlsx: [["https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js","ExcelJS"]],
+  pdf: [["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js","html2canvas"],
+        ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","jspdf"]] };
 function needLib(fmt){
-  const [src, g] = LIBS[fmt]; if(window[g]) return Promise.resolve();
-  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src;
-    s.onload = () => res(); s.onerror = () => rej(new Error("טעינת ספריית הייצוא נכשלה. בדוק חיבור לאינטרנט.")); document.head.appendChild(s); });
+  return Promise.all(LIBS[fmt].map(([src, g]) => window[g] ? null : new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = src;
+    s.onload = () => res(); s.onerror = () => rej(new Error("טעינת ספריית הייצוא נכשלה. בדוק חיבור לאינטרנט.")); document.head.appendChild(s); })));
 }
 async function sigInfo(dataUrl){
   if(!dataUrl) return null;
@@ -2857,13 +2858,34 @@ async function makeXlsx(rep){
 }
 
 async function makePdf(rep){
+  // הדו"ח מצויר לתמונה ומחולק לעמודי A4 – בלי לחתוך שורה באמצע.
+  // הוא מונח בפינה העליונה של הדף (מאחורי התוכן) ולא מחוץ למסך, אחרת הצילום יוצא ריק.
   const host = document.createElement("div");
-  host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff";
+  host.style.cssText = "position:absolute;left:0;top:0;width:820px;z-index:-1;background:#fff;pointer-events:none";
   host.innerHTML = reportHTML(rep); document.body.appendChild(host);
+  const el = host.firstElementChild;
   try{
-    return await html2pdf().set({ margin: [8,8,8,8], image: { type: "jpeg", quality: 0.96 },
-      html2canvas: { scale: 2, backgroundColor: "#ffffff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css","legacy"], avoid: "tr" } }).from(host.firstElementChild).outputPdf("blob");
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    const scale = 2, top0 = el.getBoundingClientRect().top;
+    const canvas = await html2canvas(el, { scale, backgroundColor: "#ffffff", useCORS: true, logging: false,
+      scrollX: 0, scrollY: -window.scrollY, windowWidth: 900, windowHeight: Math.max(1200, el.scrollHeight + 40) });
+    // נקודות שבהן מותר לשבור עמוד: סוף כל שורה / כותרת / שורת חתימה
+    const breaks = [...el.querySelectorAll("tr, h1, h2, .meta, .sign, p")].map(n => Math.round((n.getBoundingClientRect().bottom - top0) * scale)).sort((a, b) => a - b);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const M = 8, pw = 210 - 2 * M, ph = 297 - 2 * M, pagePx = Math.floor(canvas.width * ph / pw);
+    let y = 0, first = true;
+    while(y < canvas.height - 2){
+      let end = Math.min(canvas.height, y + pagePx);
+      if(end < canvas.height){ const ok = breaks.filter(b => b > y + 40 && b <= end); if(ok.length) end = ok[ok.length - 1]; }
+      const part = document.createElement("canvas"); part.width = canvas.width; part.height = end - y;
+      const cx = part.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, part.width, part.height);
+      cx.drawImage(canvas, 0, y, canvas.width, end - y, 0, 0, canvas.width, end - y);
+      if(!first) pdf.addPage(); first = false;
+      pdf.addImage(part.toDataURL("image/jpeg", 0.95), "JPEG", M, M, pw, (end - y) * pw / canvas.width);
+      y = end;
+    }
+    return pdf.output("blob");
   } finally { host.remove(); }
 }
 
