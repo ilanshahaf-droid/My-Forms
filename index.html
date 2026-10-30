@@ -481,7 +481,8 @@ dialog.ck-dlg form{padding:20px 18px}
     <label><input type="radio" name="hrsSrc" value="manual"> הזנה ידנית</label>
   </div>
   <div id="srcClock" hidden>
-    <div class="row2" style="margin-top:4px"><div><label class="f" for="srcMonth">חודש</label><input type="month" id="srcMonth"></div><div></div></div>
+    <div class="row2" style="margin-top:4px"><div><label class="f" for="srcMonth">חודש</label><input type="month" id="srcMonth"></div>
+      <div><label class="f" for="srcWp">מקום העבודה של הכרטיס</label><select id="srcWp"></select></div></div>
     <div class="bar"><button type="button" class="primary" id="srcClockLoad">טען שעות משעון הנוכחות</button></div>
     <p class="hint" style="margin:8px 0 0">לכל יום נלקחת הכניסה הראשונה והיציאה האחרונה. מקום העבודה וההערה נכנסים לעמודת ההערות.</p>
   </div>
@@ -869,7 +870,7 @@ const pad2 = n => String(n).padStart(2,"0");
 /* ---------- time & date helpers ---------- */
 function normTime(v){
   if(v==null) return "";
-  if(typeof v==="number"){
+  if(typeof v==="number"){ if(!isFinite(v)) return "";
     if(v>=1 && v<24){ // written as H.MM, e.g. 8.2 or 9.56
       const h=Math.floor(v); const mi=Math.round((v-h)*100); if(mi>59) return ""; return pad2(h)+":"+pad2(mi); }
     const frac = v - Math.floor(v); let mins = Math.round(frac*1440); if(mins===1440) mins=0;
@@ -947,7 +948,23 @@ window.addEventListener("resize",()=>{ if(pad.style.display!=="none") sizePad();
 function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 
 /* ---------- spreadsheet reading ---------- */
-function readSheets(buf){ const wb=XLSX.read(buf,{type:"array",cellDates:false});
+/* קבצי שעון שבהם השעות שמורות כ"משך" (PT8H28M) – SheetJS לא קורא אותן, אז ממירים לשבר של יום */
+function fixDurations(buf){
+  try{
+    const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    if(u8[0] !== 0x50 || u8[1] !== 0x4B) return buf;          // לא קובץ xlsx
+    const cfb = XLSX.CFB.read(u8, {type:"array"}); let changed = false;
+    cfb.FileIndex.forEach((f, i) => {
+      if(!/worksheets\/sheet\d*\.xml$/i.test(cfb.FullPaths[i]) || !f.content) return;
+      let xml = new TextDecoder().decode(f.content); if(!/<v>P(?:\d+D)?T/.test(xml)) return;
+      const out = xml.replace(/(<c\b[^>]*?)\s+t="d"([^>]*>)<v>P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?<\/v>/g,
+        (m, a, b, d, h, mi, s) => `${a}${b}<v>${((+d||0)*1440 + (+h||0)*60 + (+mi||0) + (+s||0)/60) / 1440}</v>`);
+      f.content = new TextEncoder().encode(out); f.size = f.content.length; changed = true;
+    });
+    return changed ? XLSX.CFB.write(cfb, {type:"array", fileType:"zip"}) : buf;
+  }catch(e){ return buf; }
+}
+function readSheets(buf){ const wb=XLSX.read(fixDurations(buf),{type:"array",cellDates:false});
   return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""})); }
 // find a header row; spec = {key:[regex, required]}
 function findHeader(rows,spec){
@@ -1009,7 +1026,7 @@ function clockMissing(c){
   if(!!c.in!==!!c.out) return !c.in?"in":"out";
   if(c.in&&c.out) return null;
   // no punch at all
-  if(ABSENT.test(c.status)||/לא\s*נסגר|חסר/.test(c.status)) return "both";
+  if(ABSENT.test(c.status)||/לא\s*נסגר|חסר|שגיאה/.test(c.status)) return "both";
   if(!c.status.trim()) return "both";      // a listed work day with no punch and no explanation
   if(COVERED.test(c.status)) return null;
   return null;
@@ -1114,7 +1131,7 @@ function renderCheck(){
     && (!cl[d] || (!cl[d].in&&!cl[d].out))).sort();
   if(!odd.length){ box.hidden=true; return; }
   box.hidden=false;
-  box.innerHTML=`<b>שווה לבדוק:</b> באקסל יש דיווח שעות בימים האלה, אבל בדוח השעון אין להם שום החתמה. אם השעון לא קלט אותם, לחץ כדי להוסיף: `;
+  box.innerHTML=`<b>שווה לבדוק:</b> ${window.CKW?CKW.srcText():"באקסל"} יש דיווח שעות בימים האלה, אבל בדוח השעון של העבודה אין להם שום החתמה. אם השעון לא קלט אותם, לחץ כדי להוסיף: `;
   odd.forEach(d=>{ const b=document.createElement("button"); b.textContent=fmtDate(d).slice(0,5); b.onclick=()=>{ const r=newRow(d,"both",null); S.rows.push(r); S.rows.sort((a,b)=>a.date.localeCompare(b.date)); renderCal(); renderRows(); renderCheck(); }; box.appendChild(b); });
 }
 
@@ -3079,11 +3096,13 @@ async function loadFromClock(){
   setStatus("#s3status", "טוען משעון הנוכחות…");
   let list;
   try{ const { from, to } = range(m); list = await db.list(from, to); }catch(err){ return setStatus("#s3status", errMsg(err), "err"); }
+  // רק הדיווחים של מקום העבודה שהכרטיס שייך אליו (למשל שפ"ח) – לא ימים במקומות אחרים
+  const wp = $("#srcWp").value; if(wp) list = list.filter(x => canonWp(x.workplace) === wp);
   const map = {};
   list.forEach(x => {
     if(x.absence){   // יום היעדרות: יום בלי שעות, וסוג ההיעדרות בהערה (מחלה / חופשה מזוהים אוטומטית)
       const p = map[x.work_date] || (map[x.work_date] = { in: "", out: "", notes: [], zero: false });
-      const n = x.absence + (x.note ? " – " + x.note : ""); if(!p.notes.includes(n)) p.notes.unshift(n);
+      const n = x.absence === "אחר" ? (x.note || "אחר") : normAbs(x.absence); if(!p.notes.includes(n)) p.notes.unshift(n);
       if(!p.in && !p.out) p.zero = true;
       return;
     }
@@ -3096,7 +3115,7 @@ async function loadFromClock(){
   });
   S.excel = map;
   const n = Object.keys(map).length;
-  setStatus("#s3status", n ? `נטענו ${n} ימים משעון הנוכחות (${mLabel(m)}).` : `אין דיווחים בשעון הנוכחות ב${mLabel(m)}.`, n ? "ok" : "err");
+  setStatus("#s3status", n ? `נטענו ${n} ימים של ${wp || "כל המקומות"} משעון הנוכחות (${mLabel(m)}).` : `אין דיווחים של ${wp || "כל המקומות"} בשעון הנוכחות ב${mLabel(m)}.`, n ? "ok" : "err");
   if(!S.clock.length){ calY = +m.slice(0,4); calM = +m.slice(5,7); }
   refreshFromExcel(); autoMonth(); renderCal(); renderRows(); renderCheck(); markDone();
 }
@@ -3107,11 +3126,18 @@ document.querySelectorAll('input[name="hrsSrc"]').forEach(r => r.addEventListene
     setStatus("#s3status", "השעות שנלקחו אוטומטית נוקו. השעות שהזנת ידנית נשארו.", "ok"); }
   if(r.value === "excel") setStatus("#s3status", "");
 }));
+function fillSrcWp(){
+  const sel = $("#srcWp"), keep = sel.value || store.get("att_card_wp") || "";
+  sel.innerHTML = WORKPLACES.map(w => `<option>${e(w.name)}</option>`).join("") + '<option value="">כל המקומות</option>';
+  sel.value = WORKPLACES.some(w => w.name === keep) || keep === "" && store.get("att_card_wp") === "" ? keep : (WORKPLACES[0] ? WORKPLACES[0].name : "");
+}
+$("#srcWp").addEventListener("change", () => { store.set("att_card_wp", $("#srcWp").value, true); loadFromClock(); });
 $("#srcClockLoad").onclick = loadFromClock;
 $("#srcMonth").addEventListener("change", loadFromClock);
 $("#srcMonth").value = workMonth();
 showSrc(store.get("att_hrs_src") || "clock");
 window.CKW = {
+  srcText(){ return S.hrsSrc === "clock" ? `בשעון הנוכחות שלך באפליקציה (${$("#srcWp").value || "כל המקומות"})` : S.hrsSrc === "excel" ? "בקובץ האקסל" : "בשעות שהזנת"; },
   afterClockFile(){ $("#srcMonth").value = workMonth(); if(S.hrsSrc === "clock") loadFromClock(); },
   excelLoaded(){ showSrc("excel"); store.set("att_hrs_src", "excel", true); },
   label(){ return SRC_LBL[S.hrsSrc] || "אקסל"; }
@@ -3160,7 +3186,7 @@ async function doRefresh(){
     try{ const m = await migrateLocal(); if(m){ statusAll(`${m} דיווחים מהמכשיר הזה הועלו לחשבון.`, "ok"); again = true; } }
     catch(err){ if(!isNetErr(err)) statusAll(errMsg(err), "err"); }
   }
-  await loadPlaces(); renderChips(); renderPlaces();
+  await loadPlaces(); renderChips(); renderPlaces(); fillSrcWp();
   if(navigator.onLine) await unifyNames();
   buildRepWps();
   if(document.body.dataset.mode === "clock"){ try{ await loadMonth(); }catch(_){} renderPreview(); }
