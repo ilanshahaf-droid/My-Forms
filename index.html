@@ -3142,7 +3142,7 @@ async function loadFromClock(){
     p.zero = false;
     if(tin && (!p.in || tin < p.in)) p.in = tin;
     if(tout && (!p.out || tout > p.out)) p.out = tout;
-    const n = x.workplace + (x.note ? " – " + x.note : ""); if(n && !p.notes.includes(n)) p.notes.push(n);
+    const n = (x.note || "").trim(); if(n && !p.notes.includes(n)) p.notes.push(n);   // רק ההערה, בלי שם מקום העבודה
   });
   S.excel = map;
   const n = Object.keys(map).length;
