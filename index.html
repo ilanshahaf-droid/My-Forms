@@ -187,6 +187,10 @@ tfoot td{border-bottom:none;padding-top:10px}
 td input[type=date]{font:inherit;font-size:13px;padding:5px 4px;width:9.5em}
 .drivebtn[hidden]+.drivefmt{display:none}
 .drivefmt{width:auto !important;padding:9px 10px !important;border-radius:12px !important;font-weight:600}
+.glogin{width:100%;justify-content:center;gap:10px;padding:13px !important;font-size:16px !important;border-radius:14px !important;margin-top:4px}
+.orline{display:flex;align-items:center;gap:10px;color:var(--soft);font-size:13px;margin:16px 0 4px}
+.orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--rule)}
+.dcard .ds{font-size:12.5px}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -389,6 +393,8 @@ dialog.ck-dlg form{padding:20px 18px}
   <h2 id="authTitle">כניסה לחשבון</h2>
   <p class="hint">הפרטים, החתימה והדוחות נשמרים בענן, וזמינים מכל מכשיר שנכנסים ממנו.</p>
   <div id="authForm">
+    <button type="button" id="gLogin" class="glogin"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>כניסה עם Google</button>
+    <div class="orline"><span>או עם מייל וסיסמה</span></div>
     <label class="f" for="email">מייל</label><input type="email" id="email" autocomplete="email" dir="ltr">
     <label class="f" for="pass">סיסמה</label><input type="password" id="pass" autocomplete="current-password" dir="ltr">
     <div class="bar"><button class="primary" id="login">כניסה</button><button id="signup">הרשמה</button><button class="x" id="forgot">שכחתי סיסמה</button></div>
@@ -402,7 +408,7 @@ dialog.ck-dlg form{padding:20px 18px}
 
 <section class="step tab m-dash" id="dash"><span class="punch">📊</span>
   <h2>לוח בקרה</h2>
-  <p class="hint">מבט מהיר על המצב. לחיצה על כרטיס עוברת לטופס הרלוונטי.</p>
+  <p class="hint">מבט מהיר על החודש. לחיצה על כרטיס עוברת למקום הרלוונטי.</p>
   <div class="dgrid" id="dgrid"></div>
   <h3 class="ftitle" id="recentTitle" style="margin-top:22px">פעילות אחרונה</h3>
   <div class="activity-list" id="recent"></div>
@@ -1986,14 +1992,19 @@ function renderDash(){
     const profileOk=!!(name&&tz&&sig);
     const st=formStates(), vals=Object.values(st), n=S.rows.length, open=S.rows.filter(r=>!rowDone(r)).length;
     const cnt=s=>vals.filter(x=>x===s).length;
+    const now=new Date(), pm=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const pYm=pm.getFullYear()+"-"+pad2(pm.getMonth()+1), pLbl=HEB_MONTHS[pm.getMonth()];
+    const ck=(window.CK&&CK.stats)||null, ci=cloudIndex||{};
+    const wDone=!!(ci.work&&ci.work[pYm]&&ci.work[pYm].report), gDone=!!(ci.gef&&ci.gef[pYm]&&ci.gef[pYm].report);
+    const absN=ck?Object.values(ck.abs).reduce((a,n)=>a+n,0):0;
     const cards=[
-      {t:"הופקו",v:cnt("done"),cls:"ok"},
-      {t:"בתהליך",v:cnt("pending"),cls:cnt("pending")?"warn":""},
-      {t:"חדשים",v:cnt("new"),cls:cnt("new")?"info":""},
-      {t:'סה"כ טפסים',v:vals.length,cls:""}];
+      {t:"שעות החודש",v:ck?fmtHM(ck.total):"–",s:ck?`${ck.days} ימי עבודה · ${HEB_MONTHS[now.getMonth()]}`:"שעון נוכחות",cls:"",go:()=>setMode("clock")},
+      {t:"היעדרויות החודש",v:ck?String(absN):"–",s:ck&&absN?Object.entries(ck.abs).map(([k,n])=>`${k} ${n}`).join(" · "):"אין היעדרויות",cls:absN?"info":"",go:()=>setMode("clock")},
+      {t:`כרטיס נוכחות · ${pLbl}`,v:wDone?"✓":"!",s:wDone?"הופק ונשמר בענן":"עוד לא הופק",cls:wDone?"ok":"warn",go:()=>setMode(wDone?"files":"work")},
+      {t:`דוח גפ"ן · ${pLbl}`,v:gDone?"✓":"!",s:gDone?"הופק ונשמר בענן":"עוד לא הופק",cls:gDone?"ok":"warn",go:()=>setMode(gDone?"files":"gefen")}];
     box.innerHTML="";
     cards.forEach(c=>{ const b=document.createElement("button"); b.className="dcard";
-      b.innerHTML=`<div class="dv ${c.cls}">${esc(String(c.v))}</div><div class="dt">${esc(c.t)}</div>`; b.onclick=()=>setMode("forms"); box.appendChild(b); });
+      b.innerHTML=`<div class="dv ${c.cls}">${esc(String(c.v))}</div><div class="dt">${esc(c.t)}</div><div class="ds">${esc(c.s)}</div>`; b.onclick=c.go; box.appendChild(b); });
 
     const rec=$("#recent"); if(!rec) return; rec.innerHTML="";
     const acts=[];
@@ -2180,6 +2191,9 @@ $("#setPass").onclick=async()=>{ const {error}=await cloud.sb.auth.updateUser({p
   if(error) return setStatus("#authStatus",authErr(error),"err");
   setStatus("#authStatus","הסיסמה עודכנה.","ok"); const {data}=await cloud.sb.auth.getUser(); if(data&&data.user) onLogin(data.user); };
 $("#logout").onclick=()=>cloud.sb.auth.signOut();
+$("#gLogin").onclick=async()=>{ setStatus("#authStatus","פותח את Google…");
+  const {error}=await cloud.sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:"select_account"}}});
+  if(error) setStatus("#authStatus",/provider is not enabled|Unsupported provider/i.test(error.message||"")?"הכניסה עם Google עוד לא הופעלה ב-Supabase.":authErr(error),"err"); };
 
 /* profile: name, ID, signature */
 async function cloudPullProfile(){
@@ -2593,6 +2607,7 @@ async function clockToggle(v){
       if(navigator.onLine){                  // ועולה לענן ברקע
         await flushOutbox(); cacheOpen(); pendingNote();
         if(!OB.get().length){ try{ st.today = await db.list(today, today); localStorage.setItem("ck_today", JSON.stringify({ date: today, list: st.today })); }catch(_){} renderToday(); }
+        loadStats();
       } else statusAll(`✓ ${wasIn ? "יציאה" : "כניסה"} נרשמה ב-${hhmm(now)} (נשמר בטלפון, יעלה לענן כשיהיה חיבור)`, "ok");
       return;
     }
@@ -3259,7 +3274,13 @@ async function doRefresh(){
   await loadPlaces(); renderChips(); renderPlaces(); fillSrcWp();
   if(navigator.onLine) await unifyNames();
   buildRepWps();
+  await loadStats();
   if(document.body.dataset.mode === "clock"){ try{ await loadMonth(); }catch(_){} renderPreview(); }
+}
+/* נתוני החודש הנוכחי ללוח הבקרה */
+async function loadStats(){
+  try{ const { from, to } = range(isoDate(new Date()).slice(0,7)); const s = summarize(await db.list(from, to));
+    window.CK.stats = { total: s.total, days: s.days, abs: s.abs }; if(typeof renderDash === "function") renderDash(); }catch(_){}
 }
 /* בדיקה קלה של מצב השעון בלבד – לסנכרון מהיר בין מכשירים */
 async function quickSync(){
