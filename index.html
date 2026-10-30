@@ -1699,10 +1699,10 @@ async function shareFileRobust(file,kind){
     catch(e2){ if(e2&&e2.name==="AbortError") return "abort"; throw e2; }
   }
 }
-function openFileFallback(file){
-  const url=URL.createObjectURL(file); const w=window.open(url,"_blank");
-  if(!w){ const a=document.createElement("a"); a.href=url; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); }
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
+function openFileFallback(file,kind){
+  const f = IS_SAMSUNG ? asciiFile(file,kind) : file;
+  const url=URL.createObjectURL(f), a=document.createElement("a"); a.href=url; a.download=f.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 async function preparePdf(kind,data,docName){
   const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF…");
@@ -1723,8 +1723,8 @@ async function preparePdf(kind,data,docName){
     const st=pdfFiles[kind]; if(!st) return;
     try{ await shareFileRobust(st.file,kind); }
     catch(e){
-      openFileFallback(st.file);
-      setStatus(ui.status,'הדפדפן לא איפשר לשתף ישירות, אז ה-PDF נפתח בחלון חדש. שם לוחצים על כפתור השיתוף (או "הורד PDF" ושיתוף מההורדות).',"err");
+      openFileFallback(st.file,kind);
+      setStatus(ui.status,'הדפדפן הזה לא מאפשר לשתף PDF ישירות מאתר, אז הקובץ ירד לטלפון. בהודעה שקופצת לוחצים "פתח", ומשם משתפים. (בכרום השיתוף הישיר עובד.)',"err");
     }
   };
   const dlEl=$(ui.dl); if(dlEl) dlEl.addEventListener("click",()=>setTimeout(()=>setStatus(ui.status,"ה-PDF ירד לטלפון, לתיקיית ההורדות. משם אפשר לפתוח ולשתף אותו.","ok"),400));
@@ -2044,16 +2044,17 @@ const drive={token:null,exp:0,client:null,folders:{}};
 const driveOn = () => !!(GOOGLE_CLIENT_ID && window.google && google.accounts && google.accounts.oauth2);
 function driveToken(){ // must be called straight from a tap: it may open Google's sign-in window
   return new Promise((res,rej)=>{
+    if(!drive.token){ try{ const c=JSON.parse(localStorage.getItem("drv_tok")||"null"); if(c&&c.t&&Date.now()<c.exp-60000){ drive.token=c.t; drive.exp=c.exp; } }catch(e){} }
     if(drive.token && Date.now()<drive.exp-60000) return res(drive.token);
     if(!drive.client) drive.client=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:()=>{}});
-    drive.client.callback=r=>{ if(r.error) return rej(r); drive.token=r.access_token; drive.exp=Date.now()+(+r.expires_in||3600)*1000; res(drive.token); };
+    drive.client.callback=r=>{ if(r.error) return rej(r); drive.token=r.access_token; drive.exp=Date.now()+(+r.expires_in||3600)*1000; try{ localStorage.setItem("drv_tok",JSON.stringify({t:drive.token,exp:drive.exp})); }catch(e){} res(drive.token); };
     drive.client.error_callback=e=>rej(e);
     const hint=(cloud.user&&cloud.user.email)||undefined;
     drive.client.requestAccessToken(hint?{login_hint:hint}:{});
   });
 }
 async function gfetch(url,opts){ const r=await fetch(url,{...opts,headers:{...((opts&&opts.headers)||{}),Authorization:"Bearer "+drive.token}});
-  if(r.status===401){ drive.token=null; throw {code:"auth"}; } if(!r.ok) throw new Error("drive "+r.status); return r.json(); }
+  if(r.status===401){ drive.token=null; try{ localStorage.removeItem("drv_tok"); }catch(e){} throw {code:"auth"}; } if(!r.ok) throw new Error("drive "+r.status); return r.json(); }
 const qs = v => "'"+String(v).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"'";
 async function driveFolder(name,parent){
   const key=parent+"/"+name; if(drive.folders[key]) return drive.folders[key];
@@ -3016,7 +3017,7 @@ $("#ckShare").onclick = async () => {
   try{ const f = await generate();
     if(navigator.canShare && navigator.canShare({ files: [f] })){
       try{ await shareFileRobust(f, "clock"); setStatus("#ckRepStatus",""); }
-      catch(e){ openFileFallback(f); setStatus("#ckRepStatus","הדפדפן לא איפשר לשתף ישירות, אז הקובץ נפתח בחלון חדש – משם אפשר לשתף.","err"); }
+      catch(e){ openFileFallback(f, "clock"); setStatus("#ckRepStatus","הדפדפן הזה לא מאפשר לשתף את הקובץ ישירות, אז הוא ירד לטלפון. בהודעה שקופצת לוחצים \"פתח\", ומשם משתפים.","err"); }
     }
     else { download(f); setStatus("#ckRepStatus","הטלפון לא מאפשר לשתף את סוג הקובץ הזה, אז הוא ירד למכשיר.","ok"); }
   }catch(err){ if(!err || err.name !== "AbortError") setStatus("#ckRepStatus", err.message || String(err), "err"); else setStatus("#ckRepStatus",""); }
