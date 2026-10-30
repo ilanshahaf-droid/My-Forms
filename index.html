@@ -185,6 +185,8 @@ body.locked .modes{display:none !important}
 
 tfoot td{border-bottom:none;padding-top:10px}
 td input[type=date]{font:inherit;font-size:13px;padding:5px 4px;width:9.5em}
+.drivebtn[hidden]+.drivefmt{display:none}
+.drivefmt{width:auto !important;padding:9px 10px !important;border-radius:12px !important;font-weight:600}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -1676,6 +1678,32 @@ const PDF_UI={
   hofesh:{share:"#hShare",dl:"#hShareOpen",status:"#hPdf"}
 };
 const pdfFiles={};
+/* שיתוף קבצים שעובד גם בדפדפן של סמסונג:
+   סמסונג דוחה שיתוף של קובץ ששמו בעברית – אז שם הקובץ בשיתוף הוא באנגלית (בכרום נשאר השם העברי).
+   אם השיתוף עדיין נכשל – הקובץ נפתח בצופה של הדפדפן, ומשם אפשר לשתף. */
+const IS_SAMSUNG = /SamsungBrowser/i.test(navigator.userAgent);
+const SHARE_PREFIX = {work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", clock:"attendance-report"};
+function asciiFile(file,kind){
+  const ext=(file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0];
+  let n=file.name; HEB_MONTHS.forEach((m,i)=>{ n=n.replace(new RegExp(m+"[_ ]+(\\d{4})"),"$1-"+pad2(i+1)); });
+  const nums=(n.match(/\d{4}(-\d{2})?|\d{1,2}/g)||[]).join("-");
+  return new File([file],`${SHARE_PREFIX[kind]||"file"}${nums?"_"+nums:""}${ext}`,{type:file.type});
+}
+async function shareFileRobust(file,kind){
+  const f = IS_SAMSUNG ? asciiFile(file,kind) : file;
+  try{ await navigator.share({files:[f],title:file.name}); return "ok"; }
+  catch(e){
+    if(e&&e.name==="AbortError") return "abort";
+    if(f!==file) throw e;
+    try{ await navigator.share({files:[asciiFile(file,kind)]}); return "ok"; }   // ניסיון שני בשם באנגלית
+    catch(e2){ if(e2&&e2.name==="AbortError") return "abort"; throw e2; }
+  }
+}
+function openFileFallback(file){
+  const url=URL.createObjectURL(file); const w=window.open(url,"_blank");
+  if(!w){ const a=document.createElement("a"); a.href=url; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
 async function preparePdf(kind,data,docName){
   const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF…");
   try{
@@ -1693,11 +1721,10 @@ async function preparePdf(kind,data,docName){
   const ui=PDF_UI[kind]; if(!ui) return;
   const shareEl=$(ui.share); if(shareEl) shareEl.onclick=async()=>{
     const st=pdfFiles[kind]; if(!st) return;
-    try{ await navigator.share({files:[st.file]}); }
+    try{ await shareFileRobust(st.file,kind); }
     catch(e){
-      if(e&&e.name==="AbortError") return;
-      $(ui.share).hidden=true;
-      setStatus(ui.status,'הדפדפן הזה לא מאפשר לשתף קבצים. לחץ "הורד PDF", פתח את הקובץ מההורדות ושתף משם.',"err");
+      openFileFallback(st.file);
+      setStatus(ui.status,'הדפדפן לא איפשר לשתף ישירות, אז ה-PDF נפתח בחלון חדש. שם לוחצים על כפתור השיתוף (או "הורד PDF" ושיתוף מההורדות).',"err");
     }
   };
   const dlEl=$(ui.dl); if(dlEl) dlEl.addEventListener("click",()=>setTimeout(()=>setStatus(ui.status,"ה-PDF ירד לטלפון, לתיקיית ההורדות. משם אפשר לפתוח ולשתף אותו.","ok"),400));
@@ -2057,9 +2084,17 @@ async function driveUpload(file,kind){
   fd.append("file",file);
   return gfetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",{method:"POST",body:fd});
 }
+function driveFmt(){ return store.get("att_drive_fmt")==="pdf"?"pdf":"docx"; }
 function driveButton(btnSel,statusSel,getFile,kind){
+  // בחירה בין וורד ל-PDF, ליד כל כפתור "שמור בדרייב" (הבחירה נזכרת ומשותפת לכל הטפסים)
+  const sel=document.createElement("select"); sel.className="drivefmt"; sel.setAttribute("aria-label","פורמט לשמירה בדרייב");
+  sel.innerHTML='<option value="docx">וורד</option><option value="pdf">PDF</option>'; sel.value=driveFmt();
+  sel.onchange=()=>{ store.set("att_drive_fmt",sel.value,true); document.querySelectorAll(".drivefmt").forEach(s=>s.value=sel.value); };
+  $(btnSel).after(sel);
   $(btnSel).onclick=async()=>{
-    const f=getFile(); if(!f) return; const btn=$(btnSel);
+    const pdf=driveFmt()==="pdf";
+    const f=pdf?(pdfFiles[kind]&&pdfFiles[kind].file):getFile(); const btn=$(btnSel);
+    if(!f) return setStatus(statusSel,pdf?"ה-PDF עוד בהכנה. נסה שוב בעוד רגע.":"קודם צריך להפיק את הקובץ.","err");
     let tokenP; try{ tokenP=driveToken(); }catch(e){ return setStatus(statusSel,"ההתחברות ל-Google לא נטענה. רענן ונסה שוב.","err"); }
     btn.disabled=true; setStatus(statusSel,"מתחבר ל-Google Drive…");
     try{
@@ -2979,7 +3014,10 @@ if(navigator.canShare) $("#ckShare").hidden = false;
 $("#ckShare").onclick = async () => {
   setStatus("#ckRepStatus","מכין את הקובץ…");
   try{ const f = await generate();
-    if(navigator.canShare && navigator.canShare({ files: [f] })){ await navigator.share({ files: [f], title: f.name }); setStatus("#ckRepStatus",""); }
+    if(navigator.canShare && navigator.canShare({ files: [f] })){
+      try{ await shareFileRobust(f, "clock"); setStatus("#ckRepStatus",""); }
+      catch(e){ openFileFallback(f); setStatus("#ckRepStatus","הדפדפן לא איפשר לשתף ישירות, אז הקובץ נפתח בחלון חדש – משם אפשר לשתף.","err"); }
+    }
     else { download(f); setStatus("#ckRepStatus","הטלפון לא מאפשר לשתף את סוג הקובץ הזה, אז הוא ירד למכשיר.","ok"); }
   }catch(err){ if(!err || err.name !== "AbortError") setStatus("#ckRepStatus", err.message || String(err), "err"); else setStatus("#ckRepStatus",""); }
 };
