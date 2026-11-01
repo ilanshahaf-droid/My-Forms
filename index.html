@@ -186,6 +186,9 @@ body.locked .modes{display:none !important}
 
 tfoot td{border-bottom:none;padding-top:10px}
 td input[type=date]{font:inherit;font-size:13px;padding:5px 4px;width:9.5em}
+.drivegrp{display:inline-flex;align-items:stretch;gap:0;flex-wrap:nowrap}
+.drivegrp .drivebtn{border-start-end-radius:0 !important;border-end-end-radius:0 !important}
+.drivegrp .drivefmt{border-start-start-radius:0 !important;border-end-start-radius:0 !important;margin-inline-start:-1.5px}
 .drivebtn[hidden]+.drivefmt{display:none}
 .drivefmt{width:auto !important;padding:9px 10px !important;border-radius:12px !important;font-weight:600}
 .glogin{width:100%;justify-content:center;gap:10px;padding:13px !important;font-size:16px !important;border-radius:14px !important;margin-top:4px}
@@ -2182,9 +2185,10 @@ function driveFmt(){ return store.get("att_drive_fmt")==="pdf"?"pdf":"docx"; }
 function driveButton(btnSel,statusSel,getFile,kind){
   // בחירה בין וורד ל-PDF, ליד כל כפתור "שמור בדרייב" (הבחירה נזכרת ומשותפת לכל הטפסים)
   const sel=document.createElement("select"); sel.className="drivefmt"; sel.setAttribute("aria-label","פורמט לשמירה בדרייב");
-  sel.innerHTML='<option value="docx">וורד</option><option value="pdf">PDF</option>'; sel.value=driveFmt();
+  sel.innerHTML='<option value="docx">כוורד</option><option value="pdf">כ-PDF</option>'; sel.value=driveFmt();
   sel.onchange=()=>{ store.set("att_drive_fmt",sel.value,true); document.querySelectorAll(".drivefmt").forEach(s=>s.value=sel.value); };
-  $(btnSel).after(sel);
+  // הבחירה צמודה לכפתור: עוטפים את שניהם יחד, כדי שלא יתפצלו לשורות שונות
+  const grp=document.createElement("span"); grp.className="drivegrp"; $(btnSel).before(grp); grp.appendChild($(btnSel)); grp.appendChild(sel);
   $(btnSel).onclick=async()=>{
     const pdf=driveFmt()==="pdf";
     const f=pdf?(pdfFiles[kind]&&pdfFiles[kind].file):getFile(); const btn=$(btnSel);
@@ -3564,7 +3568,7 @@ $("#hdAdd").onclick = () => {
 /* ---------- ייבוא מאקסל (למשל מצילום של הלו"ז) ---------- */
 function promptText(){
   const ym = $("#hdMonth").value || ymNow(), mn = HEB_MONTHS[+ym.slice(5,7)-1], y = ym.slice(0,4);
-  return `צור קובץ Excel מצילום הלו"ז המצורף (לו"ז ההדרכות לחודש ${mn} ${y}). שורה אחת לכל מפגש הדרכה, עם העמודות האלה בדיוק ובסדר הזה: תאריך (DD/MM/YYYY), שם המודרך/ת, תפקיד, מסגרת, אופן ההדרכה (פרונטלי / זום / טלפון), התקיימה במלואה (כן / לא), הערות. אם בלו"ז מופיעים רק ימים בשבוע או מספרי ימים, חשב את התאריך המלא לפי חודש ${mn} ${y}. אם תפקיד, מסגרת או אופן ההדרכה לא כתובים בלו"ז, השאר את התא ריק. אל תכלול אירועים שאינם הדרכה (ישיבות צוות, ימי חופש וכדומה). בעמודת "התקיימה במלואה" כתוב "כן", אלא אם בלו"ז מסומן שהמפגש בוטל או נדחה – אז "לא" והסיבה בעמודת ההערות.`;
+  return `צור קובץ Excel מצילום הלו"ז המצורף (לו"ז ההדרכות לחודש ${mn} ${y}). שורה אחת לכל מפגש הדרכה, עם העמודות האלה בדיוק ובסדר הזה: תאריך (DD/MM/YYYY), שם המודרך/ת, תפקיד, מסגרת, אופן ההדרכה (פרונטלי / זום / טלפון), התקיימה במלואה (כן / לא), הערות. אם בלו"ז מופיעים רק ימים בשבוע או מספרי ימים, חשב את התאריך המלא לפי חודש ${mn} ${y}. אם התפקיד או המסגרת לא כתובים בלו"ז, השאר את התא ריק. באופן ההדרכה כתוב "פרונטלי", אלא אם כתוב בלו"ז זום או טלפון. אל תכלול אירועים שאינם הדרכה (ישיבות צוות, ימי חופש וכדומה). בעמודת "התקיימה במלואה" כתוב "כן", אלא אם בלו"ז מסומן שהמפגש בוטל או נדחה – אז "לא" והסיבה בעמודת ההערות.`;
 }
 const HCOL = {
   date: [/^תאריך|^date/, true],
@@ -3607,6 +3611,7 @@ $("#hdFile").onchange = async ev => {
     });
   }
   ev.target.value = "";
+  if(added) rememberMentees();   // תפקיד ומסגרת שבקובץ נזכרים לפעם הבאה
   if(added && !$("#hdMonth").value){ $("#hdMonth").value = HD.rows[0].date.slice(0,7); }
   // אם כל המפגשים בחודש אחר מהחודש שנבחר – עוברים לחודש שלהם
   const months = {}; HD.rows.forEach(r => { if(r.date) months[r.date.slice(0,7)] = (months[r.date.slice(0,7)]||0) + 1; });
