@@ -380,6 +380,22 @@ dialog.ck-dlg form{padding:20px 18px}
 .ck-qlinks{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px}
 .ck-qlinks .x{font-size:14px}
 .ck-kind label{flex:1;justify-content:center}
+/* בחירת חודש מהירה */
+.ck-mtitle{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:12px}
+.ck-mtitle h3{margin:0}
+.ck-mtitle span{color:var(--soft);font-size:14px}
+.ck-mtitle:hover{background:var(--paper)}
+.ck-mtitle:focus-visible{outline:3px solid var(--focus)}
+.ck-mpick{border:1px solid var(--rule);border-radius:14px;padding:10px;margin-top:8px;background:var(--card)}
+.ck-ynav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ck-ynav b{font-size:19px}
+#ckYPrev,#ckYNext{direction:ltr;unicode-bidi:isolate;font-size:20px}
+.ck-mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ck-mgrid button{justify-content:center;padding:10px 2px !important;font-size:15px;border-radius:10px !important}
+.ck-mgrid button.now{border-color:var(--btn) !important;color:var(--btn);font-weight:700}
+.ck-mgrid button[aria-current="true"]{background:var(--btn) !important;color:#fff !important;border-color:var(--btn) !important;font-weight:700}
+.ck-thism{text-align:center;margin-top:6px}
+.ck-thism button{display:inline-flex;font-weight:700;color:var(--btn);border-color:var(--btn) !important;border-radius:99px !important;padding:6px 16px !important}
 </style>
 
 </head>
@@ -604,9 +620,14 @@ dialog.ck-dlg form{padding:20px 18px}
   <p class="hint">לחיצה על מקום עבודה מציגה רק את הדיווחים שלו. לחיצה על דיווח פותחת אותו לעריכה.</p>
   <div class="bar" style="justify-content:space-between;margin-top:0">
     <button type="button" id="ckPrev" aria-label="חודש קודם">›</button>
-    <h3 id="ckMonthTitle"></h3>
+    <button type="button" class="ck-mtitle" id="ckMonthBtn" aria-expanded="false" aria-controls="ckMPick"><h3 id="ckMonthTitle"></h3><span aria-hidden="true">▾</span></button>
     <button type="button" id="ckNext" aria-label="חודש הבא">‹</button>
   </div>
+  <div class="ck-mpick" id="ckMPick" hidden>
+    <div class="ck-ynav"><button type="button" id="ckYPrev" aria-label="שנה קודמת">›</button><b class="ck-num" id="ckYear"></b><button type="button" id="ckYNext" aria-label="שנה הבאה">‹</button></div>
+    <div class="ck-mgrid" id="ckMGrid"></div>
+  </div>
+  <div class="ck-thism" id="ckThisWrap" hidden><button type="button" id="ckThisMonth">↩ החודש</button></div>
   <div class="ck-sum" id="ckSum"></div>
   <div class="ck-fnote" id="ckFilterNote" hidden></div>
   <div id="ckMonthList"></div>
@@ -2841,6 +2862,8 @@ function renderMonthList(){
 }
 async function loadMonth(){
   $("#ckMonthTitle").textContent = mLabel(st.month);
+  $("#ckThisWrap").hidden = st.month === isoDate(new Date()).slice(0,7);
+  if(!$("#ckMPick").hidden){ pickY = +st.month.slice(0,4); renderPick(); }
   const {from,to} = range(st.month);
   try{ st.monthList = await db.list(from,to); }catch(err){ st.monthList = []; $("#ckSum").innerHTML = ""; $("#ckMonthList").innerHTML = `<div class="empty">${e(errMsg(err))}</div>`; return; }
   const s = summarize(st.monthList);
@@ -2859,6 +2882,24 @@ $("#ckSum").addEventListener("click", ev => {
 function shiftMonth(k){ const [y,m] = st.month.split("-").map(Number), d = new Date(y, m-1+k, 1); st.month = `${d.getFullYear()}-${p2(d.getMonth()+1)}`; loadMonth(); }
 $("#ckPrev").onclick = () => shiftMonth(-1);
 $("#ckNext").onclick = () => shiftMonth(1);
+const curYM = () => isoDate(new Date()).slice(0,7);
+let pickY = 0;
+function renderPick(){
+  $("#ckYear").textContent = pickY;
+  const cur = curYM();
+  $("#ckMGrid").innerHTML = HEB_MONTHS.map((n, i) => { const ym = `${pickY}-${p2(i+1)}`;
+    return `<button type="button" data-ym="${ym}" class="${ym === cur ? "now" : ""}" aria-current="${ym === st.month}">${n}</button>`; }).join("");
+}
+function togglePick(show){
+  const box = $("#ckMPick"); show = show ?? box.hidden;
+  box.hidden = !show; $("#ckMonthBtn").setAttribute("aria-expanded", show);
+  if(show){ pickY = +st.month.slice(0,4); renderPick(); }
+}
+$("#ckMonthBtn").onclick = () => togglePick();
+$("#ckYPrev").onclick = () => { pickY--; renderPick(); };
+$("#ckYNext").onclick = () => { pickY++; renderPick(); };
+$("#ckMGrid").addEventListener("click", ev => { const b = ev.target.closest("[data-ym]"); if(!b) return; st.month = b.dataset.ym; togglePick(false); loadMonth(); });
+$("#ckThisMonth").onclick = () => { st.month = curYM(); togglePick(false); loadMonth(); };
 
 /* ---------- עריכה ---------- */
 $("#ckEdAbsType").innerHTML = ABSENCES.map((a, i) => `<label><input type="radio" name="ckAbsType" value="${e(a.v)}" ${i ? "" : "checked"}> ${a.icon} ${e(a.v)}</label>`).join("");
