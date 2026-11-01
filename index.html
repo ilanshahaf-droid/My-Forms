@@ -204,11 +204,16 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .hd-row{border:1.5px solid var(--rule);border-radius:16px;padding:12px 14px;margin-top:12px;background:var(--paper)}
 .hd-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .hd-row label.f{margin-top:8px}
-.pv-dlg{width:min(860px,calc(100% - 16px));max-height:calc(100% - 24px)}
+.pv-dlg{width:min(900px,calc(100% - 12px));max-width:none;height:calc(100% - 20px);max-height:none;display:none;flex-direction:column}
+.pv-dlg[open]{display:flex}
+.pv-zoom{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;border-bottom:1px solid var(--rule)}
+.pv-zoom button{min-width:44px;justify-content:center;font-size:18px;padding:6px 12px}
+.pv-zoom #pvFit{font-size:14px}
+.pv-zoom span{min-width:56px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 .pv-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rule)}
 .pv-head button{border:none;background:none;font-size:18px;padding:4px 8px}
-.pv-body{max-height:calc(100vh - 160px);overflow:auto;background:#e5e7eb;padding:10px}
-.pv-body img{display:block;width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.pv-body{flex:1;min-height:0;overflow:auto;background:#e5e7eb;padding:10px;direction:ltr}
+.pv-body img{display:block;width:100%;max-width:none;height:auto;margin:0 auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .pv-doc{background:#fff;overflow:auto}
 .pv-doc{width:760px}
 .pv-doc .ck-report{width:760px;box-sizing:border-box}
@@ -3784,9 +3789,26 @@ if(cloud.user){ pullMentees(); hdRenderFiles(); }
 /* ================= תצוגה מקדימה לכל הטפסים ================= */
 (function(){
   const dlg=document.createElement("dialog"); dlg.className="ck-dlg pv-dlg"; dlg.id="pvDlg";
-  dlg.innerHTML='<div class="pv-head"><b id="pvTitle">תצוגה מקדימה</b><button type="button" id="pvClose" aria-label="סגירה">✕</button></div><div class="pv-body" id="pvBody"></div><p class="hint" style="margin:8px 14px 14px">כך ייראה הטופס. זו תצוגה בלבד – הקובץ לא הופק ולא נשמר.</p>';
+  dlg.innerHTML='<div class="pv-head"><b id="pvTitle">תצוגה מקדימה</b><button type="button" id="pvClose" aria-label="סגירה">✕</button></div><div class="pv-zoom"><button type="button" id="pvOut" aria-label="הקטנה">−</button><span id="pvPct">100%</span><button type="button" id="pvIn" aria-label="הגדלה">+</button><button type="button" id="pvFit">התאם לרוחב</button></div><div class="pv-body" id="pvBody"></div><p class="hint" style="margin:8px 14px 14px">כך ייראה הטופס. זו תצוגה בלבד – הקובץ לא הופק ולא נשמר.</p>';
   document.querySelector("main").appendChild(dlg);
   $("#pvClose").onclick=()=>dlg.close();
+  // הגדלה והקטנה: 100% = כל רוחב העמוד על המסך
+  let zoom=1, fitDoc=1;
+  const STEPS=[0.6,0.8,1,1.25,1.5,2,2.5,3];
+  function applyZoom(){
+    const body=$("#pvBody"), img=body.querySelector("img"), doc=body.querySelector(".pv-doc");
+    if(img) img.style.width=(zoom*100)+"%";
+    if(doc) doc.style.zoom=fitDoc*zoom;
+    $("#pvPct").textContent=Math.round(zoom*100)+"%";
+    $("#pvOut").disabled=zoom<=STEPS[0]; $("#pvIn").disabled=zoom>=STEPS[STEPS.length-1];
+  }
+  function stepZoom(dir){
+    const body=$("#pvBody"), cx=(body.scrollLeft+body.clientWidth/2)/body.scrollWidth, cy=(body.scrollTop+body.clientHeight/2)/body.scrollHeight;
+    const i=STEPS.findIndex(z=>z>=zoom-0.001); zoom=STEPS[Math.max(0,Math.min(STEPS.length-1,(STEPS[i]===zoom?i:i-(dir>0?1:0))+dir))]; applyZoom();
+    body.scrollLeft=cx*body.scrollWidth-body.clientWidth/2; body.scrollTop=cy*body.scrollHeight-body.clientHeight/2;   // נשארים באותו מקום
+  }
+  $("#pvIn").onclick=()=>stepZoom(1); $("#pvOut").onclick=()=>stepZoom(-1);
+  $("#pvFit").onclick=()=>{ zoom=1; applyZoom(); $("#pvBody").scrollTo(0,0); };
   dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
   async function canvasOf(kind,d){   // אותו ציור של ה-PDF, בלי לייצר קובץ
     await pdfFonts();
@@ -3809,9 +3831,9 @@ if(cloud.user){ pullMentees(); hdRenderFiles(); }
     const body=$("#pvBody"); $("#pvTitle").textContent="תצוגה מקדימה · "+TITLE[kind];
     try{
       if(kind==="hadracha"){ body.innerHTML='<div class="pv-doc">'+HDF.pdfHtml(HDF.collect())+'</div>';
-        dlg.showModal(); const doc=body.querySelector(".pv-doc"); doc.style.zoom=Math.min(1,(body.clientWidth-20)/760); body.scrollTop=0; return; }
+        dlg.showModal(); fitDoc=Math.min(1,(body.clientWidth-20)/760); zoom=1; applyZoom(); body.scrollTop=0; return; }
       else { const c=await canvasOf(kind,DATA[kind]()); body.innerHTML=""; const img=new Image(); img.src=c.toDataURL("image/jpeg",0.9); img.alt="תצוגה מקדימה של הטופס"; body.appendChild(img); }
-      dlg.showModal(); body.scrollTop=0;
+      dlg.showModal(); zoom=1; applyZoom(); body.scrollTop=0;
     }catch(e){ setStatus(statusSel,(e&&e.message)||"אי אפשר להציג תצוגה מקדימה.","err"); }
   }
   [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["hadracha","#hdMake","#hdStatus"]].forEach(([k,btn,st])=>{
