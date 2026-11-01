@@ -649,6 +649,15 @@ dialog.ck-dlg form{padding:20px 18px}
 <section class="step tab m-hadracha" id="hd2"><span class="punch">2</span>
   <h2>מפגשי ההדרכה</h2>
   <p class="hint">מודרכים שכבר הוזנו נשמרים: מתחילים להקליד שם, והתפקיד והמסגרת מתמלאים לבד. "+ שבוע הבא" משכפל מפגש לאותו יום בשבוע הבא.</p>
+  <div class="hd-import">
+    <div class="bar" style="margin-top:0"><label class="filebtn">📥 ייבוא מאקסל<input type="file" id="hdFile" accept=".xlsx,.xls,.csv" multiple></label></div>
+    <div class="status" id="hdImpStatus"></div>
+    <details><summary>איך יוצרים קובץ אקסל מצילום של הלו"ז</summary>
+      <p>שולחים ל-Claude צילום של הלו"ז (אפשר כמה צילומים, גם משני מקומות העבודה) עם ההנחיה הזאת, מורידים את קובץ האקסל שהוא יוצר, ומייבאים אותו כאן. אפשר לייבא כמה קבצים, והמפגשים מצטרפים.</p>
+      <p id="hdPrompt" class="prompt"></p>
+      <button type="button" id="hdCopyPrompt">העתק את ההנחיה</button>
+    </details>
+  </div>
   <div id="hdRows"></div>
   <datalist id="hdMentees"></datalist>
   <div class="bar"><button type="button" class="primary" id="hdAdd">+ הוספת מפגש</button></div>
@@ -3552,6 +3561,71 @@ $("#hdAdd").onclick = () => {
 };
 ["#hdMonth","#hdName"].forEach(s => $(s).addEventListener("change", saveDraft));
 
+/* ---------- ייבוא מאקסל (למשל מצילום של הלו"ז) ---------- */
+function promptText(){
+  const ym = $("#hdMonth").value || ymNow(), mn = HEB_MONTHS[+ym.slice(5,7)-1], y = ym.slice(0,4);
+  return `צור קובץ Excel מצילום הלו"ז המצורף (לו"ז ההדרכות לחודש ${mn} ${y}). שורה אחת לכל מפגש הדרכה, עם העמודות האלה בדיוק ובסדר הזה: תאריך (DD/MM/YYYY), שם המודרך/ת, תפקיד, מסגרת, אופן ההדרכה (פרונטלי / זום / טלפון), התקיימה במלואה (כן / לא), הערות. אם בלו"ז מופיעים רק ימים בשבוע או מספרי ימים, חשב את התאריך המלא לפי חודש ${mn} ${y}. אם תפקיד, מסגרת או אופן ההדרכה לא כתובים בלו"ז, השאר את התא ריק. אל תכלול אירועים שאינם הדרכה (ישיבות צוות, ימי חופש וכדומה). בעמודת "התקיימה במלואה" כתוב "כן", אלא אם בלו"ז מסומן שהמפגש בוטל או נדחה – אז "לא" והסיבה בעמודת ההערות.`;
+}
+const HCOL = {
+  date: [/^תאריך|^date/, true],
+  name: [/מודרך|שם/, true],
+  role: [/תפקיד/, false],
+  setting: [/מסגרת|מקום/, false],
+  mode: [/אופן|פרונטלי|זום/, false],
+  held: [/התקיימ/, false],
+  notes: [/הער/, false]
+};
+function normMode(v){ v = String(v||""); return /זום|zoom/i.test(v) ? "זום" : /טלפון|phone/i.test(v) ? "טלפון" : "פרונטלי"; }
+function normHeld(v){ return /^\s*(לא|no|x|✗)/i.test(String(v||"")) ? "לא" : "כן"; }
+function importBytes(bytes){
+  const ym = $("#hdMonth").value || ymNow(), yh = +ym.slice(0,4), out = [];
+  for(const rows of readSheets(bytes)){
+    const h = findHeader(rows, HCOL); if(!h) continue; const ix = h.idx;
+    for(const r of rows.slice(h.row + 1)){
+      const date = normDate(r[ix.date], yh), name = String(r[ix.name] || "").trim();
+      if(!date || !name) continue;
+      const g = k => ix[k] >= 0 ? String(r[ix[k]] || "").trim() : "";
+      out.push({ date, name, role: g("role"), setting: g("setting"), mode: g("mode"), held: g("held"), notes: g("notes") });
+    }
+    if(out.length) break;
+  }
+  return out;
+}
+$("#hdFile").onchange = async ev => {
+  const files = [...ev.target.files]; if(!files.length) return;
+  let added = 0, dup = 0, bad = 0; const ms = mentees();
+  for(const f of files){
+    let rows = [];
+    try{ if(!window.XLSX) throw new Error(); rows = importBytes(new Uint8Array(await f.arrayBuffer())); }catch(_){ bad++; continue; }
+    if(!rows.length){ bad++; continue; }
+    rows.forEach(x => {
+      if(HD.rows.some(r => r.date === x.date && (r.name||"").trim() === x.name)){ dup++; return; }
+      const m = ms.find(z => z.name === x.name) || {};
+      HD.rows.push({ date: x.date, name: x.name, role: x.role || m.role || "", setting: x.setting || m.setting || "",
+        mode: x.mode ? normMode(x.mode) : (m.mode || "פרונטלי"), held: normHeld(x.held), notes: x.notes });
+      added++;
+    });
+  }
+  ev.target.value = "";
+  if(added && !$("#hdMonth").value){ $("#hdMonth").value = HD.rows[0].date.slice(0,7); }
+  // אם כל המפגשים בחודש אחר מהחודש שנבחר – עוברים לחודש שלהם
+  const months = {}; HD.rows.forEach(r => { if(r.date) months[r.date.slice(0,7)] = (months[r.date.slice(0,7)]||0) + 1; });
+  const top = Object.entries(months).sort((a,b) => b[1]-a[1])[0]; if(top && !months[$("#hdMonth").value]) $("#hdMonth").value = top[0];
+  sortRows(); render(); saveDraft();
+  const parts = [];
+  if(added) parts.push(`נוספו ${added} מפגשים`);
+  if(dup) parts.push(`${dup} כבר היו ברשימה ודולגו`);
+  if(bad) parts.push(`${bad === 1 ? "קובץ אחד" : bad + " קבצים"} לא נקרא – צריך עמודות "תאריך" ו"שם המודרך"`);
+  setStatus("#hdImpStatus", parts.join(" · ") || "לא נמצאו מפגשים בקובץ.", added ? "ok" : "err");
+};
+$("#hdCopyPrompt").onclick = async () => {
+  try{ await navigator.clipboard.writeText(promptText()); $("#hdCopyPrompt").textContent = "הועתק ✓"; }
+  catch(_){ $("#hdCopyPrompt").textContent = "סמן והעתק ידנית"; }
+  setTimeout(() => $("#hdCopyPrompt").textContent = "העתק את ההנחיה", 2000);
+};
+const showPrompt = () => { $("#hdPrompt").textContent = promptText(); };
+$("#hdMonth").addEventListener("change", showPrompt);
+
 /* ---------- מילוי התבנית ---------- */
 function b64bytes(b){ const s = atob(b), u = new Uint8Array(s.length); for(let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
 async function buildDocx(data){
@@ -3681,8 +3755,8 @@ renderFiles = async function(){ await origRender(); try{ await hdRenderFiles(); 
 /* ---------- אתחול ---------- */
 loadDraft();
 if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || "";
-fillDatalist(); render();
-window.HDF = { enter(){ if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); }, render, buildDocx, pdfHtml, HD };
+fillDatalist(); render(); showPrompt();
+window.HDF = { importBytes, promptText, enter(){ showPrompt(); if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); }, render, buildDocx, pdfHtml, HD };
 if(cloud.user){ pullMentees(); hdRenderFiles(); }
 })();
 </script>
