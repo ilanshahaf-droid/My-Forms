@@ -204,6 +204,15 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .hd-row{border:1.5px solid var(--rule);border-radius:16px;padding:12px 14px;margin-top:12px;background:var(--paper)}
 .hd-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .hd-row label.f{margin-top:8px}
+.pv-dlg{width:min(860px,calc(100% - 16px));max-height:calc(100% - 24px)}
+.pv-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rule)}
+.pv-head button{border:none;background:none;font-size:18px;padding:4px 8px}
+.pv-body{max-height:calc(100vh - 160px);overflow:auto;background:#e5e7eb;padding:10px}
+.pv-body img{display:block;width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.pv-doc{background:#fff;overflow:auto}
+.pv-doc{width:760px}
+.pv-doc .ck-report{width:760px;box-sizing:border-box}
+.hd-new{box-shadow:0 0 0 3px var(--focus);transition:box-shadow .3s}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -3546,7 +3555,7 @@ $("#hdRows").addEventListener("change", ev => {
     const m = mentees().find(x => x.name === el.value.trim());
     if(m){ if(!r.role) r.role = m.role; if(!r.setting) r.setting = m.setting; if(m.mode) r.mode = m.mode; setTimeout(render, 0); }
   }
-  if(el.dataset.k === "date"){ sortRows(); setTimeout(render, 0); }   // אחרי שהאירוע מסתיים
+
   saveDraft();
 });
 $("#hdRows").addEventListener("click", ev => {
@@ -3555,14 +3564,20 @@ $("#hdRows").addEventListener("click", ev => {
   if(b.dataset.act === "del"){ HD.rows.splice(i,1); }
   if(b.dataset.act === "next"){ const r = HD.rows[i]; let d = "";
     if(r.date){ const x = new Date(r.date + "T12:00:00"); x.setDate(x.getDate()+7); d = `${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`; }
-    HD.rows.push({ ...r, date: d, notes: "", held: "כן" }); sortRows(); }
+    HD.rows.splice(i + 1, 0, { ...r, date: d, notes: "", held: "כן" }); render(); saveDraft(); focusRow(i + 1); return; }
   render(); saveDraft();
 });
 $("#hdAdd").onclick = () => {
   const ym = $("#hdMonth").value || ymNow(), n = new Date(), t = `${n.getFullYear()}-${p2(n.getMonth()+1)}-${p2(n.getDate())}`;
   HD.rows.push({ date: t.startsWith(ym) ? t : ym + "-01", name: "", role: "", setting: "", mode: "פרונטלי", held: "כן", notes: "" });
-  sortRows(); render(); saveDraft();
+  render(); saveDraft(); focusRow(HD.rows.length - 1, "name");   // המפגש החדש נוסף בסוף הרשימה, ומקבל פוקוס
 };
+// מעבירים את המסך למפגש ומסמנים אותו לרגע (המיון לפי תאריך נעשה בהפקה)
+function focusRow(i, field){
+  const el = document.querySelector(`.hd-row[data-i="${i}"]`); if(!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("hd-new"); setTimeout(() => el.classList.remove("hd-new"), 1800);
+  if(field){ const f = el.querySelector(`[data-k="${field}"]`); if(f) setTimeout(() => f.focus({ preventScroll: true }), 350); }
+}
 ["#hdMonth","#hdName"].forEach(s => $(s).addEventListener("change", saveDraft));
 
 /* ---------- ייבוא מאקסל (למשל מצילום של הלו"ז) ---------- */
@@ -3683,7 +3698,7 @@ function pdfHtml(data){
 function collect(){
   const ym = $("#hdMonth").value; if(!ym) throw new Error("יש לבחור חודש.");
   const name = $("#hdName").value.trim();
-  const rows = HD.rows.filter(r => (r.name || "").trim());
+  const rows = HD.rows.filter(r => (r.name || "").trim()).slice().sort((a,b) => (a.date||"9").localeCompare(b.date||"9"));
   if(!rows.length) throw new Error("עוד אין מפגשים עם שם מודרך. לחצו \"+ הוספת מפגש\".");
   return { ym, name, monthName: HEB_MONTHS[+ym.slice(5,7)-1], year: ym.slice(0,4), rows };
 }
@@ -3761,8 +3776,49 @@ renderFiles = async function(){ await origRender(); try{ await hdRenderFiles(); 
 loadDraft();
 if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || "";
 fillDatalist(); render(); showPrompt();
-window.HDF = { importBytes, promptText, enter(){ showPrompt(); if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); }, render, buildDocx, pdfHtml, HD };
+window.HDF = { collect, importBytes, promptText, enter(){ showPrompt(); if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); }, render, buildDocx, pdfHtml, HD };
 if(cloud.user){ pullMentees(); hdRenderFiles(); }
+})();
+</script>
+<script>
+/* ================= תצוגה מקדימה לכל הטפסים ================= */
+(function(){
+  const dlg=document.createElement("dialog"); dlg.className="ck-dlg pv-dlg"; dlg.id="pvDlg";
+  dlg.innerHTML='<div class="pv-head"><b id="pvTitle">תצוגה מקדימה</b><button type="button" id="pvClose" aria-label="סגירה">✕</button></div><div class="pv-body" id="pvBody"></div><p class="hint" style="margin:8px 14px 14px">כך ייראה הטופס. זו תצוגה בלבד – הקובץ לא הופק ולא נשמר.</p>';
+  document.querySelector("main").appendChild(dlg);
+  $("#pvClose").onclick=()=>dlg.close();
+  dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+  async function canvasOf(kind,d){   // אותו ציור של ה-PDF, בלי לייצר קובץ
+    await pdfFonts();
+    const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
+    const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
+    const {c,x}=pdfCanvas();
+    if(kind==="gefen") drawGefen(x,d,sig); else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="maanak") drawFormPdf(x,d,sig); else drawWork(x,d,sig);
+    return c;
+  }
+  const DATA={
+    work:()=>{ if(!S.rows.length) throw new Error("עדיין לא סומנו ימים בלוח.");
+      return {month:$("#month").value.trim(),name:$("#name").value.trim(),tz:$("#tz").value.trim(),rows:S.rows.map(r=>({date:r.date,in:r.in,out:r.out,note:r.note}))}; },
+    gefen:()=>{ const rows=G.rows.filter(r=>r.date); if(!rows.length) throw new Error("אין שורות בדוח.");
+      return {school:$("#school").value.trim(),name:$("#name").value.trim(),tz:$("#tz").value.trim(),month:$("#gMonth").value.trim(),rows}; },
+    maanak:()=>{ const d=FORMS.maanak.data(readForm("maanak")); if(d.error) throw new Error(d.error); return d.pdf; },
+    hofesh:()=>{ const d=FORMS.hofesh.data(readForm("hofesh")); if(d.error) throw new Error(d.error); return d.pdf; }
+  };
+  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",hadracha:"תיעוד הדרכה"};
+  async function show(kind,statusSel){
+    const body=$("#pvBody"); $("#pvTitle").textContent="תצוגה מקדימה · "+TITLE[kind];
+    try{
+      if(kind==="hadracha"){ body.innerHTML='<div class="pv-doc">'+HDF.pdfHtml(HDF.collect())+'</div>';
+        dlg.showModal(); const doc=body.querySelector(".pv-doc"); doc.style.zoom=Math.min(1,(body.clientWidth-20)/760); body.scrollTop=0; return; }
+      else { const c=await canvasOf(kind,DATA[kind]()); body.innerHTML=""; const img=new Image(); img.src=c.toDataURL("image/jpeg",0.9); img.alt="תצוגה מקדימה של הטופס"; body.appendChild(img); }
+      dlg.showModal(); body.scrollTop=0;
+    }catch(e){ setStatus(statusSel,(e&&e.message)||"אי אפשר להציג תצוגה מקדימה.","err"); }
+  }
+  [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["hadracha","#hdMake","#hdStatus"]].forEach(([k,btn,st])=>{
+    const b=$(btn); if(!b) return;
+    const p=document.createElement("button"); p.type="button"; p.className="pvbtn"; p.textContent="👁 תצוגה מקדימה"; p.onclick=()=>show(k,st);
+    b.after(p);
+  });
 })();
 </script>
 </body>
