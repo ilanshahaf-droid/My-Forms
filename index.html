@@ -137,7 +137,8 @@ body[data-mode="work"] .tab:not(.m-work),
 body[data-mode="gefen"] .tab:not(.m-gefen),
 body[data-mode="maanak"] .tab:not(.m-maanak),
 body[data-mode="hofesh"] .tab:not(.m-hofesh),
-body[data-mode="clock"] .tab:not(.m-clock){display:none}
+body[data-mode="clock"] .tab:not(.m-clock),
+body[data-mode="hadracha"] .tab:not(.m-hadracha){display:none}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .dcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:22px 12px;text-align:center;min-height:104px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .dcard:hover,.dcard:focus-visible{border-color:var(--focus);box-shadow:0 6px 20px rgba(59,130,246,.12);outline:none}
@@ -197,6 +198,9 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .form-card-btn[hidden]{display:none !important}
 .mf-opts{flex-direction:column;align-items:stretch}
 .mf-opts label{border-radius:12px !important;padding:11px 14px !important;font-size:15px !important}
+.hd-row{border:1.5px solid var(--rule);border-radius:16px;padding:12px 14px;margin-top:12px;background:var(--paper)}
+.hd-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.hd-row label.f{margin-top:8px}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -222,7 +226,8 @@ body[data-mode="work"] .back-row,
 body[data-mode="gefen"] .back-row,
 body[data-mode="maanak"] .back-row,
 body[data-mode="hofesh"] .back-row,
-body[data-mode="clock"] .back-row{display:flex}
+body[data-mode="clock"] .back-row,
+body[data-mode="hadracha"] .back-row{display:flex}
 .back-row button{font:600 14px "Assistant",Arial,sans-serif;background:var(--card);border:1.5px solid var(--rule);border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .back-row button:hover{border-color:var(--btn);color:var(--btn)}
 
@@ -459,6 +464,11 @@ dialog.ck-dlg form{padding:20px 18px}
       <span class="finfo"><span class="ft">שעון נוכחות</span><span class="fd">כניסה ויציאה יומית ודו״ח חודשי</span><span class="badge new" data-ckbadge>דיווח יומי</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
+    <button type="button" class="form-card-btn" data-open="hadracha">
+      <span class="ficon" aria-hidden="true">🧑‍🏫</span>
+      <span class="finfo"><span class="ft">תיעוד הדרכה</span><span class="fd">נספח ב' – טופס חודשי לתיעוד הדרכה פרטנית / קבוצתית</span><span class="badge new">חודשי</span></span>
+      <span class="farrow" aria-hidden="true">‹</span>
+    </button>
     <button type="button" class="form-card-btn" data-open="maanak">
       <span class="ficon" aria-hidden="true">📄</span>
       <span class="finfo"><span class="ft">בקשה למענק השתלמות</span><span class="fd">פרטים אישיים, פרטי הלימודים וחתימה</span><span class="badge new" data-badge="maanak">חדש</span></span>
@@ -624,6 +634,36 @@ dialog.ck-dlg form{padding:20px 18px}
   <div id="ckPlaceList"></div>
   <div class="bar"><input type="text" id="ckPlaceNew" placeholder="שם מקום עבודה חדש" style="flex:1;min-width:0"><button type="button" class="primary" id="ckPlaceAdd">הוספה</button></div>
   <div class="status" id="ckPlaceStatus"></div>
+</section>
+
+<!-- ========== תיעוד הדרכה (נספח ב') ========== -->
+<section class="step tab m-hadracha" id="hd1"><span class="punch">1</span>
+  <h2>תיעוד קיום הדרכה</h2>
+  <p class="hint">נספח ב' – טופס חודשי לתיעוד הדרכה פרטנית / קבוצתית. שם המדריך נלקח מ"הפרטים שלי", ואפשר לשנות.</p>
+  <div class="row2">
+    <div><label class="f" for="hdName">שם המדריך</label><input type="text" id="hdName"></div>
+    <div><label class="f" for="hdMonth">חודש</label><input type="month" id="hdMonth"></div>
+  </div>
+</section>
+
+<section class="step tab m-hadracha" id="hd2"><span class="punch">2</span>
+  <h2>מפגשי ההדרכה</h2>
+  <p class="hint">מודרכים שכבר הוזנו נשמרים: מתחילים להקליד שם, והתפקיד והמסגרת מתמלאים לבד. "+ שבוע הבא" משכפל מפגש לאותו יום בשבוע הבא.</p>
+  <div id="hdRows"></div>
+  <datalist id="hdMentees"></datalist>
+  <div class="bar"><button type="button" class="primary" id="hdAdd">+ הוספת מפגש</button></div>
+  <div class="status" id="hdRowsStatus"></div>
+</section>
+
+<section class="step tab m-hadracha" id="hd3"><span class="punch">3</span>
+  <h2>הפקת הטופס</h2>
+  <p class="hint">הטופס נבנה על התבנית המקורית של נספח ב'.</p>
+  <div class="bar">
+    <button type="button" class="primary" id="hdMake">הפק קובץ וורד</button>
+    <button type="button" id="hdPdf" hidden>הורד PDF</button>
+    <button type="button" id="hdDrive" class="drivebtn" hidden>שמור בדרייב</button>
+  </div>
+  <div class="status" id="hdStatus"></div>
 </section>
 
 <section class="step tab m-gefen" id="g1"><span class="punch">1</span>
@@ -827,6 +867,14 @@ dialog.ck-dlg form{padding:20px 18px}
         <span class="folder-chevron">‹</span>
       </button>
       <div class="folder-body" id="fileListGefen"><div class="folder-empty">טוען…</div></div>
+    </div>
+    <div class="folder" id="folderHadracha" data-folder="hadracha">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon green">📁</span>
+        <span class="folder-meta"><h3>תיעוד הדרכות</h3><p id="folderHadrachaCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListHadracha"><div class="folder-empty">טוען…</div></div>
     </div>
     <div class="folder" id="folderForms" data-folder="forms">
       <button type="button" class="folder-head" aria-expanded="false">
@@ -1703,7 +1751,7 @@ const pdfFiles={};
    סמסונג דוחה שיתוף של קובץ ששמו בעברית – אז שם הקובץ בשיתוף הוא באנגלית (בכרום נשאר השם העברי).
    אם השיתוף עדיין נכשל – הקובץ נפתח בצופה של הדפדפן, ומשם אפשר לשתף. */
 const IS_SAMSUNG = /SamsungBrowser/i.test(navigator.userAgent);
-const SHARE_PREFIX = {work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", clock:"attendance-report"};
+const SHARE_PREFIX = {hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", clock:"attendance-report"};
 function asciiFile(file,kind){
   const ext=(file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0];
   let n=file.name; HEB_MONTHS.forEach((m,i)=>{ n=n.replace(new RegExp(m+"[_ ]+(\\d{4})"),"$1-"+pad2(i+1)); });
@@ -2021,6 +2069,7 @@ function renderDash(){
     const cards=[
       formOn("work")&&card("כרטיס נוכחות","✅",L&&L.work,monthOfName,"folderWork"),
       formOn("gefen")&&card('דוח גפ"ן',"📋",L&&L.gef,monthOfName,"folderGefen"),
+      formOn("hadracha")&&card("תיעוד הדרכה","🧑‍🏫",L&&L.hadracha,monthOfName,"folderHadracha"),
       formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
       formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh")].filter(Boolean);
     if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
@@ -2052,13 +2101,14 @@ $("#month").addEventListener("input",renderDash);
 $("#gMonth").addEventListener("input",renderDash);
 
 /* mode tabs */
-const FORM_MODES=["work","gefen","maanak","hofesh","clock"];
+const FORM_MODES=["work","gefen","maanak","hofesh","clock","hadracha"];
 function setMode(m){
   const mainTab=FORM_MODES.includes(m)?"forms":m;
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
   document.querySelectorAll(".modes button").forEach(b=>{ if(b.dataset.mode===mainTab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   if(m==="maanak"||m==="hofesh") prefillForm(m);
   if((m==="clock"||m==="dash")&&window.CK) CK.enter();
+  if(m==="hadracha"&&window.HDF) HDF.enter();
   renderDash();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
@@ -2066,7 +2116,7 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{ btn.onclick=()=>setMo
 $("#backToForms").onclick=()=>setMode("forms");
 document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","polite"));
 
-const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock"];
+const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock","hadracha"];
 syncFormUi(); updateBadges();
 setMode("dash");   // תמיד נפתח בלוח הבקרה, עם כרטיס השעון למעלה
 
@@ -2102,6 +2152,7 @@ function driveFolderName(kind){
   if(kind==="gefen") return 'גפ"ן';
   if(kind==="maanak") return "מענק השתלמות";
   if(kind==="hofesh") return "בקשות יציאה לחופש";
+  if(kind==="hadracha") return "תיעוד הדרכות";
   if(kind==="clock") return "שעון נוכחות";
   return "שעות עבודה";
 }
@@ -2355,7 +2406,7 @@ async function renderFiles(){
   });
   const lastOf=(files,re)=>(files||[]).filter(f=>re.test(f.name)).map(f=>({name:f.name,t:Date.parse(f.updated_at||f.created_at||"")||0})).sort((a,b)=>b.t-a.t)[0]||null;
   const RE=/^\d{4}-\d{2}\.docx$/i, DOCX=/\.docx$/i;
-  window.lastReports={work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX)};
+  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX)};
   const wc=cntFiles(work), gc=cntFiles(gef);
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
@@ -2410,6 +2461,7 @@ const MY_FORMS=[
   {k:"clock", label:"⏱ שעון נוכחות", card:"clock", folder:null},
   {k:"work", label:"✅ כרטיס נוכחות", card:"work", folder:"folderWork"},
   {k:"gefen", label:'📋 דוח גפ"ן', card:"gefen", folder:"folderGefen"},
+  {k:"hadracha", label:"🧑‍🏫 תיעוד הדרכה (נספח ב')", card:"hadracha", folder:"folderHadracha"},
   {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
   {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"}];
 function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
@@ -3025,12 +3077,14 @@ async function makeXlsx(rep){
   return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
-async function makePdf(rep){
+async function makePdf(rep){ return htmlPdf(reportHTML(rep)); }
+async function htmlPdf(html){
+  await needLib("pdf");
   // הדו"ח מצויר לתמונה ומחולק לעמודי A4 – בלי לחתוך שורה באמצע.
   // הוא מונח בפינה העליונה של הדף (מאחורי התוכן) ולא מחוץ למסך, אחרת הצילום יוצא ריק.
   const host = document.createElement("div");
   host.style.cssText = "position:absolute;left:0;top:0;width:820px;z-index:-1;background:#fff;pointer-events:none";
-  host.innerHTML = reportHTML(rep); document.body.appendChild(host);
+  host.innerHTML = html; document.body.appendChild(host);
   const el = host.firstElementChild;
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -3395,7 +3449,7 @@ document.addEventListener("visibilitychange", () => { if(document.visibilityStat
 window.addEventListener("focus", () => quickSync());
 
 window.CK = {
-  refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, db, st, get WORKPLACES(){ return WORKPLACES; }, setPlaces,
+  refresh, enter: refresh, buildReport, reportHTML, makeDocx, makeXlsx, htmlPdf, needLib, db, st, get WORKPLACES(){ return WORKPLACES; }, setPlaces,
   dashActs(acts){ const o = st.open; if(!o || o.work_date === isoDate(new Date())) return;
     const today = o.work_date === isoDate(new Date());
     acts.unshift({ text: today ? `שעון נוכחות – בעבודה ב${o.workplace}` : "שעון נוכחות – דיווח פתוח מיום קודם",
@@ -3413,6 +3467,223 @@ renderChips();
 })();
 if(location.hash === "#clock") setMode("clock");
 if(new URLSearchParams(location.search).get("ck")) shortcutAction(); else refresh();
+})();
+</script>
+<script>
+/* ================= תיעוד הדרכה (נספח ב') ================= */
+(function(){
+const HD_TPL = "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";
+const MODES = ["פרונטלי","זום","טלפון"];
+const HD = { rows: [], last: null, lastPdf: null };
+const p2 = n => String(n).padStart(2,"0");
+const e = s => esc(s == null ? "" : s);
+const dmy = iso => { if(!iso) return ""; const [y,m,d] = iso.split("-"); return `${d}/${m}/${y.slice(2)}`; };   // קצר, כדי שייכנס בעמודה הצרה
+const ymNow = () => { const n = new Date(); return `${n.getFullYear()}-${p2(n.getMonth()+1)}`; };
+const mLabelHd = ym => HEB_MONTHS[+ym.slice(5,7)-1] + " " + ym.slice(0,4);
+
+/* ---------- מודרכים שמורים ---------- */
+function mentees(){ try{ return JSON.parse(localStorage.getItem("hd_mentees")||"[]"); }catch(_){ return []; } }
+function saveMentees(list){ try{ localStorage.setItem("hd_mentees", JSON.stringify(list)); }catch(_){} fillDatalist(); }
+function rememberMentees(){
+  const m = mentees();
+  HD.rows.forEach(r => { const n = (r.name||"").trim(); if(!n) return;
+    const i = m.findIndex(x => x.name === n), v = { name: n, role: r.role||"", setting: r.setting||"", mode: r.mode||"" };
+    if(i >= 0) m[i] = { ...m[i], ...Object.fromEntries(Object.entries(v).filter(([,x]) => x)) }; else m.push(v); });
+  saveMentees(m);
+  if(cloud.user) cloud.sb.storage.from(BUCKET).upload(P("hadracha/mentees.json"), new Blob([JSON.stringify(m)],{type:"application/json"}), {upsert:true, contentType:"application/json"}).catch(()=>{});
+}
+async function pullMentees(){
+  if(!cloud.user) return;
+  try{ const {data} = await cloud.sb.storage.from(BUCKET).download(P("hadracha/mentees.json"));
+    if(data){ const cl = JSON.parse(await data.text()), loc = mentees();
+      cl.forEach(c => { if(!loc.some(x => x.name === c.name)) loc.push(c); }); saveMentees(loc); } }catch(_){}
+}
+function fillDatalist(){ $("#hdMentees").innerHTML = mentees().map(m => `<option value="${e(m.name)}">`).join(""); }
+
+/* ---------- טיוטה ---------- */
+function saveDraft(){ try{ localStorage.setItem("hd_draft", JSON.stringify({ month: $("#hdMonth").value, name: $("#hdName").value, rows: HD.rows })); }catch(_){} }
+function loadDraft(){
+  try{ const d = JSON.parse(localStorage.getItem("hd_draft")||"null");
+    if(d){ HD.rows = d.rows || []; $("#hdMonth").value = d.month || ymNow(); $("#hdName").value = d.name || ""; return; } }catch(_){}
+  $("#hdMonth").value = ymNow();
+}
+
+/* ---------- עורך השורות ---------- */
+function render(){
+  const box = $("#hdRows");
+  if(!HD.rows.length){ box.innerHTML = '<div class="empty">עוד אין מפגשים בחודש הזה.</div>'; return; }
+  box.innerHTML = HD.rows.map((r,i) => `<div class="hd-row" data-i="${i}">
+    <div class="hd-grid">
+      <div><label class="f">תאריך</label><input type="date" data-k="date" value="${e(r.date)}"></div>
+      <div><label class="f">שם המודרך/ת</label><input type="text" data-k="name" list="hdMentees" value="${e(r.name)}"></div>
+      <div><label class="f">תפקיד</label><input type="text" data-k="role" value="${e(r.role)}"></div>
+      <div><label class="f">מסגרת</label><input type="text" data-k="setting" value="${e(r.setting)}"></div>
+      <div><label class="f">אופן ההדרכה</label><select data-k="mode">${MODES.map(m => `<option ${r.mode===m?"selected":""}>${m}</option>`).join("")}</select></div>
+      <div><label class="f">התקיימה במלואה?</label><select data-k="held"><option ${r.held!=="לא"?"selected":""}>כן</option><option ${r.held==="לא"?"selected":""}>לא</option></select></div>
+    </div>
+    <label class="f">הערות טכניות</label><input type="text" data-k="notes" value="${e(r.notes)}" placeholder="נדחתה, קוצרה, שינוי מועד… (ללא תוכן מקצועי)">
+    <div class="bar"><button type="button" data-act="next">+ שבוע הבא</button><button type="button" class="x" data-act="del">✕ מחיקה</button></div>
+  </div>`).join("");
+}
+function sortRows(){ HD.rows.sort((a,b) => (a.date||"9").localeCompare(b.date||"9")); }
+$("#hdRows").addEventListener("change", ev => {
+  const el = ev.target.closest("[data-k]"), row = ev.target.closest(".hd-row"); if(!el || !row) return;
+  const r = HD.rows[+row.dataset.i]; r[el.dataset.k] = el.value;
+  if(el.dataset.k === "name"){   // מודרך מוכר: ממלאים את שאר הפרטים
+    const m = mentees().find(x => x.name === el.value.trim());
+    if(m){ if(!r.role) r.role = m.role; if(!r.setting) r.setting = m.setting; if(m.mode) r.mode = m.mode; setTimeout(render, 0); }
+  }
+  if(el.dataset.k === "date"){ sortRows(); setTimeout(render, 0); }   // אחרי שהאירוע מסתיים
+  saveDraft();
+});
+$("#hdRows").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-act]"), row = ev.target.closest(".hd-row"); if(!b || !row) return;
+  const i = +row.dataset.i;
+  if(b.dataset.act === "del"){ HD.rows.splice(i,1); }
+  if(b.dataset.act === "next"){ const r = HD.rows[i]; let d = "";
+    if(r.date){ const x = new Date(r.date + "T12:00:00"); x.setDate(x.getDate()+7); d = `${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`; }
+    HD.rows.push({ ...r, date: d, notes: "", held: "כן" }); sortRows(); }
+  render(); saveDraft();
+});
+$("#hdAdd").onclick = () => {
+  const ym = $("#hdMonth").value || ymNow(), n = new Date(), t = `${n.getFullYear()}-${p2(n.getMonth()+1)}-${p2(n.getDate())}`;
+  HD.rows.push({ date: t.startsWith(ym) ? t : ym + "-01", name: "", role: "", setting: "", mode: "פרונטלי", held: "כן", notes: "" });
+  sortRows(); render(); saveDraft();
+};
+["#hdMonth","#hdName"].forEach(s => $(s).addEventListener("change", saveDraft));
+
+/* ---------- מילוי התבנית ---------- */
+function b64bytes(b){ const s = atob(b), u = new Uint8Array(s.length); for(let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function buildDocx(data){
+  const zip = await JSZip.loadAsync(b64bytes(HD_TPL));
+  const doc = new DOMParser().parseFromString(await zip.file("word/document.xml").async("string"), "application/xml");
+  const T = el => el.getElementsByTagNameNS(W, "t");
+  const setT = (t, v) => { t.textContent = v; t.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve"); };
+  // כותרת: שם המדריך, חודש, שנה
+  [...doc.getElementsByTagNameNS(W, "p")].forEach(p => {
+    const ts = [...T(p)], txt = ts.map(t => t.textContent).join("");
+    if(txt.startsWith("שם המדריך")){
+      const u = ts.find(t => /^_+$/.test(t.textContent.trim())); if(u) setT(u, ": " + data.name + "   ");
+      ts.filter(t => t.textContent.trim() === ":").forEach(t => setT(t, ""));
+    }
+    if(txt.startsWith("חודש") && txt.includes("שנ")){
+      const us = ts.filter(t => /^\s*_+\s*$/.test(t.textContent));
+      if(us[0]) setT(us[0], " " + data.monthName + "   "); if(us[1]) setT(us[1], " " + data.year);
+    }
+  });
+  // הטבלה: שורת הכותרת נשארת, ושורה לכל מפגש (לפחות כמו בתבנית)
+  const tbl = doc.getElementsByTagNameNS(W, "tbl")[0], trs = [...tbl.getElementsByTagNameNS(W, "tr")];
+  const tpl = trs[1].cloneNode(true), minRows = trs.length - 1;
+  trs.slice(1).forEach(tr => tr.remove());
+  const rows = data.rows.map(r => [dmy(r.date), r.name, r.role, r.setting, r.mode, r.held, r.notes]);
+  while(rows.length < minRows) rows.push(["","","","","","",""]);
+  rows.forEach(vals => {
+    const tr = tpl.cloneNode(true);
+    [...tr.getElementsByTagNameNS(W, "tc")].forEach((tc, ci) => {
+      const v = vals[ci] || ""; if(!v) return;
+      const p = tc.getElementsByTagNameNS(W, "p")[0], ppr = p.getElementsByTagNameNS(W, "pPr")[0];
+      const r = doc.createElementNS(W, "w:r"), src = ppr && ppr.getElementsByTagNameNS(W, "rPr")[0];
+      if(src) r.appendChild(src.cloneNode(true));
+      const t = doc.createElementNS(W, "w:t"); setT(t, v); r.appendChild(t); p.appendChild(r);
+    });
+    tbl.appendChild(tr);
+  });
+  zip.file("word/document.xml", new XMLSerializer().serializeToString(doc));
+  return zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}
+function pdfHtml(data){
+  const head = ["תאריך","שם המודרך/ת","תפקיד","מסגרת","אופן ההדרכה","התקיימה במלואה?","הערות טכניות"];
+  const rows = data.rows.map(r => [dmy(r.date), r.name, r.role, r.setting, r.mode, r.held, r.notes]);
+  while(rows.length < 7) rows.push(["","","","","","",""]);
+  return `<div class="ck-report" dir="rtl"><h1 style="font-size:18px;text-align:right">נספח ב' – טופס חודשי לתיעוד קיום הדרכה פרטנית/ קבוצתית</h1>
+    <p style="font-size:14px;margin:10px 0 4px"><b>שם המדריך:</b> ${e(data.name)}</p>
+    <p style="font-size:14px;margin:0 0 14px"><b>חודש:</b> ${e(data.monthName)} &nbsp;&nbsp; <b>שנה:</b> ${e(data.year)}</p>
+    <table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(r => `<tr>${r.map((v,i) => `<td class="${i===6?"nt":""}" style="height:22px">${e(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function collect(){
+  const ym = $("#hdMonth").value; if(!ym) throw new Error("יש לבחור חודש.");
+  const name = $("#hdName").value.trim();
+  const rows = HD.rows.filter(r => (r.name || "").trim());
+  if(!rows.length) throw new Error("עוד אין מפגשים עם שם מודרך. לחצו \"+ הוספת מפגש\".");
+  return { ym, name, monthName: HEB_MONTHS[+ym.slice(5,7)-1], year: ym.slice(0,4), rows };
+}
+
+/* ---------- הפקה ---------- */
+$("#hdMake").onclick = async () => {
+  const btn = $("#hdMake"); btn.disabled = true; setStatus("#hdStatus", "בונה את הקובץ…");
+  try{
+    if(!window.JSZip) throw new Error("ספריית הוורד לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב.");
+    const data = collect(), blob = await buildDocx(data);
+    const fname = `תיעוד_הדרכה_${data.monthName}_${data.year}.docx`;
+    HD.last = new File([blob], fname, { type: blob.type });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+    $("#hdDrive").hidden = !(typeof driveOn === "function" && driveOn());
+    rememberMentees();
+    let msg = `הקובץ מוכן: ${data.rows.length} מפגשים.`;
+    if(cloud.user){
+      const up = await cloud.sb.storage.from(BUCKET).upload(P(`hadracha/reports/${data.ym}.docx`), blob, { upsert: true, contentType: blob.type });
+      await cloud.sb.storage.from(BUCKET).upload(P(`hadracha/reports/${data.ym}.json`), new Blob([JSON.stringify({ v:1, month: data.ym, name: data.name, rows: HD.rows })], { type: "application/json" }), { upsert: true, contentType: "application/json" });
+      msg += up.error ? " השמירה בענן נכשלה." : " נשמר גם בענן."; renderFiles();
+    }
+    if(!data.name) msg += " שם המדריך ריק.";
+    setStatus("#hdStatus", msg, data.name ? "ok" : "err");
+    // PDF ברקע
+    HD.lastPdf = null; $("#hdPdf").hidden = true;
+    try{ const pdf = await CK.htmlPdf(pdfHtml(data)); HD.lastPdf = new File([pdf], fname.replace(/\.docx$/, ".pdf"), { type: "application/pdf" });
+      pdfFiles.hadracha = { file: HD.lastPdf, url: "" }; $("#hdPdf").hidden = false; }catch(_){}
+  }catch(err){ setStatus("#hdStatus", err.message || "יצירת הקובץ נכשלה.", "err"); }
+  btn.disabled = false;
+};
+$("#hdPdf").onclick = async () => {
+  const f = HD.lastPdf; if(!f) return;
+  if(navigator.canShare && navigator.canShare({ files: [f] })){
+    try{ const r = await shareFileRobust(f, "hadracha"); if(r) return; }catch(_){}
+  }
+  openFileFallback(f, "hadracha");
+};
+driveButton("#hdDrive", "#hdStatus", () => HD.last, "hadracha");
+
+/* ---------- קבצים בענן ---------- */
+async function hdRenderFiles(){
+  const box = $("#fileListHadracha"); if(!box || !cloud.user) return;
+  const { data } = await cloud.sb.storage.from(BUCKET).list(P("hadracha/reports"), { limit: 1000, sortBy: { column: "name", order: "desc" } });
+  const files = (data || []).filter(f => f.id), byYm = {};
+  files.forEach(f => { const m = f.name.match(/^(\d{4}-\d{2})\.(docx|json)$/); if(m) (byYm[m[1]] = byYm[m[1]] || {})[m[2]] = f; });
+  const keys = Object.keys(byYm).filter(k => byYm[k].docx).sort().reverse();
+  const cnt = $("#folderHadrachaCount"); if(cnt) cnt.textContent = keys.length ? (keys.length === 1 ? "קובץ אחד" : `${keys.length} קבצים`) : "ריק – עדיין אין קבצים";
+  const last = keys.map(k => byYm[k].docx).map(f => ({ name: f.name, t: Date.parse(f.updated_at || f.created_at || "") || 0 })).sort((a,b) => b.t - a.t)[0] || null;
+  window.lastReports = { ...(window.lastReports || {}), hadracha: last }; renderDash();
+  box.innerHTML = keys.length ? "" : '<div class="folder-empty">עדיין אין קבצים בתיקייה הזאת.</div>';
+  keys.forEach(ym => {
+    const div = document.createElement("div"); div.className = "month";
+    div.innerHTML = `<h3>${mLabelHd(ym)}</h3><div class="bar"></div>`; const bar = div.querySelector(".bar");
+    const add = (label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(cls) b.className = cls; b.onclick = fn; bar.appendChild(b); };
+    add("תיעוד הדרכה ⬇", () => cloudDownload(`hadracha/reports/${ym}.docx`, `תיעוד_הדרכה_${mLabelHd(ym).replace(" ","_")}.docx`));
+    if(byYm[ym].json) add("טען לעריכה", () => loadFromCloud(ym), "primary");
+    add("מחק", async () => { if(!confirm(`למחוק את תיעוד ההדרכה של ${mLabelHd(ym)} מהענן?`)) return;
+      await cloud.sb.storage.from(BUCKET).remove([P(`hadracha/reports/${ym}.docx`), P(`hadracha/reports/${ym}.json`)]); hdRenderFiles(); }, "del");
+    box.appendChild(div);
+  });
+}
+async function loadFromCloud(ym){
+  setStatus("#filesStatus", "טוען…");
+  const { data } = await cloud.sb.storage.from(BUCKET).download(P(`hadracha/reports/${ym}.json`));
+  if(!data) return setStatus("#filesStatus", "הטעינה נכשלה.", "err");
+  try{ const j = JSON.parse(await data.text()); HD.rows = j.rows || []; $("#hdMonth").value = j.month || ym; if(j.name) $("#hdName").value = j.name; }
+  catch(_){ return setStatus("#filesStatus", "הקובץ השמור פגום.", "err"); }
+  saveDraft(); setMode("hadracha"); render(); setStatus("#filesStatus", "");
+  setStatus("#hdRowsStatus", `${mLabelHd(ym)} נטען מהענן. אפשר לתקן ולהפיק מחדש.`, "ok");
+}
+const origRender = renderFiles;
+renderFiles = async function(){ await origRender(); try{ await hdRenderFiles(); }catch(_){} };
+
+/* ---------- אתחול ---------- */
+loadDraft();
+if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || "";
+fillDatalist(); render();
+window.HDF = { enter(){ if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); }, render, buildDocx, pdfHtml, HD };
+if(cloud.user){ pullMentees(); hdRenderFiles(); }
 })();
 </script>
 </body>
