@@ -192,6 +192,11 @@ td input[type=date]{font:inherit;font-size:13px;padding:5px 4px;width:9.5em}
 .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--rule)}
 .dcard .ds{font-size:12.5px}
 .dcard .dtop{margin:0 0 6px;font-weight:700;color:var(--ink);font-size:13.5px}
+body.mf-empty #dash{display:none !important}
+body.mf-empty #myForms{border:2px solid var(--btn)}
+.form-card-btn[hidden]{display:none !important}
+.mf-opts{flex-direction:column;align-items:stretch}
+.mf-opts label{border-radius:12px !important;padding:11px 14px !important;font-size:15px !important}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -416,6 +421,14 @@ dialog.ck-dlg form{padding:20px 18px}
 </section>
 
 
+<section class="step tab m-dash" id="myForms"><span class="punch">🗂</span>
+  <h2>הטפסים שלי</h2>
+  <p class="hint">בחרו באילו טפסים אתם משתמשים. רק הם יופיעו בלוח הבקרה, ברשימת הטפסים ובקבצים בענן. הבחירה נשמרת בחשבון, ואפשר לשנות אותה בכל רגע. שום קובץ לא נמחק.</p>
+  <div class="ck-warn" id="mfEmpty" hidden>👋 ברוכים הבאים! סמנו את הטפסים שאתם צריכים, והאפליקציה תציג רק אותם.</div>
+  <div class="opts mf-opts" id="mfList"></div>
+  <div class="status" id="mfStatus"></div>
+</section>
+
 <section class="step tab m-dash" id="s1"><span class="punch">👤</span>
   <h2>הפרטים שלי</h2>
   <p class="hint">נשמרים בדפדפן הזה בלבד, כדי שלא תצטרך למלא אותם כל חודש.</p>
@@ -439,6 +452,7 @@ dialog.ck-dlg form{padding:20px 18px}
 <section class="step tab m-forms" id="formsList"><span class="punch">📋</span>
   <h2>כל הטפסים</h2>
   <p class="hint">בחרו טופס למילוי. אפשר להוסיף טפסים נוספים בעתיד.</p>
+  <div class="empty" id="mfNoForms" hidden>עוד לא נבחרו טפסים. בוחרים אותם בלוח הבקרה, תחת "הטפסים שלי".</div>
   <div class="forms-list">
     <button type="button" class="form-card-btn" data-open="clock">
       <span class="ficon" aria-hidden="true">⏱</span>
@@ -2005,11 +2019,12 @@ function renderDash(){
       s:!L?"טוען…":x&&x.t?[sub(x),ago(x.t)].filter(Boolean).join("\n"):"עוד לא הופק",cls:x&&x.t?"ok":"",go:()=>openFolder(folder)});
     const monthOfName=x=>"דוח "+monthLabel(x.name.slice(0,7));
     const cards=[
-      card("כרטיס נוכחות","✅",L&&L.work,monthOfName,"folderWork"),
-      card('דוח גפ"ן',"📋",L&&L.gef,monthOfName,"folderGefen"),
-      card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
-      card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh")];
-    box.innerHTML="";
+      formOn("work")&&card("כרטיס נוכחות","✅",L&&L.work,monthOfName,"folderWork"),
+      formOn("gefen")&&card('דוח גפ"ן',"📋",L&&L.gef,monthOfName,"folderGefen"),
+      formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
+      formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh")].filter(Boolean);
+    if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
+    else box.innerHTML="";
     cards.forEach(c=>{ const b=document.createElement("button"); b.className="dcard";
       b.innerHTML=`<div class="dt dtop">${c.icon} ${esc(c.t)}</div><div class="dv ${c.cls}">${esc(String(c.v))}</div><div class="ds" style="white-space:pre-line">${esc(c.s)}</div>`; b.onclick=c.go; box.appendChild(b); });
 
@@ -2017,11 +2032,11 @@ function renderDash(){
     const acts=[];
     const LBL={work:"כרטיס נוכחות",gefen:'דיווח גפ"ן',maanak:"בקשה למענק",hofesh:"בקשת יציאה לחופש"};
     const DET={work:()=>open?`${open} ימים חסרים`:`${n} ימים`, gefen:()=>`${G.rows.length} שורות`, maanak:()=>"במכשיר", hofesh:()=>"במכשיר"};
-    ["work","gefen","maanak","hofesh"].forEach(k=>{ const s=st[k]; if(s==="new") return;
+    ["work","gefen","maanak","hofesh"].forEach(k=>{ const s=st[k]; if(s==="new"||!formOn(k)) return;
       acts.push({text:`${LBL[k]} – ${s==="done"?"הופק":"בתהליך"}`,time:s==="done"?"הופק במכשיר":DET[k](),dot:s==="done"?"ok":"warn",go:()=>setMode(k)}); });
     if(cloudIndex){
-      Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
-      Object.entries(cloudIndex.gef||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:'דיווח גפ"ן · '+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
+      if(formOn("work")) Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
+      if(formOn("gefen")) Object.entries(cloudIndex.gef||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:'דיווח גפ"ן · '+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
     }
     if(window.CK) CK.dashActs(acts);
     if(!profileOk) acts.unshift({text:"פרטים וחתימה – חסר",time:"השלימו בלוח הבקרה",dot:"warn",go:()=>{ const e=$("#s1"); if(e) e.scrollIntoView({behavior:"smooth"}); }});
@@ -2177,6 +2192,7 @@ function showAuth(recovery){
 async function onLogin(u){
   cloud.user=u; document.body.classList.remove("locked"); $("#auth").hidden=true;
   $("#acct").hidden=false; $("#acctEmail").textContent=u.email; $("#files").hidden=false; $("#filesOff").hidden=true; renderDash();
+  pullMyForms();
   if(window.CK) CK.refresh();   // השעון קודם – בלי לחכות להורדת התבנית והפרופיל
   await cloudPullProfile(); await cloudPullTemplate(); await cloudPullSettings(); renderFiles();
 }
@@ -2389,7 +2405,50 @@ async function cloudDeleteMonth(m,ym){
   setStatus("#filesStatus",error?"המחיקה נכשלה.":"נמחק.",error?"err":"ok"); renderFiles();
 }
 
-loadTpl(); showSig(); renderCal(); renderRows(); renderG(); renderDash();
+/* ================= הטפסים שלי – כל משתמש בוחר באילו טפסים הוא משתמש ================= */
+const MY_FORMS=[
+  {k:"clock", label:"⏱ שעון נוכחות", card:"clock", folder:null},
+  {k:"work", label:"✅ כרטיס נוכחות", card:"work", folder:"folderWork"},
+  {k:"gefen", label:'📋 דוח גפ"ן', card:"gefen", folder:"folderGefen"},
+  {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
+  {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"}];
+function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
+function formOn(k){ return myForms().includes(k); }
+function applyMyForms(){
+  const on=myForms();
+  $("#mfList").innerHTML=MY_FORMS.map(f=>`<label><input type="checkbox" value="${f.k}" ${on.includes(f.k)?"checked":""}> ${esc(f.label)}</label>`).join("");
+  MY_FORMS.forEach(f=>{
+    document.querySelectorAll(`.form-card-btn[data-open="${f.k}"]`).forEach(b=>b.hidden=!on.includes(f.k));
+    if(f.folder){ const el=document.getElementById(f.folder); if(el) el.hidden=!on.includes(f.k); }
+  });
+  const q=$("#ckQuick"); if(q) q.hidden=!on.includes("clock");
+  document.body.classList.toggle("mf-empty",!on.length);
+  $("#mfEmpty").hidden=!!on.length; $("#mfNoForms").hidden=!!on.length;
+  if(FORM_MODES.includes(document.body.dataset.mode) && !on.includes(document.body.dataset.mode)) setMode("dash");
+  renderDash();
+}
+async function pushMyForms(){
+  if(!cloud.user) return true;
+  const {error}=await cloud.sb.storage.from(BUCKET).upload(P("settings/forms.json"),new Blob([JSON.stringify({forms:myForms()})],{type:"application/json"}),{upsert:true,contentType:"application/json"});
+  return !error;
+}
+async function pullMyForms(){
+  if(!cloud.user) return;
+  try{ const {data}=await cloud.sb.storage.from(BUCKET).download(P("settings/forms.json"));
+    if(data){ const j=JSON.parse(await data.text()); if(Array.isArray(j.forms)) localStorage.setItem("my_forms",JSON.stringify(j.forms)); }
+    else if(localStorage.getItem("my_forms")) await pushMyForms();
+  }catch(e){}
+  applyMyForms();
+}
+$("#mfList").addEventListener("change",async()=>{
+  const v=[...document.querySelectorAll("#mfList input:checked")].map(i=>i.value);
+  try{ localStorage.setItem("my_forms",JSON.stringify(v)); }catch(e){}
+  applyMyForms();
+  const ok=await pushMyForms(); setStatus("#mfStatus",ok?"נשמר.":"נשמר במכשיר, אבל השמירה בענן נכשלה.",ok?"ok":"err");
+  setTimeout(()=>setStatus("#mfStatus",""),2500);
+});
+
+loadTpl(); showSig(); renderCal(); renderRows(); renderG(); renderDash(); applyMyForms();
 cloudInit();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
