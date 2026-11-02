@@ -746,8 +746,8 @@ dialog.ck-dlg form{padding:20px 18px}
   <datalist id="rkMentees"></datalist>
   <datalist id="rkInsts"></datalist>
   <datalist id="rkDurs"><option value="30 דק'"><option value="45 דק'"><option value="60 דק'"><option value="75 דק'"><option value="90 דק'"></datalist>
-  <details class="rk-insts"><summary>🏫 המוסדות החינוכיים שלי <span id="rkInstCount"></span></summary>
-    <p class="hint" style="margin-top:6px">מוסד שכותבים בפגישה נוסף לכאן לבד ויוצע בפגישות הבאות. אפשר גם להוסיף מראש.</p>
+  <details class="rk-insts"><summary>🏫 המוסדות החינוכיים של <span id="rkInstWho">המודרך</span> <span id="rkInstCount"></span></summary>
+    <p class="hint" style="margin-top:6px">מוסד שכותבים בפגישה נוסף לכאן לבד ויוצע בפגישות הבאות של המודרך. אפשר גם להוסיף מראש.</p>
     <div id="rkInstList"></div>
     <div class="bar"><input type="text" id="rkInstNew" placeholder="שם מוסד חדש" style="flex:1;min-width:0"><button type="button" class="primary" id="rkInstAdd">הוספה</button></div>
   </details>
@@ -3946,29 +3946,40 @@ function fillDatalist(){
 }
 
 /* ---------- מוסדות חינוכיים: נלמדים מההקלדה, ואפשר גם להגדיר ---------- */
-const insts = () => { try{ return JSON.parse(localStorage.getItem("rk_insts")||"[]"); }catch(_){ return []; } };
-function setInsts(list, push){
-  try{ localStorage.setItem("rk_insts", JSON.stringify(list)); }catch(_){}
+// לכל מודרך רשימה משלו: { "שם המודרך": ["מוסד", ...] }
+const curKey = () => normName($("#rkName").value);
+function instMap(){ try{ const v = JSON.parse(localStorage.getItem("rk_insts")||"{}"); return v && !Array.isArray(v) && typeof v === "object" ? v : {}; }catch(_){ return {}; } }
+const insts = () => (curKey() && instMap()[curKey()]) || [];
+function saveMap(m, push){
+  try{ localStorage.setItem("rk_insts", JSON.stringify(m)); }catch(_){}
   fillInsts();
-  if(push && cloud.user) cloud.sb.storage.from(BUCKET).upload(P("rikuz/insts.json"), new Blob([JSON.stringify(list)], {type:"application/json"}), {upsert:true, contentType:"application/json"}).catch(()=>{});
+  if(push && cloud.user) cloud.sb.storage.from(BUCKET).upload(P("rikuz/insts.json"), new Blob([JSON.stringify(m)], {type:"application/json"}), {upsert:true, contentType:"application/json"}).catch(()=>{});
 }
-function learnInst(v){   // מוסד חדש נוסף לרשימה; מוסד קיים עולה לראש הרשימה
-  v = String(v||"").trim(); if(!v) return;
-  const l = insts(), i = l.findIndex(x => normName(x) === normName(v));
-  if(i === 0) return; if(i > 0) l.splice(i,1); l.unshift(i > 0 ? v : v); setInsts(l, true);
+function setInsts(list, push){ const k = curKey(); if(!k) return; const m = instMap(); m[k] = list; saveMap(m, push); }
+function learnInst(v){   // מוסד חדש נוסף לרשימה של המודרך; מוסד קיים עולה לראש הרשימה
+  v = String(v||"").trim(); if(!v || !curKey()) return;
+  const l = insts().slice(), i = l.findIndex(x => normName(x) === normName(v));
+  if(i === 0) return; if(i > 0) l.splice(i,1); l.unshift(v); setInsts(l, true);
+}
+function seedInsts(){   // מוסדות מהפגישות שכבר בדף
+  if(!curKey()) return; const l = insts().slice(); let ch = false;
+  RK.rows.forEach(r => { const v = (r.inst||"").trim(); if(v && !l.some(x => normName(x) === normName(v))){ l.push(v); ch = true; } });
+  if(ch) setInsts(l, true); else fillInsts();
 }
 async function pullInsts(){
   if(!cloud.user) return;
   try{ const {data} = await cloud.sb.storage.from(BUCKET).download(P("rikuz/insts.json"));
-    if(data){ const cl = JSON.parse(await data.text()); if(Array.isArray(cl)) setInsts(cl, false); }
-    else if(insts().length) setInsts(insts(), true); }catch(_){}
+    if(data){ const cl = JSON.parse(await data.text()); if(cl && !Array.isArray(cl) && typeof cl === "object"){ saveMap(cl, false); seedInsts(); } }
+    else if(Object.keys(instMap()).length) saveMap(instMap(), true); }catch(_){}
 }
 function fillInsts(){
-  const l = insts();
+  const l = insts(), nm = $("#rkName").value.trim();
+  $("#rkInstWho").textContent = nm || "המודרך";
+  $("#rkInstNew").disabled = $("#rkInstAdd").disabled = !nm;
   $("#rkInsts").innerHTML = l.map(n => `<option value="${e(n)}">`).join("");
   $("#rkInstCount").textContent = l.length ? `(${l.length})` : "";
   $("#rkInstList").innerHTML = l.length ? l.map((n,i) => `<span class="rk-chip">${e(n)}<button type="button" class="x" data-del="${i}" aria-label="הסרת ${e(n)}">✕</button></span>`).join("")
-    : '<div class="hint" style="margin:0">עוד אין מוסדות. הם נוספים לבד כשכותבים מוסד בפגישה, או כאן.</div>';
+    : `<div class="hint" style="margin:0">${nm ? "עוד אין מוסדות. הם נוספים לבד כשכותבים מוסד בפגישה, או כאן." : "קודם כותבים את שם המודרך."}</div>`;
 }
 $("#rkInstList").addEventListener("click", ev => { const b = ev.target.closest("[data-del]"); if(!b) return; const l = insts(); l.splice(+b.dataset.del,1); setInsts(l, true); });
 $("#rkInstAdd").onclick = () => { const v = $("#rkInstNew").value.trim(); if(!v) return; const l = insts();
@@ -4116,11 +4127,12 @@ async function loadFromCloud(f){
   if(!data) return setStatus("#filesStatus", "הטעינה נכשלה.", "err");
   try{ const j = JSON.parse(await data.text()); RK.rows = j.rows || []; $("#rkYear").value = String(j.y || f.y); $("#rkName").value = j.name || f.name; }
   catch(_){ return setStatus("#filesStatus", "הקובץ השמור פגום.", "err"); }
-  RK.rows.forEach(r => learnInst(r.inst)); { const n = getNew(); if(n && n.auto && !(n.content||"").trim()) putNew(null); }
+  seedInsts(); { const n = getNew(); if(n && n.auto && !(n.content||"").trim()) putNew(null); }
   saveDraft(); setMode("rikuz"); render(); cloudNote(); setStatus("#filesStatus", "");
   setStatus("#rkRowsStatus", `נטען מהענן: ${f.name}, ${yLabel(f.y)} (גרסה ${stampTxt(f.stamp)}). אפשר להוסיף פגישות ולהפיק מחדש.`, "ok");
 }
-["#rkYear","#rkName"].forEach(s => $(s).addEventListener("change", () => { saveDraft(); cloudNote(); const n = getNew(); if(n && n.auto && !(n.content||"").trim()) putNew(null); renderNew(); }));
+$("#rkName").addEventListener("input", fillInsts);
+["#rkYear","#rkName"].forEach(s => $(s).addEventListener("change", () => { saveDraft(); cloudNote(); fillInsts(); const n = getNew(); if(n && n.auto && !(n.content||"").trim()) putNew(null); renderNew(); }));
 
 /* ---------- מילוי התבנית ---------- */
 function b64bytes(b){ const s = atob(b), u = new Uint8Array(s.length); for(let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
@@ -4249,7 +4261,8 @@ renderFiles = async function(){ await origRender(); try{ await rkRenderFiles(); 
 
 /* ---------- אתחול ---------- */
 loadDraft();
-{ const l = insts(); RK.rows.forEach(r => { const v = (r.inst||"").trim(); if(v && !l.some(x => normName(x) === normName(v))) l.push(v); }); setInsts(l, false); }   // מוסדות מפגישות קיימות
+try{ if(Array.isArray(JSON.parse(localStorage.getItem("rk_insts")||"{}"))) localStorage.removeItem("rk_insts"); }catch(_){}   // הרשימה הכללית מהגרסה הקודמת
+seedInsts();
 fillDatalist(); fillInsts(); render(); cloudNote();
 window.RKF = { collect, pdfHtml, buildDocx, gem, yLabel, enc, dec, RK, render, listCloud,
   enter(){ fillDatalist(); fillInsts(); render(); cloudNote(); if(cloud.user){ rkRenderFiles().catch(() => {}); pullInsts(); } } };
