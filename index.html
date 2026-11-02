@@ -514,7 +514,7 @@ dialog.ck-dlg form{padding:20px 18px}
     </button>
     <button type="button" class="form-card-btn" data-open="rikuz">
       <span class="ficon" aria-hidden="true">🗂️</span>
-      <span class="finfo"><span class="ft">ריכוז הדרכות</span><span class="fd">דף ריכוז הדרכות – נושאי הדרכות, לכל מודרך</span><span class="badge new">שנתי</span></span>
+      <span class="finfo"><span class="ft">דף ריכוז הדרכות</span><span class="fd">נושאי הדרכות – מעקב שנתי אחרי מפגשי ההדרכה עם מודרך אחד</span><span class="badge new">שנתי</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
     <button type="button" class="form-card-btn" data-open="maanak">
@@ -730,7 +730,7 @@ dialog.ck-dlg form{padding:20px 18px}
 
 <!-- ========== ריכוז הדרכות – נושאי הדרכות (שנתי, לכל מודרך) ========== -->
 <section class="step tab m-rikuz" id="rk1"><span class="punch">1</span>
-  <h2>ריכוז הדרכות – נושאי הדרכות</h2>
+  <h2>דף ריכוז הדרכות – נושאי הדרכות</h2>
   <p class="hint">דף שנתי לכל מודרך. ממלאים לאורך השנה ומפיקים מחדש בכל פעם – כעדכון של הקובץ הקיים או כגרסה נוספת לפי תאריך.</p>
   <div class="row2">
     <div><label class="f" for="rkYear">שנת הדרכה</label><select id="rkYear"></select></div>
@@ -742,9 +742,7 @@ dialog.ck-dlg form{padding:20px 18px}
 
 <section class="step tab m-rikuz" id="rk2"><span class="punch">2</span>
   <h2>הפגישות</h2>
-  <p class="hint">"ייבוא מתיעוד ההדרכה" מוסיף את הפגישות של המודרך מטופסי נספח ב' של השנה (רק מפגשים שהתקיימו). את תוכן הפגישה ממלאים כאן.</p>
-  <div class="bar" style="margin-top:0"><button type="button" id="rkFromHd">📥 ייבוא מתיעוד ההדרכה</button></div>
-  <div class="status" id="rkImpStatus"></div>
+  <p class="hint">פגישה חדשה מקבלת את המשך ואת המוסד של הפגישה הקודמת. "+ שבוע הבא" משכפל פגישה לאותו יום בשבוע הבא.</p>
   <div id="rkRows"></div>
   <div class="bar"><button type="button" class="primary" id="rkAdd">+ הוספת פגישה</button></div>
   <div class="status" id="rkRowsStatus"></div>
@@ -2177,7 +2175,7 @@ function renderDash(){
       formOn("work")&&card("כרטיס נוכחות","✅",L&&L.work,monthOfName,"folderWork"),
       formOn("gefen")&&card('דוח גפ"ן',"📋",L&&L.gef,monthOfName,"folderGefen"),
       formOn("hadracha")&&card("תיעוד הדרכה","🧑‍🏫",L&&L.hadracha,monthOfName,"folderHadracha"),
-      formOn("rikuz")&&card("ריכוז הדרכות","🗂️",L&&L.rikuz,x=>x.sub||"","folderRikuz"),
+      formOn("rikuz")&&card("דף ריכוז הדרכות","🗂️",L&&L.rikuz,x=>x.sub||"","folderRikuz"),
       formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
       formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh")].filter(Boolean);
     if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
@@ -2573,7 +2571,7 @@ const MY_FORMS=[
   {k:"work", label:"✅ כרטיס נוכחות", card:"work", folder:"folderWork"},
   {k:"gefen", label:'📋 דוח גפ"ן', card:"gefen", folder:"folderGefen"},
   {k:"hadracha", label:"🧑‍🏫 תיעוד הדרכה (נספח ב')", card:"hadracha", folder:"folderHadracha"},
-  {k:"rikuz", label:"🗂️ ריכוז הדרכות (שנתי)", card:"rikuz", folder:"folderRikuz"},
+  {k:"rikuz", label:"🗂️ דף ריכוז הדרכות (שנתי)", card:"rikuz", folder:"folderRikuz"},
   {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
   {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"}];
 function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
@@ -3927,12 +3925,10 @@ function loadDraft(){
 }
 
 /* ---------- מודרכים ---------- */
-const hdMentees = () => { try{ return JSON.parse(localStorage.getItem("hd_mentees")||"[]"); }catch(_){ return []; } };
 function fillDatalist(){
-  const names = new Set(hdMentees().map(m => m.name)); RK.files.forEach(f => names.add(f.name));
+  const names = new Set(RK.files.map(f => f.name)); try{ const d = JSON.parse(localStorage.getItem("rk_draft")||"null"); if(d && d.name) names.add(d.name); }catch(_){}
   $("#rkMentees").innerHTML = [...names].filter(Boolean).sort((a,b) => a.localeCompare(b,"he")).map(n => `<option value="${e(n)}">`).join("");
 }
-const menteeInst = name => { const m = hdMentees().find(x => normName(x.name) === normName(name)); return m && m.setting || ""; };
 
 /* ---------- עורך הפגישות ---------- */
 function render(){
@@ -3968,7 +3964,7 @@ $("#rkRows").addEventListener("click", ev => {
 });
 $("#rkAdd").onclick = () => {
   const { from, to } = yRange(curY()), t = todayIso(), last = RK.rows[RK.rows.length - 1] || {};
-  RK.rows.push({ date: t >= from && t <= to ? t : from, dur: last.dur || "45 דק'", inst: last.inst || menteeInst($("#rkName").value),
+  RK.rows.push({ date: t >= from && t <= to ? t : from, dur: last.dur || "45 דק'", inst: last.inst || "",
     t1: false, t2: false, t3: false, t4: false, content: "" });
   render(); saveDraft(); focusRow(RK.rows.length - 1, "content");
 };
@@ -3978,50 +3974,19 @@ function focusRow(i, field){
   if(field){ const f = el.querySelector(`[data-k="${field}"]`); if(f) setTimeout(() => f.focus({ preventScroll: true }), 350); }
 }
 
-/* ---------- ייבוא מטופסי תיעוד ההדרכה (נספח ב') ---------- */
-$("#rkFromHd").onclick = async () => {
-  const name = $("#rkName").value.trim(), y = curY(), { from, to } = yRange(y);
-  if(!name) return setStatus("#rkImpStatus", "קודם כותבים את שם המודרך.", "err");
-  const btn = $("#rkFromHd"); btn.disabled = true; setStatus("#rkImpStatus", "מחפש בטופסי תיעוד ההדרכה…");
-  const sources = [], months = new Set();
-  try{
-    if(cloud.user){
-      const { data } = await cloud.sb.storage.from(BUCKET).list(P("hadracha/reports"), { limit: 1000 });
-      const keys = (data || []).map(f => (f.name.match(/^(\d{4}-\d{2})\.json$/) || [])[1]).filter(ym => ym && ym >= from.slice(0,7) && ym <= to.slice(0,7));
-      await Promise.all(keys.map(async ym => { try{ const r = await cloud.sb.storage.from(BUCKET).download(P(`hadracha/reports/${ym}.json`));
-        if(r.data) sources.push(...(JSON.parse(await r.data.text()).rows || [])); }catch(_){} }));
-    }
-    try{ const d = JSON.parse(localStorage.getItem("hd_draft")||"null"); if(d && d.rows) sources.push(...d.rows); }catch(_){}
-    const want = normName(name), byDate = {};
-    sources.forEach(s => { if(s && s.date && s.date >= from && s.date <= to && normName(s.name) === want && s.held !== "לא") byDate[s.date] = byDate[s.date] || s; });
-    let added = 0, dup = 0; const last = RK.rows[RK.rows.length - 1] || {};
-    Object.keys(byDate).sort().forEach(dt => {
-      if(RK.rows.some(r => r.date === dt)){ dup++; return; }
-      const s = byDate[dt]; months.add(dt.slice(0,7));
-      RK.rows.push({ date: dt, dur: last.dur || "45 דק'", inst: s.setting || menteeInst(name), t1: false, t2: false, t3: false, t4: false, content: "" }); added++;
-    });
-    sortRows(); render(); saveDraft();
-    const parts = [];
-    if(added) parts.push(`נוספו ${added === 1 ? "פגישה אחת" : added + " פגישות"} מ-${months.size === 1 ? "חודש אחד" : months.size + " חודשים"}`);
-    if(dup) parts.push(`${dup} כבר היו ברשימה`);
-    setStatus("#rkImpStatus", parts.length ? parts.join(" · ") + ". נשאר למלא נושא ותוכן." : `לא נמצאו מפגשים של ${name} בטופסי תיעוד ההדרכה של שנת ${yLabel(y)}.`, added ? "ok" : "err");
-  }catch(_){ setStatus("#rkImpStatus", "הייבוא נכשל. נסה שוב.", "err"); }
-  btn.disabled = false;
-};
-
 /* ---------- ענן: קובץ לכל שנה + מודרך, עם גרסאות לפי תאריך ---------- */
 // שם המודרך נשמר בשם הקובץ בקידוד base64url (בשמות קבצים בענן אי אפשר להשתמש בעברית)
 const enc = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const dec = s => decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/") + "===".slice((s.length + 3) % 4))));
 const DIR = "rikuz/reports";
-const stampNow = () => { const n = new Date(); return `${n.getFullYear()}${p2(n.getMonth()+1)}${p2(n.getDate())}-${p2(n.getHours())}${p2(n.getMinutes())}`; };
+const stampNow = () => { const n = new Date(); return `${n.getFullYear()}${p2(n.getMonth()+1)}${p2(n.getDate())}-${p2(n.getHours())}${p2(n.getMinutes())}${p2(n.getSeconds())}`; };
 const stampTxt = s => `${+s.slice(6,8)}.${+s.slice(4,6)}.${s.slice(2,4)}, ${s.slice(9,11)}:${s.slice(11,13)}`;
 const base = f => `${f.y}__${enc(f.name)}__${f.stamp}`;
 async function listCloud(){
   if(!cloud.user){ RK.files = []; return; }
   const { data } = await cloud.sb.storage.from(BUCKET).list(P(DIR), { limit: 1000 });
   const by = {};
-  (data || []).forEach(f => { const m = f.name.match(/^(\d{4})__(.+)__(\d{8}-\d{4})\.(docx|json)$/); if(!m) return;
+  (data || []).forEach(f => { const m = f.name.match(/^(\d{4})__(.+)__(\d{8}-\d{4,6})\.(docx|json)$/); if(!m) return;
     let name; try{ name = dec(m[2]); }catch(_){ return; }
     const k = m[1] + "|" + m[3] + "|" + m[2];
     const x = by[k] = by[k] || { y: +m[1], name, stamp: m[3], t: 0 }; x[m[4]] = true;
@@ -4104,7 +4069,7 @@ function pdfHtml(data){
 function collect(){
   const name = $("#rkName").value.trim(); if(!name) throw new Error("יש לכתוב את שם המודרך.");
   const y = curY(), rows = RK.rows.filter(r => r.date || (r.content||"").trim()).slice().sort((a,b) => (a.date||"9").localeCompare(b.date||"9"));
-  if(!rows.length) throw new Error('עוד אין פגישות. לחצו "+ הוספת פגישה" או "ייבוא מתיעוד ההדרכה".');
+  if(!rows.length) throw new Error('עוד אין פגישות. לחצו "+ הוספת פגישה".');
   return { y, yearLabel: yLabel(y), name, rows };
 }
 
@@ -4223,7 +4188,7 @@ if(cloud.user) rkRenderFiles().catch(() => {});
     maanak:()=>{ const d=FORMS.maanak.data(readForm("maanak")); if(d.error) throw new Error(d.error); return d.pdf; },
     hofesh:()=>{ const d=FORMS.hofesh.data(readForm("hofesh")); if(d.error) throw new Error(d.error); return d.pdf; }
   };
-  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",hadracha:"תיעוד הדרכה",rikuz:"ריכוז הדרכות"};
+  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",hadracha:"תיעוד הדרכה",rikuz:"דף ריכוז הדרכות"};
   async function show(kind,statusSel){
     const body=$("#pvBody"); $("#pvTitle").textContent="תצוגה מקדימה · "+TITLE[kind];
     try{
