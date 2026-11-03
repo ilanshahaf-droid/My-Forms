@@ -139,7 +139,8 @@ body[data-mode="maanak"] .tab:not(.m-maanak),
 body[data-mode="hofesh"] .tab:not(.m-hofesh),
 body[data-mode="clock"] .tab:not(.m-clock),
 body[data-mode="hadracha"] .tab:not(.m-hadracha),
-body[data-mode="rikuz"] .tab:not(.m-rikuz){display:none}
+body[data-mode="rikuz"] .tab:not(.m-rikuz),
+body[data-mode="docsign"] .tab:not(.m-docsign){display:none}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .dcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:22px 12px;text-align:center;min-height:104px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .dcard:hover,.dcard:focus-visible{border-color:var(--focus);box-shadow:0 6px 20px rgba(59,130,246,.12);outline:none}
@@ -245,6 +246,24 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .sg-item .bar{margin-top:10px}
 .sg-item a.btnlink{text-decoration:none}
 
+.ds-pick{display:inline-flex;margin-top:6px;font-size:17px;padding:14px 20px !important}
+.ds-tools{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;position:sticky;top:0;z-index:5;background:var(--card);padding:8px 0}
+.ds-tools button{justify-content:center;font-weight:700}
+#dsPages{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.ds-page{position:relative;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.18);touch-action:pan-y;user-select:none}
+.ds-page img.bg{display:block;width:100%;height:auto;pointer-events:none}
+.ds-page .pn{position:absolute;bottom:4px;inset-inline-start:6px;font-size:11px;color:#777;background:rgba(255,255,255,.8);padding:0 5px;border-radius:6px}
+.ds-item{position:absolute;touch-action:none;cursor:move;outline:1.5px dashed transparent}
+.ds-item img{display:block;width:100%;height:100%;pointer-events:none}
+.ds-item.sel{outline-color:var(--btn);background:rgba(30,64,175,.06)}
+.ds-item .del,.ds-item .rs{position:absolute;width:28px;height:28px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.ds-item.sel .del,.ds-item.sel .rs{display:flex}
+.ds-item .del{top:-14px;right:-14px;background:var(--stamp);cursor:pointer}
+.ds-item .rs{bottom:-14px;left:-14px;background:var(--btn);cursor:nwse-resize;touch-action:none}
+.ds-pad{position:relative;border:1.5px dashed var(--rule);border-radius:14px;background:#fff;height:180px;touch-action:none}
+.ds-pad canvas{width:100%;height:100%;display:block}
+.ds-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9AA3B5;pointer-events:none}
+
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -272,7 +291,8 @@ body[data-mode="maanak"] .back-row,
 body[data-mode="hofesh"] .back-row,
 body[data-mode="clock"] .back-row,
 body[data-mode="hadracha"] .back-row,
-body[data-mode="rikuz"] .back-row{display:flex}
+body[data-mode="rikuz"] .back-row,
+body[data-mode="docsign"] .back-row{display:flex}
 .back-row button{font:600 14px "Assistant",Arial,sans-serif;background:var(--card);border:1.5px solid var(--rule);border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
 .back-row button:hover{border-color:var(--btn);color:var(--btn)}
 
@@ -535,6 +555,11 @@ dialog.ck-dlg form{padding:20px 18px}
       <span class="finfo"><span class="ft">דף ריכוז הדרכות</span><span class="fd">נושאי הדרכות – מעקב שנתי אחרי מפגשי ההדרכה עם מודרך אחד</span><span class="badge new">שנתי</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
+    <button type="button" class="form-card-btn" data-open="docsign">
+      <span class="ficon" aria-hidden="true">🖋️</span>
+      <span class="finfo"><span class="ft">חתימה על מסמך</span><span class="fd">טוענים PDF או תמונה, מוסיפים חתימה ומשתפים</span><span class="badge new">חד פעמי</span></span>
+      <span class="farrow" aria-hidden="true">‹</span>
+    </button>
     <button type="button" class="form-card-btn" data-open="maanak">
       <span class="ficon" aria-hidden="true">📄</span>
       <span class="finfo"><span class="ft">בקשה למענק השתלמות</span><span class="fd">פרטים אישיים, פרטי הלימודים וחתימה</span><span class="badge new" data-badge="maanak">חדש</span></span>
@@ -789,6 +814,48 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="status" id="rkStatus"></div>
 </section>
 
+<!-- ========== חתימה על מסמך ========== -->
+<section class="step tab m-docsign" id="ds1"><span class="punch">1</span>
+  <h2>חתימה על מסמך</h2>
+  <p class="hint">טוענים מסמך PDF או תמונה (צילום של טופס), מוסיפים את החתימה השמורה או חתימה ביד, ומקבלים PDF חתום לשיתוף. המסמך נשמר בענן בתיקייה "מסמכים לא מסווגים".</p>
+  <label class="filebtn ds-pick">📂 בחירת מסמך<input type="file" id="dsFile" accept="application/pdf,.pdf,image/*"></label>
+  <div class="status" id="dsLoadStatus"></div>
+</section>
+
+<section class="step tab m-docsign" id="ds2" hidden><span class="punch">2</span>
+  <h2>הוספת חתימה</h2>
+  <p class="hint">בוחרים מה להוסיף, והוא מופיע בעמוד שמוצג על המסך. גוררים אותו למקום, מגדילים או מקטינים מהפינה, ומוחקים ב-✕.</p>
+  <div class="ds-tools">
+    <button type="button" data-tool="mysig">✍️ החתימה שלי</button>
+    <button type="button" data-tool="draw">🖊️ חתימה ביד</button>
+    <button type="button" data-tool="date">📅 תאריך</button>
+    <button type="button" data-tool="text">🔤 טקסט</button>
+  </div>
+  <div id="dsPages"></div>
+</section>
+
+<section class="step tab m-docsign" id="ds3" hidden><span class="punch">3</span>
+  <h2>שמירה ושיתוף</h2>
+  <label class="f" for="dsName">שם המסמך</label>
+  <input type="text" id="dsName" placeholder="למשל: אישור השתתפות בהשתלמות">
+  <div class="bar">
+    <button type="button" class="primary" id="dsMake">💾 שמור כ-PDF חתום</button>
+    <button type="button" id="dsShare" hidden>📤 שתף</button>
+    <button type="button" id="dsDl" hidden>הורד</button>
+    <button type="button" id="dsDrive" class="drivebtn" hidden>שמור בדרייב</button>
+    <button type="button" id="dsNew" class="x">מסמך חדש</button>
+  </div>
+  <div class="status" id="dsStatus"></div>
+</section>
+
+<dialog class="ck-dlg" id="dsPadDlg">
+  <form method="dialog" style="padding:18px">
+    <h2 style="font-size:18px;margin:0 0 10px">חתימה ביד</h2>
+    <div class="ds-pad"><canvas id="dsPad"></canvas><div class="ds-ph" id="dsPadPh">חותמים כאן באצבע</div></div>
+    <div class="bar"><button class="primary" value="ok" id="dsPadOk">הוספה למסמך</button><button type="button" id="dsPadClear">ניקוי</button><button value="cancel" formnovalidate>ביטול</button></div>
+  </form>
+</dialog>
+
 <section class="step tab m-gefen" id="g1"><span class="punch">1</span>
   <h2>פרטי דיווח הגפ"ן</h2>
   <p class="hint">שם בית הספר נשמר, כדי שלא תצטרך למלא אותו כל חודש.</p>
@@ -1016,6 +1083,14 @@ dialog.ck-dlg form{padding:20px 18px}
         <span class="folder-chevron">‹</span>
       </button>
       <div class="folder-body" id="fileListRikuz"><div class="folder-empty">טוען…</div></div>
+    </div>
+    <div class="folder" id="folderDocs" data-folder="docs">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon">📁</span>
+        <span class="folder-meta"><h3>מסמכים לא מסווגים</h3><p id="folderDocsCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListDocs"><div class="folder-empty">טוען…</div></div>
     </div>
     <div class="folder" id="folderForms" data-folder="forms">
       <button type="button" class="folder-head" aria-expanded="false">
@@ -1905,7 +1980,7 @@ const pdfFiles={};
    סמסונג דוחה שיתוף של קובץ ששמו בעברית – אז שם הקובץ בשיתוף הוא באנגלית (בכרום נשאר השם העברי).
    אם השיתוף עדיין נכשל – הקובץ נפתח בצופה של הדפדפן, ומשם אפשר לשתף. */
 const IS_SAMSUNG = /SamsungBrowser/i.test(navigator.userAgent);
-const SHARE_PREFIX = {rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", clock:"attendance-report"};
+const SHARE_PREFIX = {docs:"signed-document", rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", clock:"attendance-report"};
 function asciiFile(file,kind){
   const ext=(file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0];
   let n=file.name; HEB_MONTHS.forEach((m,i)=>{ n=n.replace(new RegExp(m+"[_ ]+(\\d{4})"),"$1-"+pad2(i+1)); });
@@ -2235,6 +2310,7 @@ function renderDash(){
       formOn("gefen")&&card('דוח גפ"ן',"📋",L&&L.gef,monthOfName,"folderGefen"),
       formOn("hadracha")&&card("תיעוד הדרכה","🧑‍🏫",L&&L.hadracha,monthOfName,"folderHadracha"),
       formOn("rikuz")&&card("דף ריכוז הדרכות","🗂️",L&&L.rikuz,x=>x.sub||"","folderRikuz"),
+      formOn("docsign")&&card("מסמכים חתומים","🖋️",L&&L.docs,x=>x.name||"","folderDocs"),
       formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
       formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh")].filter(Boolean);
     if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
@@ -2267,7 +2343,7 @@ $("#month").addEventListener("input",renderDash);
 $("#gMonth").addEventListener("input",renderDash);
 
 /* mode tabs */
-const FORM_MODES=["work","gefen","maanak","hofesh","clock","hadracha","rikuz"];
+const FORM_MODES=["work","gefen","maanak","hofesh","clock","hadracha","rikuz","docsign"];
 function setMode(m){
   const mainTab=FORM_MODES.includes(m)?"forms":m;
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
@@ -2277,6 +2353,7 @@ function setMode(m){
   if((m==="clock"||m==="dash")&&window.CK) CK.enter();
   if(m==="hadracha"&&window.HDF) HDF.enter();
   if(m==="rikuz"&&window.RKF) RKF.enter();
+  if(m==="docsign"&&window.DSF) DSF.enter();
   renderDash();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
@@ -2284,7 +2361,7 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{ btn.onclick=()=>setMo
 $("#backToForms").onclick=()=>setMode("forms");
 document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","polite"));
 
-const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock","hadracha","rikuz"];
+const validModes=["dash","forms","files","work","gefen","maanak","hofesh","clock","hadracha","rikuz","docsign"];
 syncFormUi(); updateBadges();
 setMode("dash");   // תמיד נפתח בלוח הבקרה, עם כרטיס השעון למעלה
 
@@ -2322,6 +2399,7 @@ function driveFolderName(kind){
   if(kind==="hofesh") return "בקשות יציאה לחופש";
   if(kind==="hadracha") return "תיעוד הדרכות";
   if(kind==="rikuz") return "ריכוז הדרכות";
+  if(kind==="docs") return "מסמכים חתומים";
   if(kind==="clock") return "שעון נוכחות";
   return "שעות עבודה";
 }
@@ -2576,7 +2654,7 @@ async function renderFiles(){
   });
   const lastOf=(files,re)=>(files||[]).filter(f=>re.test(f.name)).map(f=>({name:f.name,t:Date.parse(f.updated_at||f.created_at||"")||0})).sort((a,b)=>b.t-a.t)[0]||null;
   const RE=/^\d{4}-\d{2}\.docx$/i, DOCX=/\.docx$/i;
-  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX)};
+  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,docs:(window.lastReports||{}).docs||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX)};
   const wc=cntFiles(work), gc=cntFiles(gef);
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
@@ -2633,6 +2711,7 @@ const MY_FORMS=[
   {k:"gefen", label:'📋 דוח גפ"ן', card:"gefen", folder:"folderGefen"},
   {k:"hadracha", label:"🧑‍🏫 תיעוד הדרכה (נספח ב')", card:"hadracha", folder:"folderHadracha"},
   {k:"rikuz", label:"🗂️ דף ריכוז הדרכות (שנתי)", card:"rikuz", folder:"folderRikuz"},
+  {k:"docsign", label:"🖋️ חתימה על מסמך", card:"docsign", folder:"folderDocs"},
   {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
   {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"}];
 function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
@@ -4517,6 +4596,251 @@ window.SGN = { refresh, dashActs, enter(){ refresh(); }, SG, mgrVals };
 setTimeout(refresh, 2500);
 setInterval(() => { if(cloud.user && document.visibilityState === "visible") refresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") refresh(); });
+})();
+</script>
+<script>
+/* ================= חתימה על מסמך (PDF או תמונה) ================= */
+(function(){
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const PDFLIB = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
+const DS = { kind: null, bytes: null, pages: [], items: [], sel: null, file: null, padSig: null, docs: [] };
+const e = s => esc(s == null ? "" : s);
+const loaded = {};
+const loadScript = src => loaded[src] = loaded[src] || new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error("lib")); }; document.head.appendChild(s); });
+const dmyFull = () => { const n = new Date(); return `${n.getDate()}/${n.getMonth()+1}/${n.getFullYear()}`; };
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ---------- טעינת המסמך ---------- */
+$("#dsFile").onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = ""; if(!f) return;
+  if(DS.items.length && !confirm("להחליף את המסמך הנוכחי? החתימות שהוספת יימחקו.")) return;
+  setStatus("#dsLoadStatus", "טוען את המסמך…");
+  try{
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    DS.items = []; DS.sel = null; DS.file = null; DS.pages = []; DS.lastPage = null;
+    if(isPdf){
+      await loadScript(PDFJS); pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      DS.kind = "pdf"; DS.bytes = new Uint8Array(await f.arrayBuffer());
+      const pdf = await pdfjsLib.getDocument({ data: DS.bytes.slice() }).promise;
+      for(let i = 1; i <= pdf.numPages; i++){
+        const pg = await pdf.getPage(i), v1 = pg.getViewport({ scale: 1 }), sc = Math.min(2.2, 1400 / v1.width), vp = pg.getViewport({ scale: sc });
+        const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+        DS.pages.push({ src: c.toDataURL("image/jpeg", 0.85), w: v1.width, h: v1.height });
+      }
+    } else {
+      if(!/^image\//.test(f.type)) throw new Error("type");
+      const url = URL.createObjectURL(f), im = await loadImg(url).catch(() => null); URL.revokeObjectURL(url);
+      if(!im) throw new Error(/heic|heif/i.test(f.type + f.name) ? "heic" : "img");
+      // התמונה נשמרת כ-JPEG ברוחב סביר
+      const k = Math.min(1, 2000 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas");
+      c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      const src = c.toDataURL("image/jpeg", 0.9);
+      DS.kind = "img"; DS.bytes = b64ToBytes(src.split(",")[1]);
+      DS.pages.push({ src, w: 595, h: 595 * c.height / c.width, px: [c.width, c.height] });
+    }
+    if(!$("#dsName").value.trim() || $("#dsName").dataset.auto === "1"){ $("#dsName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " ").trim(); $("#dsName").dataset.auto = "1"; }
+    renderPages(); $("#ds2").hidden = $("#ds3").hidden = false; resetOut();
+    setStatus("#dsLoadStatus", DS.pages.length === 1 ? "המסמך נטען." : `המסמך נטען: ${DS.pages.length} עמודים.`, "ok");
+    setTimeout(() => $("#ds2").scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  }catch(err){
+    const m = err.message === "lib" ? "ספריית ה-PDF לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב." :
+      err.message === "heic" ? "פורמט HEIC לא נתמך. צלם כ-JPEG או שמור את התמונה כ-JPEG ונסה שוב." :
+      err.message === "type" ? "אפשר לטעון קובץ PDF או תמונה. קובץ וורד צריך לשמור קודם כ-PDF." :
+      /password|encrypt/i.test(err.message || "") ? "ה-PDF מוגן בסיסמה, ואי אפשר לחתום עליו." : "טעינת המסמך נכשלה.";
+    setStatus("#dsLoadStatus", m, "err");
+  }
+};
+$("#dsName").addEventListener("input", () => { $("#dsName").dataset.auto = "0"; });
+
+/* ---------- עמודים ופריטים ---------- */
+function renderPages(){
+  $("#dsPages").innerHTML = DS.pages.map((p, i) => `<div class="ds-page" data-p="${i}" style="aspect-ratio:${p.w}/${p.h}"><img class="bg" src="${p.src}" alt="עמוד ${i+1}"><span class="pn">${i+1}/${DS.pages.length}</span></div>`).join("");
+  DS.items.forEach(drawItem);
+}
+function pageEl(i){ return document.querySelector(`.ds-page[data-p="${i}"]`); }
+function drawItem(it){
+  let el = document.getElementById("dsi_" + it.id);
+  if(!el){ el = document.createElement("div"); el.className = "ds-item"; el.id = "dsi_" + it.id;
+    el.innerHTML = `<img src="${it.src}" alt=""><span class="del" role="button" aria-label="מחיקה">✕</span><span class="rs" aria-hidden="true">⤡</span>`; pageEl(it.page).appendChild(el); bindItem(el, it); }
+  const pg = DS.pages[it.page];
+  el.style.left = (it.x * 100) + "%"; el.style.top = (it.y * 100) + "%"; el.style.width = (it.w * 100) + "%";
+  el.style.height = (it.w * it.ar * pg.w / pg.h * 100) + "%";
+  el.classList.toggle("sel", DS.sel === it.id);
+}
+function select(id){ DS.sel = id; document.querySelectorAll(".ds-item").forEach(el => el.classList.toggle("sel", el.id === "dsi_" + id)); }
+document.addEventListener("pointerdown", ev => { if(document.body.dataset.mode === "docsign" && !ev.target.closest(".ds-item") && !ev.target.closest(".ds-tools")) select(null); });
+function bindItem(el, it){
+  el.querySelector(".del").addEventListener("pointerdown", ev => { ev.stopPropagation(); ev.preventDefault();
+    DS.items = DS.items.filter(x => x !== it); el.remove(); DS.sel = null; resetOut(); });
+  const drag = (ev, mode) => {
+    ev.preventDefault(); ev.stopPropagation(); select(it.id);
+    const box = pageEl(it.page).getBoundingClientRect(), sx = ev.clientX, sy = ev.clientY, o = { x: it.x, y: it.y, w: it.w };
+    const tgt = ev.currentTarget; tgt.setPointerCapture(ev.pointerId);
+    const pg = DS.pages[it.page], hOf = w => w * it.ar * pg.w / pg.h;
+    const mv = m => {
+      const dx = (m.clientX - sx) / box.width, dy = (m.clientY - sy) / box.height;
+      if(mode === "move"){ it.x = Math.min(1 - it.w, Math.max(0, o.x + dx)); it.y = Math.min(1 - hOf(it.w), Math.max(0, o.y + dy)); }
+      else { // הידית בפינה השמאלית-תחתונה: מגדילים שמאלה ולמטה, הפינה הימנית-עליונה נשארת במקום
+        const right = o.x + o.w; let w = Math.max(0.05, Math.min(right, o.w - dx)); if(o.y + hOf(w) > 1) w = (1 - o.y) * pg.h / pg.w / it.ar;
+        it.w = w; it.x = right - w; }
+      drawItem(it);
+    };
+    const up = () => { tgt.removeEventListener("pointermove", mv); tgt.removeEventListener("pointerup", up); tgt.removeEventListener("pointercancel", up); resetOut(); };
+    tgt.addEventListener("pointermove", mv); tgt.addEventListener("pointerup", up); tgt.addEventListener("pointercancel", up);
+  };
+  el.addEventListener("pointerdown", ev => { if(!ev.target.closest(".rs") && !ev.target.closest(".del")) drag(ev, "move"); });
+  el.querySelector(".rs").addEventListener("pointerdown", ev => drag(ev, "size"));
+}
+function visiblePage(){   // העמוד שנגעו בו לאחרונה (אם הוא עדיין על המסך), אחרת העמוד שבאמצע המסך
+  const els = [...document.querySelectorAll(".ds-page")], on = i => { const r = els[i] && els[i].getBoundingClientRect(); return r && r.bottom > 40 && r.top < innerHeight - 40; };
+  if(DS.lastPage != null && on(DS.lastPage)) return DS.lastPage;
+  const mid = innerHeight / 2; let best = 0, bd = Infinity;
+  els.forEach((el, i) => { const r = el.getBoundingClientRect(), dd = r.top <= mid && r.bottom >= mid ? 0 : Math.min(Math.abs(r.top - mid), Math.abs(r.bottom - mid)); if(dd < bd){ bd = dd; best = i; } });
+  return best;
+}
+$("#dsPages").addEventListener("pointerdown", ev => { const pg = ev.target.closest(".ds-page"); if(pg) DS.lastPage = +pg.dataset.p; });
+document.addEventListener("scroll", () => { DS.lastPage = null; }, { passive: true });
+async function addItem(src, wFrac){
+  const im = await loadImg(src); const page = visiblePage(), pg = DS.pages[page], ar = im.naturalHeight / im.naturalWidth;
+  const w = wFrac, h = w * ar * pg.w / pg.h, el = pageEl(page), r = el.getBoundingClientRect();
+  const midY = Math.min(1, Math.max(0, ((Math.min(r.bottom, innerHeight) + Math.max(r.top, 0)) / 2 - r.top) / r.height));
+  const near = DS.items.filter(z => z.page === page && Math.abs(z.y - (midY - h / 2)) < 0.12).length;   // לא לערום פריטים זה על זה
+  const it = { id: uid(), page, src, ar, w, x: Math.max(0, 0.5 - w / 2), y: Math.min(1 - h, Math.max(0, midY - h / 2 + near * 0.07)) };
+  DS.items.push(it); drawItem(it); select(it.id); resetOut();
+}
+function textPng(t){
+  const c = document.createElement("canvas"), x = c.getContext("2d"), f = '700 64px Arimo, Arial, sans-serif';
+  x.font = f; const w = Math.ceil(x.measureText(t).width) + 16; c.width = w; c.height = 86;
+  x.font = f; x.direction = "rtl"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#0b1d4d"; x.fillText(t, w / 2, 45);
+  return c.toDataURL("image/png");
+}
+document.querySelector(".ds-tools").addEventListener("click", async ev => {
+  const b = ev.target.closest("[data-tool]"); if(!b || !DS.pages.length) return; const t = b.dataset.tool;
+  if(t === "mysig"){ const s = store.get("att_sig"); if(!s) return setStatus("#dsLoadStatus", 'אין חתימה שמורה. אפשר להוסיף אותה ב"הפרטים שלי" בלוח הבקרה, או לחתום ביד.', "err"); await addItem(s, 0.28); }
+  if(t === "draw") openPad();
+  if(t === "date") await addItem(textPng(dmyFull()), 0.2);
+  if(t === "text"){ const v = prompt("הטקסט להוספה (למשל השם המלא):", store.get("att_name") || ""); if(v && v.trim()) await addItem(textPng(v.trim()), Math.min(0.6, 0.035 * v.trim().length + 0.08)); }
+});
+
+/* ---------- חתימה ביד ---------- */
+let pctx = null, pdrawn = false;
+function openPad(){
+  const dlg = $("#dsPadDlg"); dlg.showModal();
+  const cv = $("#dsPad"), r = cv.getBoundingClientRect(), dpr = Math.max(1, devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr; pctx = cv.getContext("2d"); pctx.scale(dpr, dpr);
+  pctx.lineWidth = 2.6; pctx.lineCap = pctx.lineJoin = "round"; pctx.strokeStyle = "#0b1d4d"; pctx.fillStyle = "#0b1d4d";
+  pdrawn = false; $("#dsPadPh").hidden = false;
+}
+(function(){
+  const cv = $("#dsPad"); let last = null;
+  const pt = ev => { const b = cv.getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
+  cv.addEventListener("pointerdown", ev => { cv.setPointerCapture(ev.pointerId); last = pt(ev); pctx.beginPath(); pctx.arc(last[0], last[1], 1.2, 0, 7); pctx.fill(); pdrawn = true; $("#dsPadPh").hidden = true; });
+  cv.addEventListener("pointermove", ev => { if(!last) return; const p = pt(ev); pctx.beginPath(); pctx.moveTo(last[0], last[1]); pctx.lineTo(p[0], p[1]); pctx.stroke(); last = p; });
+  ["pointerup","pointercancel"].forEach(t => cv.addEventListener(t, () => { last = null; }));
+  $("#dsPadClear").onclick = () => { pctx.save(); pctx.setTransform(1,0,0,1,0,0); pctx.clearRect(0,0,cv.width,cv.height); pctx.restore(); pdrawn = false; $("#dsPadPh").hidden = false; };
+})();
+function trimmed(cv){
+  const w = cv.width, h = cv.height, d = cv.getContext("2d").getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++) if(d[(y*w + x)*4 + 3] > 20){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+  if(x1 < 0) return null; const p = 6; x0 = Math.max(0, x0 - p); y0 = Math.max(0, y0 - p); x1 = Math.min(w - 1, x1 + p); y1 = Math.min(h - 1, y1 + p);
+  const o = document.createElement("canvas"); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext("2d").drawImage(cv, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return o.toDataURL("image/png");
+}
+$("#dsPadDlg").addEventListener("close", async () => {
+  if($("#dsPadDlg").returnValue !== "ok" || !pdrawn) return;
+  const src = trimmed($("#dsPad")); if(src){ DS.padSig = src; await addItem(src, 0.28); }
+});
+
+/* ---------- בניית ה-PDF החתום ---------- */
+async function buildPdf(){
+  await loadScript(PDFLIB);
+  const { PDFDocument, degrees } = PDFLib;
+  let doc;
+  if(DS.kind === "pdf") doc = await PDFDocument.load(DS.bytes, { ignoreEncryption: true });
+  else { doc = await PDFDocument.create(); const im = await doc.embedJpg(DS.bytes), pg = DS.pages[0], p = doc.addPage([pg.w, pg.h]); p.drawImage(im, { x: 0, y: 0, width: pg.w, height: pg.h }); }
+  const pages = doc.getPages(), cache = {};
+  for(const it of DS.items){
+    const page = pages[it.page]; if(!page) continue;
+    const img = cache[it.src] = cache[it.src] || (it.src.startsWith("data:image/png") ? await doc.embedPng(it.src) : await doc.embedJpg(it.src));
+    const cb = page.getCropBox(), rot = ((page.getRotation().angle % 360) + 360) % 360, pw = cb.width, ph = cb.height;
+    const DW = (rot === 90 || rot === 270) ? ph : pw, DH = (rot === 90 || rot === 270) ? pw : ph;   // מידות העמוד כפי שהוא מוצג
+    const W = it.w * DW, H = W * it.ar, X0 = it.x * DW, YB = it.y * DH + H;   // הפינה השמאלית-תחתונה של הפריט, בתצוגה
+    let x, y;
+    if(rot === 90){ x = YB; y = X0; } else if(rot === 180){ x = pw - X0; y = YB; } else if(rot === 270){ x = pw - YB; y = ph - X0; } else { x = X0; y = ph - YB; }
+    page.drawImage(img, { x: x + cb.x, y: y + cb.y, width: W, height: H, rotate: degrees(rot) });
+  }
+  return new Blob([await doc.save()], { type: "application/pdf" });
+}
+function resetOut(){ DS.file = null; ["#dsShare","#dsDl","#dsDrive"].forEach(s => $(s).hidden = true); }
+const fileName = n => (n.replace(/[\\/:*?"<>|]/g, "").trim() || "מסמך_חתום") + ".pdf";
+
+/* ---------- ענן: מסמכים לא מסווגים ---------- */
+const DIR = "docs";
+async function getIndex(){ try{ const { data } = await cloud.sb.storage.from(BUCKET).download(P(`${DIR}/index.json`)); if(data){ const j = JSON.parse(await data.text()); if(Array.isArray(j.docs)) return j.docs; } }catch(_){} return []; }
+async function putIndex(list){ return cloud.sb.storage.from(BUCKET).upload(P(`${DIR}/index.json`), new Blob([JSON.stringify({ docs: list })], { type: "application/json" }), { upsert: true, contentType: "application/json" }); }
+
+$("#dsMake").onclick = async () => {
+  if(!DS.pages.length) return setStatus("#dsStatus", "קודם בוחרים מסמך.", "err");
+  const name = $("#dsName").value.trim(); if(!name) return setStatus("#dsStatus", "יש לתת שם למסמך.", "err");
+  if(!DS.items.length && !confirm("לא הוספת חתימה. לשמור בכל זאת?")) return;
+  const btn = $("#dsMake"); btn.disabled = true; setStatus("#dsStatus", "בונה את ה-PDF…");
+  try{
+    const blob = await buildPdf(); DS.file = new File([blob], fileName(name), { type: "application/pdf" });
+    let msg = "ה-PDF החתום מוכן.";
+    if(cloud.user){
+      const id = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+      const up = await cloud.sb.storage.from(BUCKET).upload(P(`${DIR}/${id}.pdf`), blob, { upsert: true, contentType: "application/pdf" });
+      if(up.error) msg += " השמירה בענן נכשלה.";
+      else { const list = await getIndex(); list.unshift({ id, name, at: Date.now(), pages: DS.pages.length }); await putIndex(list); msg += ' נשמר בענן, בתיקייה "מסמכים לא מסווגים".'; dsRenderFiles().catch(() => {}); }
+    }
+    let can = false; try{ can = !!(navigator.canShare && navigator.canShare({ files: [DS.file] })); }catch(_){}
+    $("#dsShare").hidden = !can; $("#dsDl").hidden = false; $("#dsDrive").hidden = !(typeof driveOn === "function" && driveOn());
+    pdfFiles.docs = { file: DS.file, url: "" };
+    setStatus("#dsStatus", msg, "ok");
+  }catch(_){ setStatus("#dsStatus", "יצירת ה-PDF נכשלה. בדוק את החיבור לאינטרנט ונסה שוב.", "err"); }
+  btn.disabled = false;
+};
+async function shareOrOpen(f){ try{ const r = await shareFileRobust(f, "docs"); if(r) return; }catch(_){} openFileFallback(f, "docs"); }
+$("#dsShare").onclick = () => DS.file && shareOrOpen(DS.file);
+$("#dsDl").onclick = () => DS.file && downloadBlob(DS.file, DS.file.name);
+driveButton("#dsDrive", "#dsStatus", () => DS.file, "docs");
+$("#dsNew").onclick = () => {
+  if(DS.items.length && !DS.file && !confirm("להתחיל מסמך חדש? החתימות שהוספת יימחקו.")) return;
+  Object.assign(DS, { kind: null, bytes: null, pages: [], items: [], sel: null, file: null });
+  $("#dsPages").innerHTML = ""; $("#dsName").value = ""; $("#dsName").dataset.auto = "1"; $("#ds2").hidden = $("#ds3").hidden = true;
+  setStatus("#dsStatus", ""); setStatus("#dsLoadStatus", ""); window.scrollTo({ top: 0 });
+};
+
+async function dsRenderFiles(){
+  const box = $("#fileListDocs"); if(!box || !cloud.user) return;
+  const list = DS.docs = await getIndex();
+  const cnt = $("#folderDocsCount"); if(cnt) cnt.textContent = list.length ? (list.length === 1 ? "מסמך אחד" : `${list.length} מסמכים`) : "ריק – עדיין אין מסמכים";
+  window.lastReports = { ...(window.lastReports || {}), docs: list[0] ? { name: list[0].name, t: list[0].at } : null }; try{ renderDash(); }catch(_){}
+  box.innerHTML = list.length ? "" : '<div class="folder-empty">עדיין אין מסמכים בתיקייה הזאת.</div>';
+  list.forEach(d => {
+    const div = document.createElement("div"); div.className = "month";
+    const dt = new Date(d.at);
+    div.innerHTML = `<h3>${e(d.name)}</h3><p class="hint" style="margin:0">${dt.getDate()}.${dt.getMonth()+1}.${dt.getFullYear()}${d.pages > 1 ? ` · ${d.pages} עמודים` : ""}</p><div class="bar"></div>`;
+    const bar = div.querySelector(".bar");
+    const add = (label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(cls) b.className = cls; b.onclick = fn; bar.appendChild(b); };
+    const fetchFile = async () => { const { data } = await cloud.sb.storage.from(BUCKET).download(P(`${DIR}/${d.id}.pdf`)); return data ? new File([data], fileName(d.name), { type: "application/pdf" }) : null; };
+    add("⬇ הורד", async () => { const f = await fetchFile(); if(f) downloadBlob(f, f.name); else setStatus("#filesStatus", "ההורדה נכשלה.", "err"); });
+    add("📤 שתף", async () => { const f = await fetchFile(); if(f) shareOrOpen(f); else setStatus("#filesStatus", "ההורדה נכשלה.", "err"); });
+    add("שנה שם", async () => { const n = prompt("שם חדש למסמך:", d.name); if(!n || !n.trim() || n.trim() === d.name) return;
+      const l = await getIndex(), x = l.find(z => z.id === d.id); if(x){ x.name = n.trim(); await putIndex(l); } dsRenderFiles(); });
+    add("מחק", async () => { if(!confirm(`למחוק את "${d.name}" מהענן?`)) return;
+      await cloud.sb.storage.from(BUCKET).remove([P(`${DIR}/${d.id}.pdf`)]); await putIndex((await getIndex()).filter(z => z.id !== d.id)); dsRenderFiles(); }, "del");
+    box.appendChild(div);
+  });
+}
+const origRender = renderFiles;
+renderFiles = async function(){ await origRender(); try{ await dsRenderFiles(); }catch(_){} };
+
+window.DSF = { DS, buildPdf, addItem, textPng, renderPages, enter(){ if(cloud.user) dsRenderFiles().catch(() => {}); } };
+if(cloud.user) dsRenderFiles().catch(() => {});
 })();
 </script>
 </body>
