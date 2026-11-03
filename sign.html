@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>אישור וחתימה</title>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--ink:#1C2541;--soft:#5B6478;--paper:#F4F6FA;--card:#fff;--rule:#DDE3EC;--btn:#1E40AF;--ok:#15803D;--stamp:#B91C1C;--amber:#B45309;--focus:#3B82F6}
+@media (prefers-color-scheme: dark){:root{--ink:#E8ECF4;--soft:#A3ADC2;--paper:#151B2B;--card:#1E2638;--rule:#33405A;--btn:#7AA2FF;--ok:#4ADE80;--stamp:#F87171;--amber:#FBBF24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Assistant",Arial,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:22px;margin:6px 0 2px}
+.sub{color:var(--soft);margin:0 0 14px;font-size:14.5px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:16px;margin-top:14px}
+.card h2{font-size:17px;margin:0 0 10px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:16px}
+.facts dt{color:var(--soft)} .facts dd{margin:0;font-weight:700}
+.prev{margin-top:12px;border:1px solid var(--rule);border-radius:12px;overflow:auto;max-height:420px;background:#fff;direction:ltr}
+.prev img{display:block;width:100%}
+.prev.big img{width:220%}
+.linkbtn{background:none;border:none;color:var(--btn);font:inherit;font-weight:700;padding:6px 0;cursor:pointer}
+label.f{display:block;font-weight:700;margin:14px 0 6px;font-size:15px}
+input[type=text],input[type=date],input[type=number],textarea{width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--rule);border-radius:12px;padding:10px 12px}
+textarea{min-height:4.5em;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--focus)}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice label{display:flex;align-items:center;justify-content:center;gap:8px;border:2px solid var(--rule);border-radius:14px;padding:14px 8px;font-weight:800;font-size:16px;cursor:pointer;text-align:center}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice label:has(input:checked).yes{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--card))}
+.choice label:has(input:checked).no{border-color:var(--stamp);color:var(--stamp);background:color-mix(in srgb,var(--stamp) 10%,var(--card))}
+.choice label:has(input:focus-visible){outline:3px solid var(--focus)}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:15.5px}
+.chk input{width:20px;height:20px;margin-top:3px;flex-shrink:0}
+.ent{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pad{position:relative;border:1.5px dashed var(--rule);border-radius:14px;background:#fff;touch-action:none;height:170px}
+.pad canvas{width:100%;height:100%;display:block;border-radius:14px}
+.pad .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9AA3B5;pointer-events:none;font-size:15px}
+.padbar{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:14px;color:var(--soft)}
+button.primary{width:100%;margin-top:18px;border:none;border-radius:16px;padding:16px;font:inherit;font-size:19px;font-weight:800;color:#fff;background:var(--btn);cursor:pointer}
+button.primary:disabled{opacity:.6}
+.err{color:var(--stamp);font-weight:700;margin-top:10px;min-height:1.2em}
+.done{text-align:center;padding:30px 10px}
+.done .big{font-size:52px}
+.hide{display:none !important}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">אישור וחתימה</h1>
+  <p class="sub" id="sub">טוען את הבקשה…</p>
+  <div id="msg"></div>
+
+  <div id="app" class="hide">
+    <section class="card">
+      <h2>הבקשה</h2>
+      <dl class="facts" id="facts"></dl>
+      <div class="prev" id="prev"><img id="prevImg" alt="הטופס שהעובד/ת מילא/ה"></div>
+      <button type="button" class="linkbtn" id="zoom">🔍 הגדלה</button>
+    </section>
+
+    <section class="card">
+      <h2>חלק ב׳ – למילוי המנהל/ת</h2>
+      <div class="choice" role="radiogroup" aria-label="החלטה">
+        <label class="yes"><input type="radio" name="dec" value="approved"> ✓ מאשר/ת את הבקשה</label>
+        <label class="no"><input type="radio" name="dec" value="rejected"> ✗ לא מאשר/ת</label>
+      </div>
+      <div id="reasonBox" class="hide"><label class="f" for="reason">הסיבה</label><textarea id="reason"></textarea></div>
+
+      <label class="chk"><input type="checkbox" id="ent"> <span>לציין זכאות: "הנ״ל זכאי/ת ל־… ימי חופשה עד תאריך…" (לא חובה)</span></label>
+      <div class="ent hide" id="entBox">
+        <div><label class="f" for="entDays">ימי חופשה</label><input type="number" id="entDays" inputmode="decimal" min="0"></div>
+        <div><label class="f" for="entUntil">עד תאריך</label><input type="date" id="entUntil"></div>
+      </div>
+
+      <label class="f" for="note">הערה (לא חובה)</label><input type="text" id="note">
+
+      <div class="row2">
+        <div><label class="f" for="name">שם פרטי ושם משפחה</label><input type="text" id="name" autocomplete="name"></div>
+        <div><label class="f" for="date">תאריך</label><input type="date" id="date"></div>
+      </div>
+
+      <label class="f">חתימה</label>
+      <div class="pad" id="pad"><canvas id="cv"></canvas><div class="ph" id="ph">חותמים כאן באצבע</div></div>
+      <div class="padbar"><span id="padNote"></span><button type="button" class="linkbtn" id="clear">ניקוי החתימה</button></div>
+      <label class="chk"><input type="checkbox" id="remember" checked> <span>לזכור את השם והחתימה שלי במכשיר הזה</span></label>
+
+      <button type="button" class="primary" id="send">שליחה</button>
+      <div class="err" id="err" role="alert"></div>
+    </section>
+  </div>
+</main>
+<script>
+const SUPABASE_URL = "https://pznpibrlcbjpcoxagxns.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6bnBpYnJsY2JqcGNveGFneG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NjEzMjUsImV4cCI6MjEwMjUzNzMyNX0.dvfKlGyI1U_E7G5POQJkLn28gky7cTyJbQqT3Mie_YU";
+const $ = s => document.querySelector(s);
+const token = (location.hash.match(/t=([A-Za-z0-9]+)/) || [])[1] || "";
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const dmy = s => { if(!s) return ""; const [y,m,d] = s.split("-"); return `${+d}.${+m}.${y}`; };
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = { get(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } }, set(k,v){ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(_){} } };
+let sb = null;
+function show(html){ $("#sub").classList.add("hide"); $("#msg").innerHTML = `<div class="card done">${html}</div>`; }
+
+async function load(){
+  if(!token) return show('<div class="big">🔗</div><p>הקישור לא שלם. בקשו מהשולח/ת לשלוח אותו שוב.</p>');
+  if(!window.supabase) return show('<div class="big">📶</div><p>אין חיבור לאינטרנט. נסו שוב בעוד רגע.</p>');
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await sb.rpc("sign_get", { p_token: token });
+  if(error) return show('<div class="big">📶</div><p>הבקשה לא נטענה. נסו לרענן את הדף.</p>');
+  if(!data) return show('<div class="big">🔗</div><p>הקישור לא תקין או שהבקשה בוטלה.</p>');
+  const s = data.summary || {};
+  $("#title").textContent = data.title || "אישור וחתימה";
+  if(data.status !== "pending"){
+    const r = data.result || {};
+    return show(`<div class="big">${data.status === "approved" ? "✅" : "❌"}</div><p>הבקשה כבר ${data.status === "approved" ? "אושרה ונחתמה" : "סומנה כלא מאושרת"}${r.name ? " ע״י " + esc(r.name) : ""}${data.signed_at ? " ב-" + dmy(data.signed_at.slice(0,10)) : ""}.</p><p>אין צורך לעשות דבר נוסף.</p>`);
+  }
+  if(data.expired) return show('<div class="big">⌛</div><p>תוקף הקישור פג. בקשו מהשולח/ת לשלוח בקשה חדשה.</p>');
+  $("#sub").textContent = `${s.name || "עובד/ת"} מבקש/ת לצאת לחופשה. בודקים, ממלאים את חלק ב׳ וחותמים.`;
+  $("#facts").innerHTML = [["עובד/ת", s.name], ["מחלקה / יחידה", s.dept], ["מתאריך", dmy(s.from)], ["עד תאריך (כולל)", dmy(s.to)], ["סה״כ ימים", s.days]]
+    .filter(([,v]) => v).map(([k,v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  if(data.preview) $("#prevImg").src = data.preview; else { $("#prev").classList.add("hide"); $("#zoom").classList.add("hide"); }
+  $("#name").value = store.get("sg_name") || ""; $("#date").value = iso(new Date());
+  $("#app").classList.remove("hide"); setupPad();
+}
+
+/* ---------- טופס ---------- */
+document.addEventListener("change", ev => {
+  $("#err").textContent = "";
+  if(ev.target.name === "dec") $("#reasonBox").classList.toggle("hide", ev.target.value !== "rejected");
+  if(ev.target.id === "ent") $("#entBox").classList.toggle("hide", !ev.target.checked);
+});
+$("#zoom").onclick = () => { const p = $("#prev"); p.classList.toggle("big"); $("#zoom").textContent = p.classList.contains("big") ? "🔍 הקטנה" : "🔍 הגדלה"; };
+
+/* ---------- משטח חתימה ---------- */
+let drawn = false, saved = null, ctx = null;
+function setupPad(){
+  const cv = $("#cv"), r = cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr; ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.lineWidth = 2.6; ctx.lineCap = ctx.lineJoin = "round"; ctx.strokeStyle = "#0b1d4d";
+  saved = store.get("sg_sig");
+  if(saved){ const im = new Image(); im.onload = () => { const h = r.height - 30, w = Math.min(r.width - 30, h * im.width / im.height); ctx.drawImage(im, (r.width - w) / 2, (r.height - h) / 2, w, h); };
+    im.src = saved; drawn = true; $("#ph").classList.add("hide"); $("#padNote").textContent = "החתימה השמורה שלך"; }
+  let last = null;
+  const pt = ev => { const b = cv.getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
+  cv.addEventListener("pointerdown", ev => { if(saved){ clearPad(); } cv.setPointerCapture(ev.pointerId); last = pt(ev); ctx.beginPath(); ctx.arc(last[0], last[1], 1.2, 0, 7); ctx.fill(); drawn = true; $("#ph").classList.add("hide"); });
+  cv.addEventListener("pointermove", ev => { if(!last) return; const p = pt(ev); ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); last = p; });
+  ["pointerup","pointercancel","pointerleave"].forEach(t => cv.addEventListener(t, () => { last = null; }));
+}
+function clearPad(){ const cv = $("#cv"); ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); ctx.restore();
+  drawn = false; saved = null; $("#ph").classList.remove("hide"); $("#padNote").textContent = ""; }
+$("#clear").onclick = clearPad;
+function sigPng(){   // חותכים את השוליים הריקים ומקטינים
+  const cv = $("#cv"), w = cv.width, h = cv.height, d = cv.getContext("2d").getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++) if(d[(y*w + x)*4 + 3] > 20){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+  if(x1 < 0) return null;
+  const pad = 8; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const sw = x1 - x0 + 1, sh = y1 - y0 + 1, k = Math.min(1, 600 / sw, 220 / sh), out = document.createElement("canvas");
+  out.width = Math.round(sw * k); out.height = Math.round(sh * k); out.getContext("2d").drawImage(cv, x0, y0, sw, sh, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
+/* ---------- שליחה ---------- */
+$("#send").onclick = async () => {
+  const err = m => { $("#err").textContent = m; };
+  const dec = (document.querySelector('input[name="dec"]:checked') || {}).value;
+  if(!dec) return err("יש לבחור: מאשר/ת או לא מאשר/ת.");
+  if(dec === "rejected" && !$("#reason").value.trim()) return err("יש לכתוב את הסיבה.");
+  if(!$("#name").value.trim()) return err("יש לכתוב שם.");
+  if(!drawn) return err("יש לחתום במשטח החתימה.");
+  const sig = sigPng(); if(!sig) return err("יש לחתום במשטח החתימה.");
+  err(""); const b = $("#send"); b.disabled = true; b.textContent = "שולח…";
+  const result = { decision: dec, reason: $("#reason").value.trim(), ent: $("#ent").checked, entDays: $("#entDays").value, entUntil: $("#entUntil").value,
+    note: $("#note").value.trim(), name: $("#name").value.trim(), date: $("#date").value || iso(new Date()), sig };
+  try{
+    const { data, error } = await sb.rpc("sign_submit", { p_token: token, p_status: dec, p_result: result });
+    if(error) throw error;
+    if(data === "closed") return show('<div class="big">ℹ️</div><p>הבקשה כבר טופלה או שתוקף הקישור פג.</p>');
+    if(data !== "ok") throw new Error(data);
+    if($("#remember").checked){ store.set("sg_name", result.name); store.set("sg_sig", sig); } else { store.set("sg_name", null); store.set("sg_sig", null); }
+    $("#app").classList.add("hide");
+    show(dec === "approved" ? '<div class="big">✅</div><h2>תודה! הבקשה אושרה ונחתמה.</h2><p>הטופס החתום חזר לעובד/ת, ואפשר לסגור את הדף.</p>'
+                            : '<div class="big">📨</div><h2>תודה! התשובה נשלחה.</h2><p>העובד/ת יראה/תראה שהבקשה לא אושרה ואת הסיבה. אפשר לסגור את הדף.</p>');
+  }catch(_){ err("השליחה נכשלה. בדקו את החיבור ונסו שוב."); b.disabled = false; b.textContent = "שליחה"; }
+};
+window.addEventListener("hashchange", () => location.reload());   // קישור חדש באותה לשונית
+load();
+</script>
+</body>
+</html>
