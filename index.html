@@ -2097,7 +2097,7 @@ FORMS.maanak.data=maanakData;
 
 /* ---------- fill the Word template ---------- */
 const xmlEsc = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-function sigRun(rid,cx,cy,n){ const A="http://schemas.openxmlformats.org/drawingml/2006/main", PIC="http://schemas.openxmlformats.org/drawingml/2006/picture";
+function sigRun(rid,cx,cy,n){ cx=Math.round(cx); cy=Math.round(cy); const A="http://schemas.openxmlformats.org/drawingml/2006/main", PIC="http://schemas.openxmlformats.org/drawingml/2006/picture";
   return `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${9100+n}" name="Signature ${n}"/>`+
     `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="${A}" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="${A}"><a:graphicData uri="${PIC}"><pic:pic xmlns:pic="${PIC}">`+
     `<pic:nvPicPr><pic:cNvPr id="0" name="signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
@@ -2131,7 +2131,7 @@ async function fillTemplate(b64,vals,sel,sig){
     if(t==="o"){ const lab=parts.slice(3).join(":"); return isSel(parts[1],parts[2]) ? ovalRun(rpr,lab) : textRun(rpr,lab); }
     if(t==="r"){ const on=(sel.activity===parts[1] && String(sel.rating)===parts[2]); return textRun(rpr,parts[2],on); }
     if(t==="sig"){ const dm=sigDimsFor(parseFloat(parts[1])); if(dm){ nSig++; return sigRun(RID,dm.cx,dm.cy,nSig); } return fb?textRun(rpr,fb):""; }
-    if(t==="msig"){ const ms=vals.__msig; if(ms&&ms.bytes){ const hh=(parseFloat(parts[1])||1)*CM; let cy=hh, cx=Math.round(cy*ms.w/ms.h); if(cx>4.6*CM){ cx=Math.round(4.6*CM); cy=Math.round(cx*ms.h/ms.w); } nMsig++; return sigRun(MRID,cx,cy,50+nMsig); } return ""; }
+    if(t==="msig"){ const ms=vals.__msig; if(ms&&ms.bytes){ const hh=Math.round((parseFloat(parts[1])||1)*CM); let cy=hh, cx=Math.round(cy*ms.w/ms.h); if(cx>4.6*CM){ cx=Math.round(4.6*CM); cy=Math.round(cx*ms.h/ms.w); } nMsig++; return sigRun(MRID,cx,cy,50+nMsig); } return ""; }
     return m; });
   if(nOval && !/xmlns:wps=/.test(xml.slice(0,xml.indexOf(">",xml.indexOf("<w:document"))))) xml=xml.replace("<w:document",'<w:document xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"');
   if(nSig){
