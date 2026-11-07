@@ -228,6 +228,11 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .sch-ask{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:13px;font-weight:700;color:var(--soft)}
 .sch-ask.open{color:var(--amber)}
 .sch-ask{flex-wrap:wrap}
+.sch-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sch-head h2{margin-bottom:0}
+#schFold{white-space:nowrap;font-weight:700;color:var(--btn)}
+.sch-sum{margin-top:8px;font-size:14.5px;color:var(--soft)}
+.sch-sum b{color:var(--ink)}
 .sch-ask button{font-size:12.5px !important;padding:4px 10px !important;white-space:nowrap}
 .sch-row{grid-template-columns:auto 1fr auto !important}
 .sch-edit{font-size:15px;padding:2px 6px !important}
@@ -758,7 +763,9 @@ dialog.ck-dlg form{padding:20px 18px}
 </section>
 
 <section class="step tab m-hadracha" id="hdSch"><span class="punch">📅</span>
-  <h2>לו"ז חודשי – ליומן ולתיעוד ההדרכה</h2>
+  <div class="sch-head"><h2>לו"ז חודשי – ליומן ולתיעוד ההדרכה</h2><button type="button" class="x" id="schFold" aria-expanded="true">▴ צמצום</button></div>
+  <div class="sch-sum" id="schSum" hidden></div>
+  <div id="schBody">
   <p class="hint">מייבאים את הלו"ז החודשי (קובץ אקסל שנוצר מצילום). נכנסות רק הפגישות בימים ובשעות שלך: שני מ-16:00 ורביעי בפרחים, חמישי בכפרי. מכאן מוסיפים את הפגישות ליומן, ואת ההדרכות לטופס תיעוד ההדרכה.</p>
   <div class="bar" style="margin-top:0"><label class="filebtn">📥 ייבוא לו"ז מאקסל<input type="file" id="schFile" accept=".xlsx,.xls,.csv" multiple></label></div>
   <details><summary>איך יוצרים קובץ אקסל מצילום של הלו"ז</summary>
@@ -772,20 +779,12 @@ dialog.ck-dlg form{padding:20px 18px}
   <div id="schList"></div>
   <div class="bar" style="margin-top:8px"><button type="button" id="schAdd">+ פגישה ידנית</button></div>
   <div class="bar"><button type="button" class="primary" id="schCal" disabled>📅 הוסף ליומן</button><button type="button" id="schToHd" disabled>➕ הוסף לתיעוד ההדרכה</button></div>
+  </div>
 </section>
 
 <section class="step tab m-hadracha" id="hd2"><span class="punch">2</span>
   <h2>מפגשי ההדרכה</h2>
   <p class="hint">מודרכים שכבר הוזנו נשמרים: מתחילים להקליד שם, והתפקיד והמסגרת מתמלאים לבד. "+ שבוע הבא" משכפל מפגש לאותו יום בשבוע הבא.</p>
-  <div class="hd-import">
-    <div class="bar" style="margin-top:0"><label class="filebtn">📥 ייבוא מאקסל<input type="file" id="hdFile" accept=".xlsx,.xls,.csv" multiple></label></div>
-    <div class="status" id="hdImpStatus"></div>
-    <details><summary>איך יוצרים קובץ אקסל מצילום של הלו"ז</summary>
-      <p>שולחים ל-Claude צילום של הלו"ז (אפשר כמה צילומים, גם משני מקומות העבודה) עם ההנחיה הזאת, מורידים את קובץ האקסל שהוא יוצר, ומייבאים אותו כאן. אפשר לייבא כמה קבצים, והמפגשים מצטרפים.</p>
-      <p id="hdPrompt" class="prompt"></p>
-      <button type="button" id="hdCopyPrompt">העתק את ההנחיה</button>
-    </details>
-  </div>
   <div id="hdRows"></div>
   <datalist id="hdMentees"></datalist>
   <div class="bar"><button type="button" class="primary" id="hdAdd">+ הוספת מפגש</button></div>
@@ -3890,7 +3889,7 @@ function importBytes(bytes){
   }
   return out;
 }
-$("#hdFile").onchange = async ev => {
+if($("#hdFile")) $("#hdFile").onchange = async ev => {
   const files = [...ev.target.files]; if(!files.length) return;
   let added = 0, dup = 0, bad = 0; const ms = mentees();
   for(const f of files){
@@ -3918,12 +3917,12 @@ $("#hdFile").onchange = async ev => {
   if(bad) parts.push(`${bad === 1 ? "קובץ אחד" : bad + " קבצים"} לא נקרא – צריך עמודות "תאריך" ו"שם המודרך"`);
   setStatus("#hdImpStatus", parts.join(" · ") || "לא נמצאו מפגשים בקובץ.", added ? "ok" : "err");
 };
-$("#hdCopyPrompt").onclick = async () => {
+if($("#hdCopyPrompt")) $("#hdCopyPrompt").onclick = async () => {
   try{ await navigator.clipboard.writeText(promptText()); $("#hdCopyPrompt").textContent = "הועתק ✓"; }
   catch(_){ $("#hdCopyPrompt").textContent = "סמן והעתק ידנית"; }
   setTimeout(() => $("#hdCopyPrompt").textContent = "העתק את ההנחיה", 2000);
 };
-const showPrompt = () => { $("#hdPrompt").textContent = promptText(); };
+const showPrompt = () => { if($("#hdPrompt")) $("#hdPrompt").textContent = promptText(); };
 $("#hdMonth").addEventListener("change", showPrompt);
 
 /* ---------- מילוי התבנית ---------- */
@@ -4065,7 +4064,7 @@ const wpOf = v => /כפר/.test(v) ? "כפרי" : /פרח/.test(v) ? "פרחים
 const hashId = s => { let h = 2166136261; for(const ch of s){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 const yes = v => /^\s*(כן|yes|v|✓|x|true|1)\s*$/i.test(String(v == null ? "" : v));
 function schSave(push){
-  const d = { items: SCH.items, hidden: SCH.hidden || [], t: Date.now() };
+  const d = { items: SCH.items, hidden: SCH.hidden || [], done: SCH.done || {}, t: Date.now() };
   try{ localStorage.setItem("hd_sched", JSON.stringify(d)); }catch(_){}
   if(push !== false && cloud.user) cloud.sb.storage.from(BUCKET).upload(P("hadracha/schedule.json"), new Blob([JSON.stringify(d)], { type: "application/json" }), { upsert: true, contentType: "application/json" }).catch(() => {});
 }
@@ -4073,11 +4072,11 @@ function migrate(list){   // הגרסה הראשונה שמרה "assign"; עכש
   list.forEach(i => { if(i.assign !== undefined){ if(i.assign && i.assign !== "-"){ i.sup = true; i.names = [i.assign]; } if(i.assign != null) i.decided = true; delete i.assign; } i.names = i.names || []; });
   return list;
 }
-function schLoadLocal(){ try{ const d = JSON.parse(localStorage.getItem("hd_sched")||"null"); SCH.items = migrate(d && d.items || []); SCH.hidden = d && d.hidden || []; SCH.t = d && d.t || 0; }catch(_){ SCH.items = []; } }
+function schLoadLocal(){ try{ const d = JSON.parse(localStorage.getItem("hd_sched")||"null"); SCH.items = migrate(d && d.items || []); SCH.hidden = d && d.hidden || []; SCH.done = d && d.done || {}; SCH.t = d && d.t || 0; }catch(_){ SCH.items = []; } }
 async function schPull(){
   if(!cloud.user) return;
   try{ const { data } = await cloud.sb.storage.from(BUCKET).download(P("hadracha/schedule.json")); if(!data){ if(SCH.items.length) schSave(); return; }
-    const r = JSON.parse(await data.text()); if(r && Array.isArray(r.items) && (r.t || 0) > (SCH.t || 0)){ SCH.items = migrate(r.items); SCH.hidden = r.hidden || []; SCH.t = r.t; schSave(false); schRender(); }
+    const r = JSON.parse(await data.text()); if(r && Array.isArray(r.items) && (r.t || 0) > (SCH.t || 0)){ SCH.items = migrate(r.items); SCH.hidden = r.hidden || []; SCH.done = r.done || {}; SCH.t = r.t; schSave(false); schRender(); }
     else if((SCH.t || 0) > (r.t || 0)) schSave(); }catch(_){}
 }
 // השעות שנכנסות ליומן: שני מ-16:00 ורביעי – מלו"ז הפרחים; חמישי – מלו"ז הכפרי
@@ -4117,13 +4116,28 @@ $("#schFile").onchange = async ev => {
   SCH.items = SCH.items.filter(i => i.manual || !keys.has(i.date.slice(0,7) + "|" + i.wp))
     .concat(kept.map(i => { const o = old[i.id]; return o ? (keep(o) || { ...i, cal: o.cal }) : i; }))
     .sort((a,b) => (a.date + (a.start||"")).localeCompare(b.date + (b.start||"")));
-  SCH.month = kept[0].date.slice(0,7); schSave(); schRender();
+  SCH.month = kept[0].date.slice(0,7); try{ localStorage.setItem("hd_sched_fold","0"); }catch(_){} schSave(); schRender();
   const ask = SCH.items.filter(i => kept.some(k => k.id === i.id) && isOpen(i)).length;
   setStatus("#schStatus", `נטענו ${kept.length} פגישות${dropped ? ` (${dropped} מחוץ לימים ולשעות שלך לא נכנסו)` : ""}.` + (ask ? ` יש ${ask} פגישות עם השם שלך בלי המילה "הדרכה" – צריך להחליט עליהן למטה.` : "") + (bad ? ` ${bad} קבצים לא נקראו.` : ""), "ok");
 };
 const fmtWhen = it => it.start ? (it.end ? `${it.start}–${it.end}` : it.start) : "כל היום";
 function knownMentees(){ const s = new Set(); SCH.items.forEach(i => i.names.forEach(n => s.add(n))); mentees().forEach(m => s.add(m.name)); return [...s].filter(Boolean).sort((a,b) => a.localeCompare(b,"he")); }
 const isOpen = i => i.ilan && !i.sup && !i.decided;
+/* צמצום הכרטיס אחרי שהלו"ז נכנס ליומן ולתיעוד */
+const foldGet = () => { try{ return localStorage.getItem("hd_sched_fold") === "1"; }catch(_){ return false; } };
+function setFold(v){ try{ localStorage.setItem("hd_sched_fold", v ? "1" : "0"); }catch(_){} applyFold(); }
+function applyFold(){
+  const f = foldGet() && SCH.items.length > 0;
+  $("#schBody").hidden = f; $("#schSum").hidden = !f;
+  $("#schFold").textContent = f ? "▾ הצגה" : "▴ צמצום"; $("#schFold").setAttribute("aria-expanded", String(!f));
+  $("#schFold").hidden = !SCH.items.length;
+}
+function markDone(k){
+  const d = (SCH.done = SCH.done || {})[SCH.month] = { ...((SCH.done || {})[SCH.month] || {}), [k]: true };
+  schSave(); schRender();
+  if(d.cal && d.hd){ setFold(true); setStatus("#schStatus", ""); }
+}
+$("#schFold").onclick = () => setFold(!foldGet());
 const WPL = v => v === "פרחים" ? "מערך הפרחים" : v === "כפרי" ? "מערך הכפרי" : v;
 function editorHtml(i){
   return `<div class="sch-ed" data-ed="${i.id}">
@@ -4147,7 +4161,7 @@ function editorHtml(i){
 function schRender(){
   const box = $("#schList"), months = [...new Set(SCH.items.map(i => i.date.slice(0,7)))].sort();
   $("#schAdd").hidden = false;
-  if(!months.length && !SCH.edit){ box.innerHTML = '<div class="empty">עוד לא נטען לו"ז.</div>'; $("#schMonthBar").hidden = true; $("#schAskNote").hidden = true; $("#schCal").disabled = $("#schToHd").disabled = true; return; }
+  if(!months.length && !SCH.edit){ applyFold(); box.innerHTML = '<div class="empty">עוד לא נטען לו"ז.</div>'; $("#schMonthBar").hidden = true; $("#schAskNote").hidden = true; $("#schCal").disabled = $("#schToHd").disabled = true; return; }
   if(SCH.month && !months.includes(SCH.month) && SCH.edit !== "new") SCH.month = months[months.length - 1];
   if(!SCH.month) SCH.month = months[months.length - 1] || $("#hdMonth").value || ymNow();
   $("#schMonthBar").hidden = !months.length;
@@ -4170,6 +4184,9 @@ function schRender(){
   $("#schCal").textContent = `📅 הוסף ליומן (${n})`; $("#schCal").disabled = !n;
   $("#schToHd").textContent = `➕ הוסף לתיעוד ההדרכה (${nSup})`; $("#schToHd").disabled = !nSup;
   $("#schAskNote").hidden = !open; $("#schAskNote").textContent = `⚠️ ${open === 1 ? "פגישה אחת" : open + " פגישות"} עם השם שלך בלי המילה "הדרכה" – צריך לסמן אם זו הדרכה.`;
+  const dn = (SCH.done || {})[SCH.month] || {}, ml = HEB_MONTHS[+SCH.month.slice(5)-1] + " " + SCH.month.slice(0,4);
+  $("#schSum").innerHTML = `<b>${ml}</b> · ${list.length} פגישות · ${dn.cal ? "✓ ביומן" : "עוד לא ביומן"} · ${dn.hd ? "✓ בתיעוד ההדרכה" : "עוד לא בתיעוד"}`;
+  applyFold();
   const ed = box.querySelector(".sch-ed"); if(ed && SCH.focus){ SCH.focus = false; ed.scrollIntoView({ behavior: "smooth", block: "center" }); const f = ed.querySelector(SCH.draft && SCH.draft.sup ? '[data-f="names"]' : '[data-f="desc"]'); if(f) setTimeout(() => f.focus({ preventScroll: true }), 300); }
 }
 const firstTok = s => normName(s).split(" ")[0];
@@ -4254,6 +4271,7 @@ $("#schCal").onclick = async () => {
   let shared = false;
   try{ if(navigator.canShare && navigator.canShare({ files: [f] })){ await navigator.share({ files: [f] }); shared = true; } }catch(err){ if(err && err.name === "AbortError") return; }
   if(!shared) downloadBlob(f, f.name);
+  markDone("cal");
   setStatus("#schStatus", shared ? "בוחרים \"יומן\" ברשימת השיתוף, ומאשרים הוספה לחשבון הגוגל." :
     "קובץ היומן ירד. פותחים אותו מההורדות ובוחרים את היומן של חשבון הגוגל. במחשב: ביומן גוגל ← הגדרות ← ייבוא.", "ok");
 };
@@ -4272,6 +4290,7 @@ $("#schToHd").onclick = () => {
   sortRows(); render(); saveDraft();
   setStatus("#schStatus", (added ? `נוספו לתיעוד ההדרכה ${added === 1 ? "מפגש אחד" : added + " מפגשים"}` : "כל המפגשים כבר בטופס") +
     (dup ? ` · ${dup} כבר היו` : "") + (noName ? ` · ${noName} בלי שם מודרך – צריך להשלים` : "") + ".", added ? "ok" : "");
+  markDone("hd");
   if(added) $("#hd2").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 $("#schPrompt").textContent = `בתמונות יש לו"ז חודשי של מערך הפרחים ו/או מערך הכפרי. צור קובץ אקסל עם העמודות: תאריך | התחלה | סיום | מערך | תיאור | אילן | הדרכה | מודרכים.
