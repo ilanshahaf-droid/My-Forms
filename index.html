@@ -4057,9 +4057,44 @@ const curY = () => +$("#rkYear").value || yNow();
 $("#rkYear").innerHTML = (() => { let o = ""; for(let y = yNow() + 1; y >= 2018; y--) o += `<option value="${y}">${yLabel(y)} (${y}–${String(y+1).slice(2)})</option>`; return o; })();
 
 /* ---------- טיוטה ---------- */
-function saveDraft(){ try{ localStorage.setItem("rk_draft", JSON.stringify({ y: curY(), name: $("#rkName").value, rows: RK.rows })); }catch(_){} }
+// הטיוטה נשמרת במכשיר וגם בענן, כך שהדף זהה בכל מכשיר ודפדפן
+const readLocal = () => { try{ return JSON.parse(localStorage.getItem("rk_draft")||"null"); }catch(_){ return null; } };
+function saveDraft(){
+  const d = { y: curY(), name: $("#rkName").value, rows: RK.rows, t: Date.now() };
+  try{ localStorage.setItem("rk_draft", JSON.stringify(d)); }catch(_){}
+  schedulePush();
+}
+let pushTimer = null;
+function schedulePush(){ clearTimeout(pushTimer); pushTimer = setTimeout(pushDraft, 1500); }
+async function pushDraft(){
+  if(!cloud.user) return; const d = readLocal(); if(!d) return;
+  let nw = null; try{ nw = JSON.parse(localStorage.getItem("rk_new")||"null"); }catch(_){}
+  try{ await cloud.sb.storage.from(BUCKET).upload(P("rikuz/draft.json"), new Blob([JSON.stringify({ ...d, nw })], { type: "application/json" }), { upsert: true, contentType: "application/json" }); }catch(_){}
+}
+async function pullDraft(){   // אם בענן יש גרסה חדשה יותר של הדף – טוענים אותה
+  if(!cloud.user) return;
+  try{
+    const { data } = await cloud.sb.storage.from(BUCKET).download(P("rikuz/draft.json")); if(!data) return pushDraft();
+    const r = JSON.parse(await data.text()), l = readLocal() || {};
+    if(!r || !Array.isArray(r.rows)) return;
+    const localEmpty = !(l.rows && l.rows.length), newer = (r.t || 0) > (l.t || 0);
+    if(!localEmpty && !r.rows.length){ pushDraft(); return; }   // דף ריק מהענן לא מוחק פגישות שיש במכשיר
+    if(!localEmpty && !l.t){   // סנכרון ראשון ממכשיר שהקליד לפני העדכון: מאחדים, לא מוחקים
+      if(normName(l.name) === normName(r.name) && +l.y === +r.y){
+        const seen = new Set(), all = [...l.rows, ...r.rows].filter(x => { const k = JSON.stringify(x); if(seen.has(k)) return false; seen.add(k); return true; });
+        RK.rows = all; sortRows(); saveDraft(); render(); setStatus("#rkRowsStatus", `הדף אוחד עם הענן (${all.length} פגישות).`, "ok");
+      } else saveDraft();
+      return;
+    }
+    if(!(newer || (localEmpty && r.rows.length))){ if((l.t || 0) > (r.t || 0)) pushDraft(); return; }
+    try{ localStorage.setItem("rk_draft", JSON.stringify({ y: r.y, name: r.name, rows: r.rows, t: r.t || Date.now() }));
+      if(r.nw) localStorage.setItem("rk_new", JSON.stringify(r.nw)); }catch(_){}
+    loadDraft(); fillDatalist(); fillInsts(); render(); cloudNote();
+    if(r.rows.length) setStatus("#rkRowsStatus", `הדף עודכן מהענן (${r.rows.length === 1 ? "פגישה אחת" : r.rows.length + " פגישות"}).`, "ok");
+  }catch(_){}
+}
 function loadDraft(){
-  let d = null; try{ d = JSON.parse(localStorage.getItem("rk_draft")||"null"); }catch(_){}
+  const d = readLocal();
   $("#rkYear").value = String(d && d.y || yNow()); if(!$("#rkYear").value) $("#rkYear").value = String(yNow());
   $("#rkName").value = d && d.name || ""; RK.rows = d && d.rows || [];
 }
@@ -4124,7 +4159,7 @@ function guessDate(){   // אותו יום בשבוע כמו הפגישה האח
 function blankNew(){ const last = RK.rows.filter(r => r.date).slice().sort((a,b) => a.date.localeCompare(b.date)).pop() || {};
   return { date: guessDate(), dur: last.dur || "45 דק'", inst: last.inst || "", t1: false, t2: false, t3: false, t4: false, content: "" }; }
 const getNew = () => { try{ return JSON.parse(localStorage.getItem("rk_new")||"null"); }catch(_){ return null; } };
-const putNew = v => { try{ v ? localStorage.setItem("rk_new", JSON.stringify(v)) : localStorage.removeItem("rk_new"); }catch(_){} };
+const putNew = v => { try{ v ? localStorage.setItem("rk_new", JSON.stringify(v)) : localStorage.removeItem("rk_new"); }catch(_){} schedulePush(); };
 function weekDue(){   // פותחים אוטומטית: יש מודרך, השבוע בתוך שנת ההדרכה, עוד אין פגישה השבוע, ולא נדחה
   const name = $("#rkName").value.trim(), t = todayIso(), { from, to } = yRange(curY()), ws = weekStart(t), we = addDays(ws, 6);
   if(!name || t < from || t > to) return false;
@@ -4390,8 +4425,11 @@ try{ if(Array.isArray(JSON.parse(localStorage.getItem("rk_insts")||"{}"))) local
 seedInsts();
 fillDatalist(); fillInsts(); render(); cloudNote();
 window.RKF = { collect, pdfHtml, buildDocx, gem, yLabel, enc, dec, RK, render, listCloud,
-  enter(){ fillDatalist(); fillInsts(); render(); cloudNote(); if(cloud.user){ rkRenderFiles().catch(() => {}); pullInsts(); } } };
-if(cloud.user){ rkRenderFiles().catch(() => {}); pullInsts(); }
+  enter(){ fillDatalist(); fillInsts(); render(); cloudNote(); if(cloud.user){ pullDraft(); rkRenderFiles().catch(() => {}); pullInsts(); } }, pullDraft };
+if(cloud.user){ pullDraft(); rkRenderFiles().catch(() => {}); pullInsts(); }
+setTimeout(() => pullDraft(), 3000);   // אחרי שההתחברות לענן הושלמה
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && document.body.dataset.mode === "rikuz") pullDraft(); });
+window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTimer); pushDraft(); } });
 })();
 </script>
 <script>
