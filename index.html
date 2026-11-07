@@ -227,7 +227,14 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .sch-tag.sup{background:var(--blue-soft);color:var(--btn)}
 .sch-ask{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:13px;font-weight:700;color:var(--soft)}
 .sch-ask.open{color:var(--amber)}
-.sch-ask select{font-size:13px;padding:3px 6px;width:auto}
+.sch-ask{flex-wrap:wrap}
+.sch-ask button{font-size:12.5px !important;padding:4px 10px !important;white-space:nowrap}
+.sch-row{grid-template-columns:auto 1fr auto !important}
+.sch-edit{font-size:15px;padding:2px 6px !important}
+.sch-tag:not(.sup){background:var(--paper);color:var(--soft)}
+.sch-ed{border:2px solid var(--btn);border-radius:14px;padding:10px 12px;margin:6px 0 10px;background:color-mix(in srgb,var(--btn) 5%,var(--card))}
+.sch-kind label{font-size:14px !important}
+.sch-ed .chk{display:flex;gap:8px;align-items:center;font-size:14px}
 .pv-dlg{width:min(900px,calc(100% - 12px));max-width:none;height:calc(100% - 20px);max-height:none;display:none;flex-direction:column}
 .pv-dlg[open]{display:flex}
 .pv-zoom{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;border-bottom:1px solid var(--rule)}
@@ -763,6 +770,7 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="bar" id="schMonthBar" hidden><select id="schMonth" aria-label="חודש" style="flex:1;min-width:0"></select></div>
   <div class="ck-warn" id="schAskNote" hidden></div>
   <div id="schList"></div>
+  <div class="bar" style="margin-top:8px"><button type="button" id="schAdd">+ פגישה ידנית</button></div>
   <div class="bar"><button type="button" class="primary" id="schCal" disabled>📅 הוסף ליומן</button><button type="button" id="schToHd" disabled>➕ הוסף לתיעוד ההדרכה</button></div>
 </section>
 
@@ -4057,15 +4065,19 @@ const wpOf = v => /כפר/.test(v) ? "כפרי" : /פרח/.test(v) ? "פרחים
 const hashId = s => { let h = 2166136261; for(const ch of s){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 const yes = v => /^\s*(כן|yes|v|✓|x|true|1)\s*$/i.test(String(v == null ? "" : v));
 function schSave(push){
-  const d = { items: SCH.items, t: Date.now() };
+  const d = { items: SCH.items, hidden: SCH.hidden || [], t: Date.now() };
   try{ localStorage.setItem("hd_sched", JSON.stringify(d)); }catch(_){}
   if(push !== false && cloud.user) cloud.sb.storage.from(BUCKET).upload(P("hadracha/schedule.json"), new Blob([JSON.stringify(d)], { type: "application/json" }), { upsert: true, contentType: "application/json" }).catch(() => {});
 }
-function schLoadLocal(){ try{ const d = JSON.parse(localStorage.getItem("hd_sched")||"null"); SCH.items = d && d.items || []; SCH.t = d && d.t || 0; }catch(_){ SCH.items = []; } }
+function migrate(list){   // הגרסה הראשונה שמרה "assign"; עכשיו: sup + names + decided
+  list.forEach(i => { if(i.assign !== undefined){ if(i.assign && i.assign !== "-"){ i.sup = true; i.names = [i.assign]; } if(i.assign != null) i.decided = true; delete i.assign; } i.names = i.names || []; });
+  return list;
+}
+function schLoadLocal(){ try{ const d = JSON.parse(localStorage.getItem("hd_sched")||"null"); SCH.items = migrate(d && d.items || []); SCH.hidden = d && d.hidden || []; SCH.t = d && d.t || 0; }catch(_){ SCH.items = []; } }
 async function schPull(){
   if(!cloud.user) return;
   try{ const { data } = await cloud.sb.storage.from(BUCKET).download(P("hadracha/schedule.json")); if(!data){ if(SCH.items.length) schSave(); return; }
-    const r = JSON.parse(await data.text()); if(r && Array.isArray(r.items) && (r.t || 0) > (SCH.t || 0)){ SCH.items = r.items; SCH.t = r.t; schSave(false); schRender(); }
+    const r = JSON.parse(await data.text()); if(r && Array.isArray(r.items) && (r.t || 0) > (SCH.t || 0)){ SCH.items = migrate(r.items); SCH.hidden = r.hidden || []; SCH.t = r.t; schSave(false); schRender(); }
     else if((SCH.t || 0) > (r.t || 0)) schSave(); }catch(_){}
 }
 // השעות שנכנסות ליומן: שני מ-16:00 ורביעי – מלו"ז הפרחים; חמישי – מלו"ז הכפרי
@@ -4087,7 +4099,7 @@ function schParse(bytes){
       const ilan = ix.ilan >= 0 ? yes(g(r,"ilan")) || /אילן/.test(desc) : /אילן/.test(desc);
       const sup = ilan && /הדרכ/.test(desc);   // הדרכה = השם שלי + המילה "הדרכה"
       const names = String(g(r,"names")||"").split(/[,،;/]+/).map(s => s.replace(/^ו/, "").trim()).filter(n => n && !/^אילן$/.test(n));
-      out.push({ id: hashId(date + "|" + start + "|" + desc), date, start, end, wp, desc, ilan, sup, names, cal: true, assign: null });
+      out.push({ id: hashId(date + "|" + start + "|" + desc), date, start, end, wp, desc, ilan, sup, names, cal: true });
     }
     if(out.length) break;
   }
@@ -4098,60 +4110,121 @@ $("#schFile").onchange = async ev => {
   let all = [], bad = 0;
   for(const f of files){ try{ if(!window.XLSX) throw 0; const r = schParse(new Uint8Array(await f.arrayBuffer())); if(r.length) all.push(...r); else bad++; }catch(_){ bad++; } }
   if(!all.length) return setStatus("#schStatus", 'לא נמצאו פגישות בקובץ. צריך עמודות "תאריך" ו"תיאור" לפחות.', "err");
-  const kept = all.filter(inWindow), dropped = all.length - kept.length;
+  const kept = all.filter(i => inWindow(i) && !(SCH.hidden||[]).includes(i.id)), dropped = all.filter(i => !inWindow(i)).length;
   // מחליפים את מה שהיה באותם חודש+מערך, ושומרים החלטות קודמות (יומן / ריכוז) לפגישות שחזרו
   const keys = new Set(kept.map(i => i.date.slice(0,7) + "|" + i.wp)), old = {}; SCH.items.forEach(i => old[i.id] = i);
-  SCH.items = SCH.items.filter(i => !keys.has(i.date.slice(0,7) + "|" + i.wp))
-    .concat(kept.map(i => old[i.id] ? { ...i, cal: old[i.id].cal, assign: old[i.id].assign } : i))
+  const keep = o => (o.edited || o.decided) ? o : null;   // פגישות שערכת או החלטת עליהן נשארות כמו שהן
+  SCH.items = SCH.items.filter(i => i.manual || !keys.has(i.date.slice(0,7) + "|" + i.wp))
+    .concat(kept.map(i => { const o = old[i.id]; return o ? (keep(o) || { ...i, cal: o.cal }) : i; }))
     .sort((a,b) => (a.date + (a.start||"")).localeCompare(b.date + (b.start||"")));
   SCH.month = kept[0].date.slice(0,7); schSave(); schRender();
-  const ask = kept.filter(i => i.ilan && !i.sup).length;
+  const ask = SCH.items.filter(i => kept.some(k => k.id === i.id) && isOpen(i)).length;
   setStatus("#schStatus", `נטענו ${kept.length} פגישות${dropped ? ` (${dropped} מחוץ לימים ולשעות שלך לא נכנסו)` : ""}.` + (ask ? ` יש ${ask} פגישות עם השם שלך בלי המילה "הדרכה" – צריך להחליט עליהן למטה.` : "") + (bad ? ` ${bad} קבצים לא נקראו.` : ""), "ok");
 };
 const fmtWhen = it => it.start ? (it.end ? `${it.start}–${it.end}` : it.start) : "כל היום";
 function knownMentees(){ const s = new Set(); SCH.items.forEach(i => i.names.forEach(n => s.add(n))); mentees().forEach(m => s.add(m.name)); return [...s].filter(Boolean).sort((a,b) => a.localeCompare(b,"he")); }
+const isOpen = i => i.ilan && !i.sup && !i.decided;
+const WPL = v => v === "פרחים" ? "מערך הפרחים" : v === "כפרי" ? "מערך הכפרי" : v;
+function editorHtml(i){
+  return `<div class="sch-ed" data-ed="${i.id}">
+    <div class="hd-grid" style="grid-template-columns:1.3fr 1fr 1fr">
+      <div><label class="f">תאריך</label><input type="date" data-f="date" value="${e(i.date)}"></div>
+      <div><label class="f">התחלה</label><input type="time" data-f="start" value="${e(i.start)}"></div>
+      <div><label class="f">סיום</label><input type="time" data-f="end" value="${e(i.end)}"></div>
+    </div>
+    <label class="f">תיאור</label><input type="text" data-f="desc" value="${e(i.desc)}">
+    <label class="f">מערך</label><select data-f="wp">${["פרחים","כפרי"].concat(["פרחים","כפרי"].includes(i.wp) || !i.wp ? [] : [i.wp]).map(w => `<option value="${e(w)}" ${w === i.wp ? "selected" : ""}>${e(WPL(w))}</option>`).join("")}</select>
+    <label class="f">סוג הפגישה</label>
+    <div class="opts sch-kind">
+      <label><input type="radio" name="k_${i.id}" value="sup" ${i.sup ? "checked" : ""}> 🧑‍🏫 הדרכה – נכנסת לתיעוד</label>
+      <label><input type="radio" name="k_${i.id}" value="other" ${!i.sup ? "checked" : ""}> 📅 לא הדרכה – רק ליומן</label>
+    </div>
+    <div class="sch-names" ${i.sup ? "" : "hidden"}><label class="f">מודרכים (כמה שמות – מפרידים בפסיק)</label><input type="text" data-f="names" list="hdMentees" value="${e(i.names.join(", "))}" placeholder="למשל: רים, נעמי"></div>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" data-f="cal" ${i.cal ? "checked" : ""}> להכניס ליומן</label>
+    <div class="bar"><button type="button" class="primary" data-act="save">שמירה</button><button type="button" data-act="cancel">ביטול</button><button type="button" class="x" data-act="del" style="margin-inline-start:auto;color:var(--stamp)">מחיקה</button></div>
+  </div>`;
+}
 function schRender(){
   const box = $("#schList"), months = [...new Set(SCH.items.map(i => i.date.slice(0,7)))].sort();
-  if(!months.length){ box.innerHTML = '<div class="empty">עוד לא נטען לו"ז.</div>'; $("#schMonthBar").hidden = true; return; }
-  if(!months.includes(SCH.month)) SCH.month = months[months.length - 1];
-  $("#schMonthBar").hidden = false;
+  $("#schAdd").hidden = false;
+  if(!months.length && !SCH.edit){ box.innerHTML = '<div class="empty">עוד לא נטען לו"ז.</div>'; $("#schMonthBar").hidden = true; $("#schAskNote").hidden = true; $("#schCal").disabled = $("#schToHd").disabled = true; return; }
+  if(SCH.month && !months.includes(SCH.month) && SCH.edit !== "new") SCH.month = months[months.length - 1];
+  if(!SCH.month) SCH.month = months[months.length - 1] || $("#hdMonth").value || ymNow();
+  $("#schMonthBar").hidden = !months.length;
   $("#schMonth").innerHTML = months.map(m => `<option value="${m}" ${m === SCH.month ? "selected" : ""}>${HEB_MONTHS[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join("");
-  const list = SCH.items.filter(i => i.date.startsWith(SCH.month)), mts = knownMentees();
-  let html = "", day = "";
+  const list = SCH.items.filter(i => i.date.startsWith(SCH.month));
+  let html = SCH.edit === "new" ? `<div class="sch-day">פגישה חדשה</div>` + editorHtml(SCH.draft) : "", day = "";
   list.forEach(i => {
     if(i.date !== day){ day = i.date; const d = new Date(day + "T12:00:00");
-      html += `<div class="sch-day">יום ${WD[d.getDay()]} ${d.getDate()}.${d.getMonth()+1} · ${e(i.wp === "פרחים" ? "מערך הפרחים" : i.wp === "כפרי" ? "מערך הכפרי" : i.wp)}</div>`; }
+      html += `<div class="sch-day">יום ${WD[d.getDay()]} ${d.getDate()}.${d.getMonth()+1} · ${e(WPL(i.wp))}</div>`; }
+    if(SCH.edit === i.id){ html += editorHtml(SCH.draft || i); return; }
     let tag = "";
-    if(i.sup) tag = `<span class="sch-tag sup">🧑‍🏫 הדרכה${i.names.length ? ": " + e(i.names.join(", ")) : ""}</span>`;
-    else if(i.ilan) tag = `<label class="sch-ask ${i.assign == null ? "open" : ""}">לריכוז ההדרכות? <select data-assign="${i.id}">
-        <option value="" ${i.assign == null ? "selected" : ""}>— לבחור —</option><option value="-" ${i.assign === "-" ? "selected" : ""}>לא</option>
-        ${[...new Set([...i.names, ...mts])].map(n => `<option value="${e(n)}" ${i.assign === n ? "selected" : ""}>כן – של ${e(n)}</option>`).join("")}</select></label>`;
-    html += `<div class="sch-row"><label class="sch-cal"><input type="checkbox" data-cal="${i.id}" ${i.cal ? "checked" : ""} aria-label="להכניס ליומן"></label>
-      <div><b class="ck-num">${fmtWhen(i)}</b> ${e(i.desc)}${tag ? "<br>" + tag : ""}</div></div>`;
+    if(i.sup) tag = `<span class="sch-tag sup">🧑‍🏫 הדרכה${i.names.length ? ": " + e(i.names.join(", ")) : " – חסר שם מודרך"}</span>`;
+    else if(isOpen(i)) tag = `<span class="sch-ask open">לא ברור אם זו הדרכה: <button type="button" data-q="sup">זו הדרכה</button><button type="button" data-q="no">לא הדרכה</button></span>`;
+    else if(i.ilan) tag = `<span class="sch-tag">📅 רק ליומן</span>`;
+    html += `<div class="sch-row" data-id="${i.id}"><label class="sch-cal"><input type="checkbox" data-cal="${i.id}" ${i.cal ? "checked" : ""} aria-label="להכניס ליומן"></label>
+      <div><b class="ck-num">${fmtWhen(i)}</b> ${e(i.desc)}${tag ? "<br>" + tag : ""}</div><button type="button" class="x sch-edit" data-act="edit" aria-label="עריכה">✏️</button></div>`;
   });
-  box.innerHTML = html;
-  const n = list.filter(i => i.cal).length, open = list.filter(i => i.ilan && !i.sup && i.assign == null).length;
+  box.innerHTML = html || '<div class="empty">אין פגישות בחודש הזה.</div>';
+  const n = list.filter(i => i.cal).length, open = list.filter(isOpen).length, nSup = schSessions(list).length;
   $("#schCal").textContent = `📅 הוסף ליומן (${n})`; $("#schCal").disabled = !n;
-  const nSup = schSessions(list).length;
   $("#schToHd").textContent = `➕ הוסף לתיעוד ההדרכה (${nSup})`; $("#schToHd").disabled = !nSup;
-  $("#schAskNote").hidden = !open; $("#schAskNote").textContent = `⚠️ ${open === 1 ? "פגישה אחת" : open + " פגישות"} עם השם שלך בלי המילה "הדרכה" מחכות להחלטה אם להכניס אותן לריכוז.`;
+  $("#schAskNote").hidden = !open; $("#schAskNote").textContent = `⚠️ ${open === 1 ? "פגישה אחת" : open + " פגישות"} עם השם שלך בלי המילה "הדרכה" – צריך לסמן אם זו הדרכה.`;
+  const ed = box.querySelector(".sch-ed"); if(ed && SCH.focus){ SCH.focus = false; ed.scrollIntoView({ behavior: "smooth", block: "center" }); const f = ed.querySelector(SCH.draft && SCH.draft.sup ? '[data-f="names"]' : '[data-f="desc"]'); if(f) setTimeout(() => f.focus({ preventScroll: true }), 300); }
 }
 const firstTok = s => normName(s).split(" ")[0];
 function fullName(n){   // "רים" -> השם המלא שכבר שמור במודרכים, אם יש בדיוק אחד כזה
   const ms = mentees(), ex = ms.find(m => normName(m.name) === normName(n)); if(ex) return ex.name;
   const c = ms.filter(m => firstTok(m.name) === firstTok(n)); return c.length === 1 ? c[0].name : n.trim();
 }
-function schSessions(list){   // מפגש לכל מודרך: הדרכות (שם + "הדרכה"), ופגישות שסומנו "כן – של…"
+function schSessions(list){   // מפגש לכל מודרך בכל הדרכה
   const out = [];
-  list.forEach(i => { const who = i.sup ? (i.names.length ? i.names : [""]) : (i.assign && i.assign !== "-" ? [i.assign] : []);
-    who.forEach(n => out.push({ item: i, name: n ? fullName(n) : "" })); });
+  list.forEach(i => { if(!i.sup) return; (i.names.length ? i.names : [""]).forEach(n => out.push({ item: i, name: n ? fullName(n) : "" })); });
   return out;
 }
-$("#schMonth").onchange = ev => { SCH.month = ev.target.value; schRender(); };
+function openEditor(id, preset){
+  SCH.edit = id; SCH.focus = true;
+  if(id === "new") SCH.draft = { id: "m" + Date.now().toString(36), date: (SCH.month || $("#hdMonth").value || ymNow()) + "-01", start: "", end: "", wp: "פרחים", desc: "", ilan: true, sup: true, names: [], cal: true, manual: true, decided: true, edited: true };
+  else if(preset){ const it = SCH.items.find(i => i.id === id); SCH.draft = { ...it, ...preset }; }
+  else SCH.draft = null;
+  schRender();
+}
+$("#schMonth").onchange = ev => { SCH.month = ev.target.value; SCH.edit = null; schRender(); };
+$("#schAdd").onclick = () => openEditor("new");
 $("#schList").addEventListener("change", ev => {
-  const c = ev.target.closest("[data-cal]"), a = ev.target.closest("[data-assign]");
+  const c = ev.target.closest("[data-cal]");
   if(c){ const it = SCH.items.find(i => i.id === c.dataset.cal); if(it){ it.cal = c.checked; schSave(); schRender(); } }
-  if(a){ const it = SCH.items.find(i => i.id === a.dataset.assign); if(it){ it.assign = a.value === "" ? null : a.value; schSave(); schRender(); } }
+  if(ev.target.type === "radio" && ev.target.closest(".sch-ed")){ const ed = ev.target.closest(".sch-ed"), sup = ev.target.value === "sup";
+    ed.querySelector(".sch-names").hidden = !sup; if(sup) ed.querySelector('[data-f="names"]').focus(); }
+});
+$("#schList").addEventListener("click", ev => {
+  const q = ev.target.closest("[data-q]"), b = ev.target.closest("[data-act]");
+  if(q){ const id = q.closest(".sch-row").dataset.id, it = SCH.items.find(i => i.id === id); if(!it) return;
+    if(q.dataset.q === "no"){ it.decided = true; it.sup = false; schSave(); schRender(); }
+    else openEditor(id, { sup: true });   // "זו הדרכה" – פותחים עריכה כדי לכתוב את שם המודרך
+    return; }
+  if(!b) return; const act = b.dataset.act;
+  if(act === "edit"){ openEditor(b.closest(".sch-row").dataset.id); return; }
+  const ed = b.closest(".sch-ed"); if(!ed) return; const id = ed.dataset.ed;
+  if(act === "cancel"){ SCH.edit = null; SCH.draft = null; schRender(); return; }
+  if(act === "del"){
+    if(SCH.edit === "new"){ SCH.edit = null; schRender(); return; }
+    if(!confirm("למחוק את הפגישה מהלו״ז?")) return;
+    const gone = SCH.items.find(i => i.id === id); if(gone && !gone.manual) SCH.hidden = [...new Set([...(SCH.hidden||[]), id])];   // לא תחזור בייבוא חוזר
+    SCH.items = SCH.items.filter(i => i.id !== id); SCH.edit = null; schSave(); schRender(); return; }
+  if(act === "save"){
+    const v = f => ed.querySelector(`[data-f="${f}"]`), sup = ed.querySelector('input[type=radio]:checked').value === "sup";
+    const date = v("date").value, desc = v("desc").value.trim();
+    if(!date || !desc) return setStatus("#schStatus", "חסרים תאריך או תיאור.", "err");
+    const names = sup ? v("names").value.split(/[,،;]+/).map(x => x.trim()).filter(Boolean) : [];
+    const base = SCH.edit === "new" ? SCH.draft : SCH.items.find(i => i.id === id);
+    const upd = { ...base, date, start: v("start").value, end: v("end").value, desc, wp: v("wp").value, sup, names, cal: v("cal").checked,
+      ilan: base.ilan || sup || /אילן/.test(desc), decided: true, edited: true };
+    if(SCH.edit === "new") SCH.items.push(upd); else SCH.items = SCH.items.map(i => i.id === id ? upd : i);
+    SCH.items.sort((a,b) => (a.date + (a.start||"")).localeCompare(b.date + (b.start||"")));
+    SCH.edit = null; SCH.draft = null; SCH.month = date.slice(0,7); schSave(); schRender();
+    setStatus("#schStatus", sup && !names.length ? "נשמר. שים לב: ההדרכה בלי שם מודרך." : "נשמר.", sup && !names.length ? "err" : "ok");
+  }
 });
 
 /* יומן: קובץ ‎.ics שנפתח ביומן של סמסונג / גוגל */
