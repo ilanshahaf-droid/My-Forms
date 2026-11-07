@@ -284,6 +284,10 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .ds-pad canvas{width:100%;height:100%;display:block}
 .ds-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9AA3B5;pointer-events:none}
 
+.ver-choice{margin-top:12px}
+.ver-list{margin-top:8px}
+.ver-list summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--soft)}
+.ver-row{align-items:center;margin-top:6px}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -2265,13 +2269,13 @@ function downloadBlob(blob,fname){ const a=document.createElement("a"); a.href=U
 
 async function cloudSaveForm(k,blob){
   if(!cloud.user) return null; const F=FORMS[k];
-  const stamp=F.editing||new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");   // ASCII בלבד: אחסון הענן לא מקבל שמות קבצים בעברית
+  const stamp=(F.editing&&!(window.VER&&VER.asNew(k)))?F.editing:new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");   // "לשמור כטופס חדש" – קובץ נפרד   // ASCII בלבד: אחסון הענן לא מקבל שמות קבצים בעברית
   const base=P(`forms/${F.folder}/${stamp}`);
   const up=await cloud.sb.storage.from(BUCKET).upload(base+".docx",blob,{contentType:DOCX_MIME,upsert:true});
   if(up.error) return false;
   const snap=readForm(k); F.volatile.forEach(id=>delete snap.v[id]);   // תמונת מצב של השדות, לטעינה חוזרת לעריכה
   await cloud.sb.storage.from(BUCKET).upload(base+".json",new Blob([JSON.stringify(snap)],{type:"application/json"}),{contentType:"application/json",upsert:true});
-  F.editing=stamp; renderFiles(); return true;
+  F.editing=stamp; if(window.VER){ VER.resetChoice(k); VER.syncOneoff(); } renderFiles(); return true;
 }
 async function cloudLoadForm(k,stamp){
   const F=FORMS[k]; setStatus("#filesStatus","טוען את הטופס…");
@@ -2438,9 +2442,14 @@ async function driveUpload(file,kind){
   const root=await driveFolder(DRIVE_ROOT,"root");
   const sub=await driveFolder(driveFolderName(kind),root);
   const q=`name=${qs(file.name)} and ${qs(sub)} in parents and trashed=false`;
-  const ex=await gfetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));
+  const ex=await gfetch("https://www.googleapis.com/drive/v3/files?fields=files(id,modifiedTime)&q="+encodeURIComponent(q));
   const old=ex.files&&ex.files[0]&&ex.files[0].id;
-  if(old) // same month again: replace the content of the existing file
+  if(old&&window.VER&&["work","gefen","hadracha"].includes(kind)&&VER.keep(kind)){
+    const d=new Date(ex.files[0].modifiedTime||Date.now()), dot=file.name.lastIndexOf(".");
+    const nn=file.name.slice(0,dot)+`_גרסה_${d.getDate()}.${d.getMonth()+1}.${String(d.getFullYear()).slice(2)}`+file.name.slice(dot);
+    await gfetch(`https://www.googleapis.com/drive/v3/files/${old}?fields=id`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:nn})});
+  }
+  else if(old) // same month again: replace the content of the existing file
     return gfetch(`https://www.googleapis.com/upload/drive/v3/files/${old}?uploadType=media&fields=id,webViewLink`,{method:"PATCH",headers:{"Content-Type":file.type},body:file});
   const fd=new FormData();
   fd.append("metadata",new Blob([JSON.stringify({name:file.name,parents:[sub]})],{type:"application/json"}));
@@ -2600,6 +2609,7 @@ async function cloudSaveSource(bytes,kind,isos,name){
   if(!error) renderFiles();
 }
 async function cloudSaveReport(blob,ym,kind){
+  if(window.VER && VER.keep(kind)){ try{ await VER.keepPrev(`${DIR(kind)}/reports`, ym); }catch(e){} }   // שומרים את הגרסה הקודמת של החודש
   const {error}=await cloud.sb.storage.from(BUCKET).upload(P(`${DIR(kind)}/reports/${ym}.docx`),blob,{upsert:true,contentType:DOCX_MIME});
   // תמונת מצב של הטופס, כדי שאפשר יהיה לטעון אותו לעריכה מהענן
   try{
@@ -2643,7 +2653,7 @@ async function renderFiles(){
     if(!box) return;
     const keys=Object.keys(map).sort().reverse();
     box.innerHTML = keys.length ? "" : '<div class="folder-empty">עדיין אין קבצים בתיקייה הזאת.</div>';
-    keys.forEach(ym=>{ const m=map[ym]; const div=document.createElement("div"); div.className="month";
+    keys.forEach(ym=>{ const m=map[ym]; const div=document.createElement("div"); div.className="month"; div.dataset.ym=ym;
       div.innerHTML=`<h3>${monthLabel(ym)}</h3><div class="bar"></div>`; const bar=div.querySelector(".bar");
       const add=(label,fn,cls)=>{ const b=document.createElement("button"); b.textContent=label; if(cls) b.className=cls; b.onclick=fn; bar.appendChild(b); };
       const ml=monthLabel(ym).replace(" ","_");
@@ -3995,6 +4005,7 @@ $("#hdMake").onclick = async () => {
     rememberMentees();
     let msg = `הקובץ מוכן: ${data.rows.length} מפגשים.`;
     if(cloud.user){
+      if(window.VER && VER.keep("hadracha")){ try{ await VER.keepPrev("hadracha/reports", data.ym); }catch(_){} }
       const up = await cloud.sb.storage.from(BUCKET).upload(P(`hadracha/reports/${data.ym}.docx`), blob, { upsert: true, contentType: blob.type });
       await cloud.sb.storage.from(BUCKET).upload(P(`hadracha/reports/${data.ym}.json`), new Blob([JSON.stringify({ v:1, month: data.ym, name: data.name, rows: HD.rows })], { type: "application/json" }), { upsert: true, contentType: "application/json" });
       msg += up.error ? " השמירה בענן נכשלה." : " נשמר גם בענן."; renderFiles();
@@ -4029,7 +4040,7 @@ async function hdRenderFiles(){
   window.lastReports = { ...(window.lastReports || {}), hadracha: last }; renderDash();
   box.innerHTML = keys.length ? "" : '<div class="folder-empty">עדיין אין קבצים בתיקייה הזאת.</div>';
   keys.forEach(ym => {
-    const div = document.createElement("div"); div.className = "month";
+    const div = document.createElement("div"); div.className = "month"; div.dataset.ym = ym;
     div.innerHTML = `<h3>${mLabelHd(ym)}</h3><div class="bar"></div>`; const bar = div.querySelector(".bar");
     const add = (label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(cls) b.className = cls; b.onclick = fn; bar.appendChild(b); };
     add("תיעוד הדרכה ⬇", () => cloudDownload(`hadracha/reports/${ym}.docx`, `תיעוד_הדרכה_${mLabelHd(ym).replace(" ","_")}.docx`));
@@ -4039,9 +4050,9 @@ async function hdRenderFiles(){
     box.appendChild(div);
   });
 }
-async function loadFromCloud(ym){
+async function loadFromCloud(ym, path){
   setStatus("#filesStatus", "טוען…");
-  const { data } = await cloud.sb.storage.from(BUCKET).download(P(`hadracha/reports/${ym}.json`));
+  const { data } = await cloud.sb.storage.from(BUCKET).download(P(path || `hadracha/reports/${ym}.json`));
   if(!data) return setStatus("#filesStatus", "הטעינה נכשלה.", "err");
   try{ const j = JSON.parse(await data.text()); HD.rows = j.rows || []; $("#hdMonth").value = j.month || ym; if(j.name) $("#hdName").value = j.name; }
   catch(_){ return setStatus("#filesStatus", "הקובץ השמור פגום.", "err"); }
@@ -4306,7 +4317,7 @@ $("#schCopy").onclick = async () => { try{ await navigator.clipboard.writeText($
 schLoadLocal();
 
 schRender();
-window.HDF = { collect, importBytes, promptText, enter(){ showPrompt(); if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); schRender(); if(cloud.user) schPull(); }, render, buildDocx, pdfHtml, HD, SCH, schParse, buildIcs };
+window.HDF = { collect, importBytes, promptText, enter(){ showPrompt(); if(!$("#hdName").value) $("#hdName").value = store.get("att_name") || ""; pullMentees(); render(); schRender(); if(cloud.user) schPull(); }, render, buildDocx, pdfHtml, HD, loadFromCloud, SCH, schParse, buildIcs };
 if(cloud.user){ pullMentees(); hdRenderFiles(); schPull(); }
 })();
 </script>
@@ -4844,7 +4855,7 @@ function render(){
                exp ? "⌛ פג תוקף הקישור" : "⏳ ממתינה לחתימה";
     let btns = "";
     if(r.status === "pending" && !exp) btns = `<button type="button" data-a="share">📨 שלח את הקישור</button><a class="btnlink" href="${e(waOf(r))}" target="_blank" rel="noopener">וואטסאפ</a><button type="button" data-a="copy">העתק קישור</button><button type="button" class="x" data-a="del">ביטול הבקשה</button>`;
-    else if(r.status === "approved") btns = f ? `<button type="button" class="primary" data-a="hr">📤 שלח לאחראית (PDF)</button><button type="button" data-a="pdf">הורד PDF</button><button type="button" data-a="docx">הורד Word</button>`
+    else if(r.status === "approved") btns = f ? `<button type="button" class="primary" data-a="hr">📤 שלח לאחראית (PDF)</button><button type="button" data-a="pdf">הורד PDF</button><button type="button" data-a="docx">הורד Word</button>${typeof driveOn === "function" && driveOn() ? '<button type="button" class="drivebtn" data-a="drive">שמור בדרייב</button>' : ""}`
                                               : `<button type="button" class="primary" data-a="make">📄 הפק טופס חתום</button>`;
     if(r.status !== "pending" || exp) btns += `<button type="button" class="x" data-a="del">הסר</button>`;
     return `<div class="sg-item ${r.status}" data-id="${e(r.id)}">
@@ -4865,6 +4876,13 @@ $("#sgList").addEventListener("click", async ev => {
   if(a === "hr" && f){ try{ const res = await shareFileRobust(f.pdf, "hofesh"); if(!res) openFileFallback(f.pdf, "hofesh"); }catch(_){ openFileFallback(f.pdf, "hofesh"); } }
   if(a === "pdf" && f) downloadBlob(f.pdf, f.pdf.name);
   if(a === "docx" && f) downloadBlob(f.docx, f.docx.name);
+  if(a === "drive" && f){   // לפי הבחירה וורד / PDF שליד כפתורי הדרייב האחרים
+    const file = driveFmt() === "pdf" ? f.pdf : f.docx; b.disabled = true; setStatus("#sgStatus", "מעלה לדרייב…");
+    try{ await driveToken(); let r; try{ r = await driveUpload(file, "hofesh"); }catch(err){ if(err && err.code === "auth"){ await driveToken(); r = await driveUpload(file, "hofesh"); } else throw err; }
+      $("#sgStatus").className = "status ok"; $("#sgStatus").innerHTML = `נשמר בדרייב, בתיקייה ${e(DRIVE_ROOT + " / " + driveFolderName("hofesh"))}. ` + (r && r.webViewLink ? `<a href="${e(r.webViewLink)}" target="_blank" rel="noopener">פתח בדרייב</a>` : "");
+    }catch(_){ setStatus("#sgStatus", "השמירה בדרייב נכשלה. נסה שוב.", "err"); }
+    b.disabled = false;
+  }
 });
 
 /* ---------- הפקת הטופס החתום ---------- */
@@ -5161,6 +5179,87 @@ renderFiles = async function(){ await origRender(); try{ await dsRenderFiles(); 
 
 window.DSF = { DS, buildPdf, addItem, textPng, renderPages, enter(){ if(cloud.user) dsRenderFiles().catch(() => {}); } };
 if(cloud.user) dsRenderFiles().catch(() => {});
+})();
+</script>
+<script>
+/* ================= גרסאות: עדכון או שמירה נוספת, בכל הטפסים ================= */
+(function(){
+const e = s => esc(s == null ? "" : s);
+const p2 = n => String(n).padStart(2,"0");
+const stampOf = d => `${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+const stampTxt = s => `${+s.slice(6,8)}.${+s.slice(4,6)}.${s.slice(2,4)}, ${s.slice(9,11)}:${s.slice(11,13)}`;
+
+// טפסים חודשיים: קובץ אחד לכל חודש. אפשר לשמור את הקודם כגרסה לפני שמעדכנים.
+const MONTHLY = { work: ["#make", "כרטיס הנוכחות"], gefen: ["#gMake", "דוח גפ\"ן"], hadracha: ["#hdMake", "תיעוד ההדרכה"] };
+// טפסים חד-פעמיים: כשטוענים טופס לעריכה – לעדכן אותו או לשמור כטופס חדש
+const ONEOFF = { maanak: "#mMake", hofesh: "#hMake" };
+
+function addChoice(btnSel, k, html){
+  const btn = $(btnSel); if(!btn) return; const bar = btn.closest(".bar");
+  const fs = document.createElement("fieldset"); fs.className = "grp ver-choice"; fs.id = "ver_" + k; fs.innerHTML = html;
+  bar.before(fs);
+}
+Object.entries(MONTHLY).forEach(([k, [sel, what]]) => addChoice(sel, k, `<legend>אם החודש כבר שמור בענן</legend><div class="opts mf-opts">
+  <label><input type="radio" name="ver_${k}" value="replace" checked> לעדכן את הקובץ של החודש</label>
+  <label><input type="radio" name="ver_${k}" value="add"> לעדכן, ולשמור גם את הגרסה הקודמת (לפי תאריך)</label></div>
+  <p class="hint" style="margin:6px 0 0">למשל כשמתקנים ${what} שכבר הוגש, ורוצים לשמור גם את מה שהוגש.</p>`));
+Object.entries(ONEOFF).forEach(([k, sel]) => addChoice(sel, k, `<legend>הטופס כבר שמור בענן</legend><div class="opts mf-opts">
+  <label><input type="radio" name="ver_${k}" value="replace" checked> לעדכן את הטופס הקיים</label>
+  <label><input type="radio" name="ver_${k}" value="add"> לשמור כטופס חדש (הקיים נשאר)</label></div>`));
+const choice = k => (document.querySelector(`input[name="ver_${k}"]:checked`) || {}).value || "replace";
+function syncOneoff(){ Object.keys(ONEOFF).forEach(k => { const el = $("#ver_" + k); if(el) el.hidden = !(FORMS[k] && FORMS[k].editing); }); }
+document.addEventListener("click", () => requestAnimationFrame(syncOneoff)); syncOneoff();
+const resetChoice = k => { const r = document.querySelector(`input[name="ver_${k}"][value="replace"]`); if(r) r.checked = true; };
+
+async function exists(dir, name){
+  const { data } = await cloud.sb.storage.from(BUCKET).list(P(dir), { limit: 1000 });
+  return (data || []).find(f => f.name === name) || null;
+}
+// מעתיקים את הקובץ הנוכחי של החודש לתיקיית הגרסאות, עם התאריך שבו נשמר
+async function keepPrev(dir, ym){
+  const cur = await exists(dir, ym + ".docx"); if(!cur) return false;
+  const st = stampOf(new Date(Date.parse(cur.updated_at || cur.created_at || "") || Date.now()));
+  for(const ext of ["docx","json"]){
+    const r = await cloud.sb.storage.from(BUCKET).download(P(`${dir}/${ym}.${ext}`)); if(!r.data) continue;
+    await cloud.sb.storage.from(BUCKET).upload(P(`${dir}/versions/${ym}_${st}.${ext}`), r.data, { upsert: true, contentType: ext === "docx" ? DOCX_MIME : "application/json" });
+  }
+  return true;
+}
+const keep = k => choice(k) === "add";
+const asNew = k => choice(k) === "add";
+
+/* ---------- גרסאות קודמות בתיקיות הקבצים ---------- */
+const VDIRS = { work: ["work/reports", "#fileListWork"], gefen: ["gefen/reports", "#fileListGefen"], hadracha: ["hadracha/reports", "#fileListHadracha"] };
+const NAMES = { work: "כרטיס_נוכחות", gefen: "דיווח_גפן", hadracha: "תיעוד_הדרכה" };
+async function drawVersions(k){
+  const [dir, boxSel] = VDIRS[k], box = $(boxSel); if(!box) return;
+  const { data } = await cloud.sb.storage.from(BUCKET).list(P(dir + "/versions"), { limit: 1000 });
+  const by = {};
+  (data || []).forEach(f => { const m = f.name.match(/^(\d{4}-\d{2})_(\d{8}-\d{6})\.(docx|json)$/); if(!m) return;
+    ((by[m[1]] = by[m[1]] || {})[m[2]] = by[m[1]][m[2]] || {})[m[3]] = true; });
+  box.querySelectorAll(".month[data-ym]").forEach(div => {
+    const ym = div.dataset.ym, vs = by[ym]; div.querySelector(".ver-list")?.remove(); if(!vs) return;
+    const stamps = Object.keys(vs).filter(s => vs[s].docx).sort().reverse(); if(!stamps.length) return;
+    const det = document.createElement("details"); det.className = "ver-list";
+    det.innerHTML = `<summary>גרסאות קודמות (${stamps.length})</summary>`;
+    stamps.forEach(st => {
+      const row = document.createElement("div"); row.className = "bar ver-row";
+      row.innerHTML = `<span class="rk-vl">נשמרה ב-${stampTxt(st)}</span>`;
+      const add = (label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(cls) b.className = cls; b.onclick = fn; row.appendChild(b); };
+      const base = `${dir}/versions/${ym}_${st}`;
+      add("⬇", () => cloudDownload(base + ".docx", `${NAMES[k]}_${ym}_גרסה_${stampTxt(st).split(",")[0]}.docx`));
+      if(vs[st].json) add("טען לעריכה", () => k === "hadracha" ? HDF.loadFromCloud(ym, base + ".json") : cloudLoadSnap(k, { snap: base + ".json" }, ym));
+      add("מחק", async () => { if(!confirm(`למחוק את הגרסה מ-${stampTxt(st)}?`)) return;
+        await cloud.sb.storage.from(BUCKET).remove([P(base + ".docx"), P(base + ".json")]); drawVersions(k); }, "del");
+      det.appendChild(row);
+    });
+    div.appendChild(det);
+  });
+}
+const origRender = renderFiles;
+renderFiles = async function(){ await origRender(); if(cloud.user) for(const k of Object.keys(VDIRS)){ try{ await drawVersions(k); }catch(_){} } };
+
+window.VER = { keep, asNew, keepPrev, resetChoice, syncOneoff, drawVersions };
 })();
 </script>
 </body>
