@@ -65,6 +65,7 @@
   .step:last-child{border-bottom:0}
   .step .num{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
   .step>div{flex:1}
+  .btn.wa{background:#1da851}
   .tag{display:inline-block;font-size:12px;background:#eef1f6;color:var(--muted);border-radius:6px;padding:1px 8px;margin-inline-start:6px;font-weight:400}
 </style>
 </head>
@@ -107,6 +108,7 @@
     <h2>לאן ההורים יחזירו את הטופס החתום</h2>
     <div class="grid">
       <div><label class="f">שם הפסיכולוג/ית</label><input type="text" id="s_psy"></div>
+      <div><label class="f">טלפון וואטסאפ <span class="tag">רשות</span></label><input type="tel" id="s_wa" placeholder="05X-XXXXXXX"></div>
       <div><label class="f">מייל לקבלת הטופס החתום <span class="tag">ריק = ברירת המחדל</span></label><input type="email" id="s_mail" dir="ltr"></div>
     </div>
   </div>
@@ -193,11 +195,14 @@
 
   <div id="result" class="card hidden" style="margin-top:14px">
     <h2>הטופס החתום מוכן ✓</h2>
-    <p style="margin-top:0" id="returnText">לחיצה על הכפתור שולחת את הטופס החתום ישירות לשפ"ח.</p>
-    <button class="btn ok big" id="sendBtn">שליחת הטופס החתום</button>
+    <p style="margin-top:0" id="returnText">איך לשלוח את הטופס החתום?</p>
+    <div id="sendChoices" class="actions" style="margin-top:0">
+      <button class="btn big" id="sendBtn">שליחה במייל</button>
+      <button class="btn big wa" id="waBtn">שליחה בוואטסאפ</button>
+      <div id="waHint" style="font-size:14px;color:var(--muted);margin-top:-4px"></div>
+    </div>
     <div id="sendStatus" class="hidden" style="margin-top:12px;padding:12px;border-radius:10px;font-weight:600"></div>
     <div class="actions">
-      <button class="btn sec hidden" id="shareBtn">שליחה בדרך אחרת (וואטסאפ / מייל)</button>
       <button class="btn sec" id="dlBtn">הורדת עותק לשמירה (PDF)</button>
       <button class="link" id="editBtn">חזרה לעריכה</button>
     </div>
@@ -328,7 +333,7 @@ function initStaff(){
   $("staffView").classList.remove("hidden"); $("parentView").classList.add("hidden");
   $("pageTitle").textContent = "יצירת קישור לטופס הסכמה – לשימוש הצוות";
   $("s_opts").innerHTML = OPTIONS.map(o=>`<label class="opt"><input type="checkbox" value="${o.id}"><div>${o.t}${o.extra?`<div class="extra"><input type="text" id="s_${o.id}x" placeholder="${o.extra}"></div>`:""}</div></label>`).join("");
-  try{ const saved=JSON.parse(localStorage.getItem("shpach_staff")||"{}"); ["s_psy","s_mail"].forEach(k=>{ if(saved[k]) $(k).value=saved[k]; }); }catch(e){}
+  try{ const saved=JSON.parse(localStorage.getItem("shpach_staff")||"{}"); ["s_psy","s_wa","s_mail"].forEach(k=>{ if(saved[k]) $(k).value=saved[k]; }); }catch(e){}
   let url="";
   $("makeLink").onclick=()=>{
     const d={};
@@ -339,8 +344,8 @@ function initStaff(){
     put("o1x",$("s_o1x").value.trim()); put("o3x",$("s_o3x").value.trim());
     if($("s_lock").checked && sel.length) d.l=1;
     if(document.querySelector("input[name=s_sped]:checked").value==="hide") d.h=1;
-    put("p",$("s_psy").value.trim()); put("m",$("s_mail").value.trim());
-    try{ localStorage.setItem("shpach_staff",JSON.stringify({s_psy:$("s_psy").value,s_mail:$("s_mail").value})); }catch(e){}
+    put("p",$("s_psy").value.trim()); put("w",$("s_wa").value.trim()); put("m",$("s_mail").value.trim());
+    try{ localStorage.setItem("shpach_staff",JSON.stringify({s_psy:$("s_psy").value,s_wa:$("s_wa").value,s_mail:$("s_mail").value})); }catch(e){}
     url = location.href.split("#")[0] + (Object.keys(d).length ? "#d="+enc(d) : "");
     $("linkOut").value=url; $("linkBox").classList.remove("hidden"); $("linkBox").scrollIntoView({behavior:"smooth"});
   };
@@ -390,7 +395,7 @@ function initParent(){
   $("form").onsubmit=e=>{ e.preventDefault(); if(validate()) build(); };
   $("editBtn").onclick=()=>{ $("result").classList.add("hidden"); $("form").classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); };
   $("dlBtn").onclick=download;
-  $("shareBtn").onclick=share;
+  $("waBtn").onclick=sendWhatsApp;
   $("sendBtn").onclick=sendMail;
 }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -516,10 +521,14 @@ async function build(){
     const safe=$("name").value.trim().replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g,"_");
     fileName="טופס הסכמה מדעת.pdf";
     $("preview").src=jpg;
-    $("returnText").textContent = `לחיצה על הכפתור שולחת את הטופס החתום ישירות ${pre.p?"אל "+pre.p:"לשפ\"ח"} במייל.`;
-    sent=false; $("sendBtn").disabled=false; $("sendBtn").classList.remove("hidden"); $("sendBtn").textContent="שליחת הטופס החתום";
-    $("sendStatus").classList.add("hidden"); $("shareBtn").classList.add("hidden");
-    if(!SEND_URL){ $("sendBtn").classList.add("hidden"); $("shareBtn").classList.remove("hidden"); $("shareBtn").textContent="שליחת הטופס החתום"; $("shareBtn").className="btn ok big"; $("returnText").textContent="יש לשלוח את הקובץ בחזרה לפסיכולוג/ית."; }
+    $("returnText").textContent = `איך לשלוח את הטופס החתום${pre.p?" אל "+pre.p:""}?`;
+    sent=false; $("sendChoices").classList.remove("hidden"); $("sendBtn").disabled=false; $("sendBtn").textContent="שליחה במייל";
+    $("sendStatus").classList.add("hidden");
+    const who = pre.p || "הפסיכולוג/ית";
+    $("waHint").textContent = canShareFile()
+      ? `בחלון שייפתח בוחרים וואטסאפ ואז את ${who}${pre.w?" ("+pre.w+")":""}. יישלח הקובץ בלבד.`
+      : `הקובץ יירד למחשב ותיפתח שיחת וואטסאפ${pre.w?" עם "+who:""} – יש לגרור אליה את הקובץ.`;
+    if(!SEND_URL) $("sendBtn").classList.add("hidden");
     $("form").classList.add("hidden"); $("result").classList.remove("hidden");
     window.scrollTo({top:0,behavior:"smooth"});
   }catch(err){ alert("אירעה שגיאה ביצירת הטופס: "+err.message); }
@@ -530,13 +539,16 @@ function download(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(pdfBlob); a.download=fileName;
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
 }
-// שיתוף הקובץ דרך חלון השיתוף של הטלפון (גיבוי אם השליחה במייל נכשלה)
-async function share(){
-  const f=new File([pdfBlob],fileName,{type:"application/pdf"});
-  if(navigator.canShare && navigator.canShare({files:[f]})){
-    try{ await navigator.share({files:[f]}); return; } catch(e){ if(e.name==="AbortError") return; }
+const pdfFile=()=>new File([pdfBlob],fileName,{type:"application/pdf"});
+const canShareFile=()=>!!(navigator.canShare && navigator.canShare({files:[pdfFile()]}));
+// וואטסאפ: הקובץ בלבד, בלי טקסט, דרך חלון השיתוף של הטלפון
+async function sendWhatsApp(){
+  if(canShareFile()){
+    try{ await navigator.share({files:[pdfFile()]}); return; } catch(e){ if(e.name==="AbortError") return; }
   }
-  download(); alert("הקובץ ירד למכשיר – יש לצרף אותו להודעה לפסיכולוג/ית.");
+  // מחשב (או שיתוף לא זמין): הורדה ופתיחת שיחה ללא טקסט
+  download();
+  setTimeout(()=>window.open(pre.w ? `https://wa.me/${waNumber(pre.w)}` : "https://web.whatsapp.com/","_blank"),400);
 }
 
 // שליחה ישירה במייל דרך Google Apps Script
@@ -553,12 +565,11 @@ async function sendMail(){
     const res=await fetch(SEND_URL,{method:"POST",body});   // text/plain – בלי preflight
     const j=await res.json().catch(()=>({ok:false,error:"bad response"}));
     if(!j.ok) throw new Error(j.error||"send failed");
-    sent=true; btn.classList.add("hidden"); $("shareBtn").classList.add("hidden");
+    sent=true; $("sendChoices").classList.add("hidden");
     status(true,`✓ הטופס נשלח בהצלחה${pre.p?" אל "+pre.p:""}. תודה!`);
   }catch(e){
     btn.disabled=false; btn.textContent="ניסיון נוסף";
-    status(false,"השליחה לא הצליחה (ייתכן שאין חיבור לאינטרנט). אפשר לנסות שוב, או לשלוח את הקובץ בדרך אחרת.");
-    $("shareBtn").classList.remove("hidden");
+    status(false,"השליחה במייל לא הצליחה (ייתכן שאין חיבור לאינטרנט). אפשר לנסות שוב, או לשלוח בוואטסאפ.");
   }
 }
 
