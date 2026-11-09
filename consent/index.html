@@ -440,8 +440,8 @@ function putText(ctx, text, box, size=36){
   ctx.fillText(text, (box.x1+box.x2)/2, box.y);
 }
 function checkMark(ctx,x,y){
-  ctx.save(); ctx.strokeStyle="#16245c"; ctx.lineWidth=5; ctx.lineCap="round"; ctx.lineJoin="round";
-  ctx.beginPath(); ctx.moveTo(x-12,y-2); ctx.lineTo(x-3,y+10); ctx.lineTo(x+16,y-18); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle="#16245c"; ctx.lineWidth=3.5; ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.beginPath(); ctx.moveTo(x-8,y); ctx.lineTo(x-2,y+7); ctx.lineTo(x+10,y-10); ctx.stroke(); ctx.restore();
 }
 function ellipse(ctx,e){
   ctx.save(); ctx.strokeStyle="#16245c"; ctx.lineWidth=3.5;
