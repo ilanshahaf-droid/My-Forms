@@ -521,9 +521,12 @@ function jpegToPdf(dataUrl, wPx, hPx){
   obj(3,()=>add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_W} ${PDF_H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`));
   obj(4,()=>{ add(`<< /Type /XObject /Subtype /Image /Width ${wPx} /Height ${hPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`); add(img); add("\nendstream"); });
   obj(5,()=>add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  // כותרת המסמך (מוצגת בתוכנות PDF) – בקידוד UTF-16BE כדי שהעברית תוצג נכון
+  const u16=t=>"<FEFF"+[...t].map(ch=>ch.charCodeAt(0).toString(16).padStart(4,"0")).join("").toUpperCase()+">";
+  obj(6,()=>add(`<< /Title ${u16("טופס הסכמה מדעת")} /Producer (shpach-consent) >>`));
   const xref=len;
-  let x="xref\n0 6\n0000000000 65535 f \n"; for(let i=1;i<=5;i++) x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
-  add(x+`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  let x="xref\n0 7\n0000000000 65535 f \n"; for(let i=1;i<=6;i++) x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+  add(x+`trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xref}\n%%EOF`);
   return new Blob(parts,{type:"application/pdf"});
 }
 
@@ -534,7 +537,7 @@ async function build(){
     const jpg=c.toDataURL("image/jpeg",0.82);
     pdfBlob=jpegToPdf(jpg,c.width,c.height);
     const safe=$("name").value.trim().replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g,"_");
-    fileName=`טופס_הסכמה_שפח_${safe||"תלמיד"}.pdf`;
+    fileName="טופס הסכמה מדעת.pdf";
     $("preview").src=jpg;
     $("returnText").textContent = pre.p ? `יש לשלוח את הקובץ בחזרה אל ${pre.p}.` : "יש לשלוח את הקובץ בחזרה לפסיכולוג/ית שפנה/תה אליך.";
     document.querySelectorAll(".psyName").forEach(e=>e.textContent = pre.p || "הפסיכולוג/ית");
