@@ -526,7 +526,7 @@ async function build(){
     $("sendStatus").classList.add("hidden");
     const who = pre.p || "הפסיכולוג/ית";
     $("waHint").textContent = canShareFile()
-      ? `בחלון שייפתח בוחרים וואטסאפ ואז את ${who}${pre.w?" ("+pre.w+")":""}. יישלח הקובץ בלבד.`
+      ? "בחלון שייפתח, ביחרו וואטסאפ ואז את הצ'אט עם הפסיכולוג/ית - הוא אמור להופיע בראש רשימת השיחות שלכם"
       : `הקובץ יירד למחשב ותיפתח שיחת וואטסאפ${pre.w?" עם "+who:""} – יש לגרור אליה את הקובץ.`;
     if(!SEND_URL) $("sendBtn").classList.add("hidden");
     $("form").classList.add("hidden"); $("result").classList.remove("hidden");
