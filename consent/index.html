@@ -61,6 +61,10 @@
   .toggle{display:flex;gap:10px;align-items:center;font-weight:600;margin-top:4px}
   .toggle input{width:22px;height:22px;accent-color:var(--accent)}
   .linkout{width:100%;font-family:monospace;font-size:13px;direction:ltr;min-height:90px}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eef1f6}
+  .step:last-child{border-bottom:0}
+  .step .num{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step>div{flex:1}
   .tag{display:inline-block;font-size:12px;background:#eef1f6;color:var(--muted);border-radius:6px;padding:1px 8px;margin-inline-start:6px;font-weight:400}
 </style>
 </head>
@@ -191,14 +195,34 @@
   <div id="result" class="card hidden" style="margin-top:14px">
     <h2>הטופס החתום מוכן ✓</h2>
     <p style="margin-top:0" id="returnText">יש לשלוח את הקובץ בחזרה לשפ"ח.</p>
+
+    <!-- טלפון / טאבלט: שיתוף הקובץ עצמו -->
+    <div id="mobileSend" class="hidden">
+      <div id="waSteps" class="hidden">
+        <div class="step"><span class="num">1</span><div><b>פתיחת הצ'אט</b> עם <span class="psyName"></span> בוואטסאפ (נשלחת הודעה קצרה, בלי הקובץ).
+          <button class="btn sec" id="waChatBtn" style="margin-top:8px;width:100%">פתיחת צ'אט בוואטסאפ</button></div></div>
+        <div class="step"><span class="num">2</span><div><b>שליחת הקובץ:</b> חוזרים לכאן, לוחצים על הכפתור, בוחרים <b>וואטסאפ</b> ואז את הצ'אט עם <span class="psyName"></span> (יופיע ראשון ברשימה).
+          <button class="btn ok big" id="shareBtnWa" style="margin-top:8px">שליחת הקובץ החתום</button></div></div>
+      </div>
+      <div id="plainShare">
+        <p style="margin:0 0 8px">לוחצים על הכפתור ובוחרים איך לשלוח – וואטסאפ, מייל או כל אפליקציה אחרת. הקובץ יצורף אוטומטית.</p>
+        <button class="btn ok big" id="shareBtn">שליחת הקובץ החתום</button>
+      </div>
+    </div>
+
+    <!-- מחשב: הורדה ואז צירוף ידני -->
+    <div id="desktopSend" class="hidden">
+      <p style="margin:0 0 8px">במחשב לא ניתן לצרף את הקובץ אוטומטית: הקובץ יורד למחשב, ואז יש לצרף אותו להודעה (בוואטסאפ ווב – לגרור את הקובץ לחלון הצ'אט).</p>
+      <div class="actions" style="margin-top:0">
+        <button class="btn ok" id="dWaBtn">הורדה ופתיחת וואטסאפ</button>
+        <button class="btn sec" id="dMailBtn">הורדה ופתיחת מייל</button>
+      </div>
+    </div>
+
     <div class="actions">
-      <button class="btn ok big" id="shareBtn">שליחת הטופס החתום</button>
-      <button class="btn sec" id="dlBtn">הורדת הקובץ (PDF)</button>
-      <button class="btn sec hidden" id="waBtn">פתיחת וואטסאפ לפסיכולוג/ית</button>
-      <button class="btn sec hidden" id="mailBtn">פתיחת מייל לפסיכולוג/ית</button>
+      <button class="btn sec" id="dlBtn">הורדת הקובץ (PDF) בלבד</button>
       <button class="link" id="editBtn">חזרה לעריכה</button>
     </div>
-    <p style="font-size:14px;color:var(--muted)" id="attachHint" class="hidden"></p>
     <img id="preview" alt="תצוגה מקדימה של הטופס החתום">
   </div>
 
@@ -387,6 +411,10 @@ function initParent(){
   $("editBtn").onclick=()=>{ $("result").classList.add("hidden"); $("form").classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); };
   $("dlBtn").onclick=download;
   $("shareBtn").onclick=share;
+  $("shareBtnWa").onclick=share;
+  $("waChatBtn").onclick=()=>window.open(waChatUrl(),"_blank");
+  $("dWaBtn").onclick=()=>{ download(); setTimeout(()=>window.open(`https://wa.me/${waNumber(pre.w)}?text=${encodeURIComponent(msgText())}`,"_blank"),400); };
+  $("dMailBtn").onclick=()=>{ download(); setTimeout(()=>location.href=`mailto:${pre.m}?subject=${encodeURIComponent("טופס הסכמה חתום – "+$("name").value.trim())}&body=${encodeURIComponent(msgText()+"\n\n(יש לצרף את קובץ ה-PDF שהורד למחשב)")}`,400); };
 }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -508,15 +536,15 @@ async function build(){
     const safe=$("name").value.trim().replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g,"_");
     fileName=`טופס_הסכמה_שפח_${safe||"תלמיד"}.pdf`;
     $("preview").src=jpg;
-    if(pre.w){ $("waBtn").classList.remove("hidden"); $("waBtn").onclick=()=>window.open(`https://wa.me/${waNumber(pre.w)}?text=${encodeURIComponent(msgText())}`,"_blank"); }
-    if(pre.m){ $("mailBtn").classList.remove("hidden"); $("mailBtn").onclick=()=>location.href=`mailto:${pre.m}?subject=${encodeURIComponent("טופס הסכמה חתום – "+$("name").value.trim())}&body=${encodeURIComponent(msgText()+"\n\n(יש לצרף את קובץ ה-PDF שהורד)")}`; }
     $("returnText").textContent = pre.p ? `יש לשלוח את הקובץ בחזרה אל ${pre.p}.` : "יש לשלוח את הקובץ בחזרה לפסיכולוג/ית שפנה/תה אליך.";
+    document.querySelectorAll(".psyName").forEach(e=>e.textContent = pre.p || "הפסיכולוג/ית");
     const canShareFile = !!(navigator.canShare && navigator.canShare({files:[new File([pdfBlob],fileName,{type:"application/pdf"})]}));
-    if(!canShareFile){
-      $("shareBtn").classList.add("hidden");
-      $("attachHint").classList.remove("hidden");
-      $("attachHint").textContent = "יש להוריד את הקובץ ואז לצרף אותו להודעה" + (pre.w||pre.m ? " – הכפתורים למעלה פותחים את ההודעה לפסיכולוג/ית." : ".");
-    }
+    $("mobileSend").classList.toggle("hidden", !canShareFile);
+    $("desktopSend").classList.toggle("hidden", canShareFile);
+    if(canShareFile && pre.w){ $("waSteps").classList.remove("hidden"); $("plainShare").classList.add("hidden"); }
+    $("dWaBtn").classList.toggle("hidden", !pre.w);
+    $("dMailBtn").classList.toggle("hidden", !pre.m);
+    if(!pre.w && !pre.m) $("desktopSend").querySelector("p").textContent = "במחשב לא ניתן לצרף את הקובץ אוטומטית: יש להוריד את הקובץ ולצרף אותו להודעה לפסיכולוג/ית.";
     $("form").classList.add("hidden"); $("result").classList.remove("hidden");
     window.scrollTo({top:0,behavior:"smooth"});
   }catch(err){ alert("אירעה שגיאה ביצירת הטופס: "+err.message); }
@@ -527,11 +555,13 @@ function download(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(pdfBlob); a.download=fileName;
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
 }
+// שיתוף הקובץ בלבד, בלי טקסט: וואטסאפ באנדרואיד לפעמים מוותר על הקובץ כשמצורף אליו טקסט
 async function share(){
   const f=new File([pdfBlob],fileName,{type:"application/pdf"});
-  try{ await navigator.share({files:[f], title:"טופס הסכמה חתום", text:msgText()}); }
-  catch(e){ if(e.name!=="AbortError") download(); }
+  try{ await navigator.share({files:[f]}); }
+  catch(e){ if(e.name!=="AbortError"){ alert("לא ניתן היה לפתוח את חלון השיתוף. הקובץ יורד עכשיו – אפשר לצרף אותו ידנית."); download(); } }
 }
+const waChatUrl=()=>`https://wa.me/${waNumber(pre.w)}?text=${encodeURIComponent(msgText()+" (הקובץ יישלח בהודעה הבאה)")}`;
 
 /* ---------- הפעלה ---------- */
 if(/(^|[?&#])staff\b/.test(location.search+location.hash)) initStaff(); else initParent();
