@@ -97,6 +97,7 @@
     <h2>פרטי התלמיד/ה</h2>
     <div class="grid">
       <div><label class="f">שם התלמיד/ה</label><input type="text" id="s_name"></div>
+      <div><label class="f">ת.ז. התלמיד/ה <span class="tag">רשות</span></label><input type="text" id="s_sid" inputmode="numeric" maxlength="9"><div class="err" id="s_sidErr" style="display:none">מספר ת.ז. לא תקין – כדאי לבדוק</div></div>
       <div><label class="f">כיתה</label><input type="text" id="s_cls"></div>
       <div><label class="f">מוסד חינוכי / גן</label><input type="text" id="s_school"></div>
       <div><label class="f">תאריך לידה <span class="tag">רשות</span></label><input type="date" id="s_dob"></div>
@@ -393,6 +394,7 @@ function parentBlock(i){
 function initStaff(){
   $("staffView").classList.remove("hidden"); $("parentView").classList.add("hidden");
   $("pageTitle").textContent = "שליחת טופס להורים – לשימוש הצוות";
+  $("s_sid").addEventListener("input",e=>{ e.target.value=e.target.value.replace(/\D/g,""); $("s_sidErr").style.display="none"; });
   const pick=f=>{ setForm(f); $("formPick").classList.add("hidden"); $("staffForm").classList.remove("hidden"); $("linkBox").classList.add("hidden");
     $("pageTitle").textContent = F().short+" – יצירת קישור להורים"; window.scrollTo({top:0}); };
   document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>pick(b.dataset.form));
@@ -404,6 +406,9 @@ function initStaff(){
     const d={};
     const put=(k,v)=>{ if(v) d[k]=v; };
     if(FORM==="waiver"){ d.f="w"; put("e",$("s_ext").value.trim()); put("t",$("s_notes").value.trim()); }
+    const sidv=$("s_sid").value.trim();
+    if(sidv && !validIsraeliId(sidv)){ $("s_sidErr").style.display="block"; $("s_sid").focus(); return; }
+    put("i",sidv);
     put("n",$("s_name").value.trim()); put("c",$("s_cls").value.trim()); put("s",$("s_school").value.trim()); put("b",$("s_dob").value);
     const sel=FORM==="consent" ? [...$("s_opts").querySelectorAll("input[type=checkbox]:checked")].map(x=>x.value) : [];
     if(sel.length) d.o=sel;
@@ -440,6 +445,7 @@ function initParent(){
 
   $("date").value = fmtDate(new Date());
   if(pre.n) $("name").value=pre.n;
+  if(pre.i) $("sid").value=pre.i;
   if(pre.c) $("cls").value=pre.c;
   if(pre.s) $("school").value=pre.s;
   if(pre.b) $("dob").value=pre.b;
