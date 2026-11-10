@@ -1,5 +1,5 @@
 /**
- * שליחת טופס ההסכמה החתום במייל – Google Apps Script
+ * שליחת טפסי שפ"ח החתומים במייל – Google Apps Script
  * ------------------------------------------------------------
  * הסקריפט מקבל מהדף consent/index.html את קובץ ה-PDF החתום ושולח אותו
  * מחשבון ה-Gmail שלך, כקובץ מצורף, לכתובת שהוגדרה כאן.
@@ -36,7 +36,10 @@ function doPost(e) {
     const student = clean(d.student), school = clean(d.school), cls = clean(d.cls), parents = clean(d.parents);
 
     const title = TITLES.indexOf(String(d.title || "")) >= 0 ? String(d.title) : TITLES[0];
-    const blob = Utilities.newBlob(bytes, "application/pdf", title + ".pdf");
+    // שם הקובץ: ויתור סודיות – "ויתור סודיות - שם הילד.pdf"; הסכמה מדעת – "טופס הסכמה מדעת.pdf"
+    const kid = student.replace(/[\\/:*?"<>|]+/g, "").trim();
+    const fileName = (title === "טופס ויתור סודיות" ? "ויתור סודיות" + (kid ? " - " + kid : "") : title) + ".pdf";
+    const blob = Utilities.newBlob(bytes, "application/pdf", fileName);
     const subject = title + " חתום" + (student ? " – " + student : "");
     const body =
       "התקבל " + title + " חתום.\n\n" +
@@ -46,7 +49,8 @@ function doPost(e) {
       "התקבל: " + Utilities.formatDate(new Date(), "Asia/Jerusalem", "dd/MM/yyyy HH:mm") + "\n\n" +
       "הטופס החתום מצורף כקובץ PDF.";
 
-    GmailApp.sendEmail(to, subject, body, { attachments: [blob], name: "טופס הסכמה – שפ\"ח" });
+    // MailApp מקודד שמות קבצים בעברית טוב יותר מ-GmailApp
+    MailApp.sendEmail({ to: to, subject: subject, body: body, attachments: [blob], name: "טפסים – שפ\"ח" });
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });

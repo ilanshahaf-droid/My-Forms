@@ -626,7 +626,8 @@ async function build(){
     const jpg=c.toDataURL("image/jpeg",0.82);
     pdfBlob=jpegToPdf(jpg,c.width,c.height);
     const safe=$("name").value.trim().replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g,"_");
-    fileName=F().file;
+    // ויתור סודיות: "ויתור סודיות - שם הילד.pdf"; הסכמה מדעת: שם קבוע
+    fileName = FORM==="waiver" ? `ויתור סודיות${safe?" - "+safe.replace(/_/g," "):""}.pdf` : F().file;
     $("preview").src=jpg;
     $("returnText").textContent = `איך לשלוח את הטופס החתום${pre.p?" אל "+pre.p:""}?`;
     sent=false; $("sendChoices").classList.remove("hidden"); $("sendBtn").disabled=false; $("sendBtn").textContent="שליחה במייל";
