@@ -649,10 +649,15 @@ function download(){
 }
 const pdfFile=()=>new File([pdfBlob],fileName,{type:"application/pdf"});
 const canShareFile=()=>!!(navigator.canShare && navigator.canShare({files:[pdfFile()]}));
+// וואטסאפ משבש שמות קבצים בעברית – לכן בשיתוף לוואטסאפ השם באנגלית + תאריך החתימה
+function waFileName(){
+  const d=($("date").value.trim().replace(/[^\d]+/g,"-").replace(/^-|-$/g,"")) || fmtDate(new Date()).replace(/\//g,"-");
+  return (FORM==="waiver" ? "Vitur-Sodiut" : "Haskama-Medaat") + "_" + d + ".pdf";
+}
 // וואטסאפ: הקובץ בלבד, בלי טקסט, דרך חלון השיתוף של הטלפון
 async function sendWhatsApp(){
   if(canShareFile()){
-    try{ await navigator.share({files:[pdfFile()]}); return; } catch(e){ if(e.name==="AbortError") return; }
+    try{ await navigator.share({files:[new File([pdfBlob],waFileName(),{type:"application/pdf"})]}); return; } catch(e){ if(e.name==="AbortError") return; }
   }
   // מחשב (או שיתוף לא זמין): הורדה ופתיחת שיחה ללא טקסט
   download();
