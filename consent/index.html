@@ -671,13 +671,16 @@ async function sendMail(){
       student:$("name").value.trim(), school:$("school").value.trim(), cls:$("cls").value.trim(),
       parents:[1,2].filter(i=>i===1||$("p2on").checked).map(i=>$("p"+i+"name").value.trim()).join(", ") });
     const res=await fetch(SEND_URL,{method:"POST",body});   // text/plain – בלי preflight
-    const j=await res.json().catch(()=>({ok:false,error:"bad response"}));
+    const raw=await res.text();
+    let j; try{ j=JSON.parse(raw); }catch(_){ j={ok:false,error:"HTTP "+res.status+" – "+raw.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,150)}; }
     if(!j.ok) throw new Error(j.error||"send failed");
     sent=true; $("sendChoices").classList.add("hidden");
     status(true,`✓ הטופס נשלח בהצלחה${pre.p?" אל "+pre.p:""}. תודה!`);
   }catch(e){
     btn.disabled=false; btn.textContent="ניסיון נוסף";
     status(false,"השליחה במייל לא הצליחה (ייתכן שאין חיבור לאינטרנט). אפשר לנסות שוב, או לשלוח בוואטסאפ.");
+    const det=document.createElement("div"); det.style.cssText="font-weight:400;font-size:12px;margin-top:6px;direction:ltr;text-align:left;opacity:.8";
+    det.textContent="details: "+String(e&&e.message||e).slice(0,200); $("sendStatus").appendChild(det);
   }
 }
 
