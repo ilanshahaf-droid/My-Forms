@@ -17,6 +17,9 @@ const ALLOWED_TO = [DEFAULT_TO];
 
 const MAX_BYTES = 6 * 1024 * 1024;
 
+// סוגי הטפסים המוכרים (שם הטופס קובע את נושא המייל ושם הקובץ)
+const TITLES = ["טופס הסכמה מדעת", "טופס ויתור סודיות"];
+
 function doPost(e) {
   try {
     const d = JSON.parse(e.postData.contents);
@@ -32,10 +35,11 @@ function doPost(e) {
     const clean = function (v) { return String(v || "").replace(/[\r\n<>]/g, " ").slice(0, 100).trim(); };
     const student = clean(d.student), school = clean(d.school), cls = clean(d.cls), parents = clean(d.parents);
 
-    const blob = Utilities.newBlob(bytes, "application/pdf", "טופס הסכמה מדעת.pdf");
-    const subject = "טופס הסכמה מדעת חתום" + (student ? " – " + student : "");
+    const title = TITLES.indexOf(String(d.title || "")) >= 0 ? String(d.title) : TITLES[0];
+    const blob = Utilities.newBlob(bytes, "application/pdf", title + ".pdf");
+    const subject = title + " חתום" + (student ? " – " + student : "");
     const body =
-      "התקבל טופס הסכמה מדעת חתום.\n\n" +
+      "התקבל " + title + " חתום.\n\n" +
       "תלמיד/ה: " + (student || "-") + "\n" +
       "מוסד: " + (school || "-") + (cls ? ", כיתה " + cls : "") + "\n" +
       "חתמו: " + (parents || "-") + "\n" +
