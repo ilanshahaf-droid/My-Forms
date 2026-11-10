@@ -398,6 +398,9 @@ function initStaff(){
   const pick=f=>{ setForm(f); $("formPick").classList.add("hidden"); $("staffForm").classList.remove("hidden"); $("linkBox").classList.add("hidden");
     $("pageTitle").textContent = F().short+" – יצירת קישור להורים"; window.scrollTo({top:0}); };
   document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>pick(b.dataset.form));
+  // קיצור דרך מאייקון האפליקציה: #staff=consent / #staff=waiver פותח ישר את הטופס
+  const direct=location.hash.match(/staff=(consent|waiver)/);
+  if(direct) pick(direct[1]);
   $("backPick").onclick=()=>{ $("staffForm").classList.add("hidden"); $("formPick").classList.remove("hidden"); $("pageTitle").textContent="שליחת טופס להורים – לשימוש הצוות"; };
   $("s_opts").innerHTML = OPTIONS.map(o=>`<label class="opt"><input type="checkbox" value="${o.id}"><div>${o.t}${o.extra?`<div class="extra"><input type="text" id="s_${o.id}x" placeholder="${o.extra}"></div>`:""}</div></label>`).join("");
   try{ const saved=JSON.parse(localStorage.getItem("shpach_staff")||"{}"); ["s_psy","s_wa","s_mail"].forEach(k=>{ if(saved[k]) $(k).value=saved[k]; }); }catch(e){}

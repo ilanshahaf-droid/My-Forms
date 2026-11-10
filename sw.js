@@ -1,5 +1,5 @@
 /* Service Worker – ממלא טפסים PWA (כולל עבודה בלי אינטרנט) */
-const CACHE = "mmale-tfasim-v4";
+const CACHE = "mmale-tfasim-v5";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -12,7 +12,8 @@ const PRECACHE = [
   "./favicon-16.png",
   "./logo.png",
   "./shortcut-in.png",
-  "./shortcut-out.png"
+  "./shortcut-out.png",
+  "./shortcut-consent.png"
 ];
 // ספריות חיצוניות שהאפליקציה צריכה כדי לעלות גם בלי חיבור
 const LIBS = [
@@ -40,6 +41,9 @@ self.addEventListener("activate", (e) => {
 });
 
 const put = (req, res) => { if (res && (res.ok || res.type === "opaque")) { const c = res.clone(); caches.open(CACHE).then((x) => x.put(req, c)); } return res; };
+// מפתח שמירה לדף: רק שורש האפליקציה נשמר כ-index.html הראשי; תיקיות אחרות (consent/) נשמרות בנפרד
+const ROOT = new URL("./", self.location).pathname;
+const pageKey = (url) => url.pathname === ROOT ? "./index.html" : url.origin + url.pathname + (/\/$/.test(url.pathname) ? "index.html" : "");
 const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms));
 
 self.addEventListener("fetch", (e) => {
@@ -54,12 +58,12 @@ self.addEventListener("fetch", (e) => {
       try {
         const res = await Promise.race([fetch(req), timeout(4000)]);
         if (res && res.ok) {   // נשמר לפי שם הדף, בלי הפרמטרים (?ck=in)
-          const key = /\/$/.test(url.pathname) ? "./index.html" : url.origin + url.pathname, c = res.clone();
-          caches.open(CACHE).then((x) => x.put(key, c));
+          const c = res.clone();
+          caches.open(CACHE).then((x) => x.put(pageKey(url), c));
         }
         return res;
       } catch (_) {
-        return (await caches.match(req, { ignoreSearch: true })) || (await caches.match("./index.html")) || (await caches.match("./")) || Response.error();
+        return (await caches.match(pageKey(url))) || (await caches.match(req, { ignoreSearch: true })) || (await caches.match("./index.html")) || (await caches.match("./")) || Response.error();
       }
     })());
     return;

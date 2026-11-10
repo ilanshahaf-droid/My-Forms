@@ -68,6 +68,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "טופס הסכמה מדעת להורים",
+      "short_name": "הסכמה מדעת",
+      "description": "יצירת קישור לטופס הסכמה מדעת לשליחה להורים",
+      "url": "./consent/#staff=consent",
+      "icons": [
+        {
+          "src": "shortcut-consent.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
