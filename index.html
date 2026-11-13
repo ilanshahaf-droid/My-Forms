@@ -286,7 +286,7 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 
 .ds-fillbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 8px}
 .ds-page{container-type:inline-size}
-.ds-field{position:absolute;box-sizing:border-box;border:1.5px solid rgba(37,99,235,.75);background:rgba(59,130,246,.10);border-radius:3px;cursor:pointer;touch-action:none;
+.ds-field{position:absolute;box-sizing:border-box;border:1.5px solid rgba(37,99,235,.75);background:rgba(59,130,246,.10);border-radius:3px;cursor:pointer;touch-action:manipulation;
   display:flex;align-items:center;justify-content:flex-end;overflow:hidden;color:#0b1d4d;font-family:Arimo,Arial,sans-serif;white-space:nowrap;padding:0 2px;direction:rtl}
 .ds-field.filled{background:rgba(255,255,255,.55);border-color:rgba(37,99,235,.35)}
 .ds-field.auto{border-color:rgba(22,163,74,.85);background:rgba(220,252,231,.55)}
@@ -305,6 +305,7 @@ dialog.ds-filldlg[open]{position:fixed;inset:auto 0 0 0;margin:0 auto;width:min(
 .dsf-sigprev img{max-height:66px;max-width:90%}
 .dsf-more{display:flex;justify-content:space-between;margin-top:6px}
 .dsf-more .x{font-size:13px}
+.ds-field.moving{touch-action:none;outline:3px dashed #f59e0b;outline-offset:2px;background:rgba(245,158,11,.18);cursor:move;z-index:4}
 
 .ver-choice{margin-top:12px}
 .ver-list{margin-top:8px}
@@ -920,7 +921,7 @@ dialog.ck-dlg form{padding:20px 18px}
     <label class="f" id="dsfLabel" style="margin-top:2px"></label>
     <div id="dsfBody"></div>
     <div class="bar"><button type="button" id="dsfPrev">הקודם</button><button type="button" class="primary" id="dsfNext">הבא</button></div>
-    <div class="dsf-more"><button type="button" class="x" id="dsfRename">שינוי שם השדה</button><button type="button" class="x" id="dsfDel">זה לא שדה – הסרה</button></div>
+    <div class="dsf-more"><button type="button" class="x" id="dsfMove">↔ הזזת השדה</button><button type="button" class="x" id="dsfRename">שינוי שם</button><button type="button" class="x" id="dsfDel">זה לא שדה – הסרה</button></div>
   </form>
 </dialog>
 
@@ -5281,7 +5282,7 @@ function drawField(f){
   let el = document.getElementById("dsf_" + f.id), pgEl = pageEl(f.page); if(!pgEl) return;
   if(!el){ el = document.createElement("div"); el.id = "dsf_" + f.id; el.className = "ds-field"; pgEl.appendChild(el); bindField(el, f); }
   const pg = DS.pages[f.page];
-  el.className = `ds-field k-${f.kind}${filledF(f) ? " filled" : ""}${f.auto ? " auto" : ""}${DS.cur === f.id ? " cur" : ""}`;
+  el.className = `ds-field k-${f.kind}${filledF(f) ? " filled" : ""}${f.auto ? " auto" : ""}${DS.cur === f.id ? " cur" : ""}${f.moving ? " moving" : ""}`;
   Object.assign(el.style, { left: f.x * 100 + "%", top: f.y * 100 + "%", width: f.w * 100 + "%", height: f.h * 100 + "%",
     fontSize: `max(7px, ${Math.min(f.h * pg.h / pg.w * 100 * 0.68, 12 / pg.w * 100).toFixed(2)}cqw)` });
   el.title = f.label || "";
@@ -5297,14 +5298,18 @@ function drawRadioOpts(f){
     el.textContent = f.value === o.value ? "✓" : ""; });
 }
 function bindField(el, f, fixed){
+  // נגיעה רגילה פותחת את השדה, וגלילה מעל השדות גוללת את הדף. הזזה – רק אחרי "הזזת השדה" בחלון המילוי.
+  el.addEventListener("click", ev => { if(DS.tapMode || f.moving || DS.justMoved) return; ev.stopPropagation(); openFill(f.id); });
   el.addEventListener("pointerdown", ev => {
-    if(DS.tapMode) return; ev.preventDefault(); ev.stopPropagation();
+    if(!f.moving || fixed) return; ev.preventDefault(); ev.stopPropagation();
     const box = pageEl(f.page).getBoundingClientRect(), sx = ev.clientX, sy = ev.clientY, o = { x: f.x, y: f.y }; let moved = false;
     el.setPointerCapture(ev.pointerId);
-    const mv = m => { const dx = (m.clientX - sx) / box.width, dy = (m.clientY - sy) / box.height;
-      if(!moved && Math.hypot(m.clientX - sx, m.clientY - sy) < 7) return; if(fixed || f.src === "acro") return; moved = true;
-      f.x = Math.min(1 - f.w, Math.max(0, o.x + dx)); f.y = Math.min(1 - f.h, Math.max(0, o.y + dy)); drawField(f); };
-    const up = () => { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); if(!moved) openFill(f.id); else resetOut(); };
+    const mv = m => { if(!moved && Math.hypot(m.clientX - sx, m.clientY - sy) < 6) return; moved = true;
+      f.x = Math.min(1 - f.w, Math.max(0, o.x + (m.clientX - sx) / box.width)); f.y = Math.min(1 - f.h, Math.max(0, o.y + (m.clientY - sy) / box.height)); drawField(f); };
+    const up = () => { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up);
+      if(moved){ resetOut(); return; }
+      f.moving = false; drawField(f); DS.justMoved = true; setTimeout(() => { DS.justMoved = false; }, 350);   // נגיעה בלי גרירה – סיום ההזזה
+      setStatus("#dsLoadStatus", "השדה הוזז.", "ok"); openFill(f.id); };
     el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   });
 }
@@ -5324,7 +5329,7 @@ function openFill(id){
   $("#dsfPos").textContent = `שדה ${i + 1} מתוך ${list.length}${f.auto ? " · מולא אוטומטית" : ""}`;
   $("#dsfLabel").textContent = f.label || (f.kind === "sig" ? "חתימה" : f.kind === "check" ? "סימון" : "שדה בלי כותרת");
   const body = $("#dsfBody"), chips = `<div class="dsf-chips">${[["השם שלי", store.get("att_name")], ["ת.ז", store.get("att_tz")], ["התאריך היום", dmyFull()]].filter(c => c[1]).map(c => `<button type="button" data-chip="${e(c[1])}">${c[0]}</button>`).join("")}</div>`;
-  if(f.kind === "text") body.innerHTML = `<input type="text" id="dsfIn" value="${e(f.value)}" enterkeyhint="next">${chips}`;
+  if(f.kind === "text") body.innerHTML = `<input type="text" id="dsfIn" name="f${Date.now().toString(36)}" value="${e(f.value)}" enterkeyhint="next" autocomplete="off" autocorrect="off" spellcheck="false">${chips}`;   // בלי הצעות של הדפדפן מעל המקלדת
   else if(f.kind === "select") body.innerHTML = `<select id="dsfIn"><option value="">—</option>${f.options.map(o => `<option ${o === f.value ? "selected" : ""}>${e(o)}</option>`).join("")}</select>`;
   else if(f.kind === "check") body.innerHTML = `<label class="chk" style="font-size:17px"><input type="checkbox" id="dsfIn" ${f.value ? "checked" : ""} style="width:24px;height:24px"> מסומן</label>`;
   else if(f.kind === "radio") body.innerHTML = `<div class="opts">${f.options.map((o, k) => `<label><input type="radio" name="dsfR" value="${k}" ${f.value === o.value ? "checked" : ""}> ${e(o.label || o.value)}</label>`).join("")}</div>`;
@@ -5368,6 +5373,10 @@ $("#dsfBody").addEventListener("click", ev => {
 $("#dsfDel").onclick = () => { const f = curF(); if(!f) return; const list = fieldOrder(), i = list.findIndex(z => z.id === f.id);
   DS.fields = DS.fields.filter(z => z !== f); document.querySelectorAll(`[id^="dsf_${f.id}"]`).forEach(x => x.remove()); DS.cur = null; resetOut(); fillInfo();
   const n = fieldOrder()[Math.min(i, DS.fields.length - 1)]; if(n) openFill(n.id); else $("#dsFillDlg").close(); };
+$("#dsfMove").onclick = () => { const f = curF(); if(!f) return; commit();
+  DS.fields.forEach(z => { if(z.moving && z !== f){ z.moving = false; drawField(z); } });
+  f.moving = true; $("#dsFillDlg").close(); drawField(f);
+  setStatus("#dsLoadStatus", "גרור את השדה המסומן בכתום למקום הנכון. נגיעה בו בלי לגרור – סיום.", ""); };
 $("#dsfRename").onclick = () => { const f = curF(); if(!f) return; const v = prompt("שם השדה:", f.label || ""); if(v != null){ f.label = v.trim(); drawField(f); openFill(f.id); } };
 $("#dsFillGo").onclick = () => { const list = fieldOrder(), first = list.find(f => !filledF(f)) || list[0]; if(first) openFill(first.id); };
 
