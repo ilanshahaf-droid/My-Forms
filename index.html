@@ -5017,7 +5017,7 @@ $("#dsFile").onchange = async ev => {
       DS.pages.push({ src, w: 595, h: 595 * c.height / c.width, px: [c.width, c.height] });
     }
     if(!$("#dsName").value.trim() || $("#dsName").dataset.auto === "1"){ $("#dsName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " ").trim(); $("#dsName").dataset.auto = "1"; }
-    renderPages(); $("#ds2").hidden = $("#ds3").hidden = false; resetOut();
+    renderPages(); $("#ds2").hidden = $("#ds3").hidden = false; resetOut(); saveDraftNow();
     const nf = DS.fields.length, na = DS.fields.filter(f => f.auto).length;
     setStatus("#dsLoadStatus", (DS.pages.length === 1 ? "המסמך נטען." : `המסמך נטען: ${DS.pages.length} עמודים.`) +
       (nf ? ` זוהו ${nf === 1 ? "שדה אחד" : nf + " שדות"} למילוי${na ? `, ${na} מולאו מ"הפרטים שלי"` : ""}.` : DS.kind === "pdf" ? " לא זוהו שדות – אפשר לכתוב על הדף בכל מקום." : ""), "ok");
@@ -5030,7 +5030,7 @@ $("#dsFile").onchange = async ev => {
     setStatus("#dsLoadStatus", m, "err");
   }
 };
-$("#dsName").addEventListener("input", () => { $("#dsName").dataset.auto = "0"; });
+$("#dsName").addEventListener("input", () => { $("#dsName").dataset.auto = "0"; draftSoon(); });
 
 /* ---------- עמודים ופריטים ---------- */
 function renderPages(){
@@ -5461,7 +5461,7 @@ async function buildPdf(){
   }
   return new Blob([await doc.save()], { type: "application/pdf" });
 }
-function resetOut(){ DS.file = null; ["#dsShare","#dsDl","#dsDrive"].forEach(s => $(s).hidden = true); }
+function resetOut(){ DS.file = null; ["#dsShare","#dsDl","#dsDrive"].forEach(s => $(s).hidden = true); draftSoon(); }
 const fileName = n => (n.replace(/[\\/:*?"<>|]/g, "").trim() || "מסמך_חתום") + ".pdf";
 
 /* ---------- ענן: מסמכים לא מסווגים ---------- */
@@ -5499,6 +5499,7 @@ $("#dsNew").onclick = () => {
   if((DS.items.length || DS.fields.some(filledF)) && !DS.file && !confirm("להתחיל מסמך חדש? מה שמילאת והחתימות יימחקו.")) return;
   if($("#dsFillDlg").open) $("#dsFillDlg").close(); setTapMode(false);
   Object.assign(DS, { kind: null, bytes: null, pages: [], items: [], fields: [], cur: null, sel: null, file: null });
+  clearDraft();
   $("#dsFillBar").hidden = true;
   $("#dsPages").innerHTML = ""; $("#dsName").value = ""; $("#dsName").dataset.auto = "1"; $("#ds2").hidden = $("#ds3").hidden = true;
   setStatus("#dsStatus", ""); setStatus("#dsLoadStatus", ""); window.scrollTo({ top: 0 });
@@ -5529,7 +5530,35 @@ async function dsRenderFiles(){
 const origRender = renderFiles;
 renderFiles = async function(){ await origRender(); try{ await dsRenderFiles(); }catch(_){} };
 
-window.DSF = { DS, buildPdf, addItem, textPng, renderPages, openFill, fieldOrder, enter(){ if(cloud.user) dsRenderFiles().catch(() => {}); } };
+/* ---------- מסמך באמצע: נשמר במכשיר (IndexedDB) וממשיכים מאותה נקודה ---------- */
+const IDB = () => new Promise((res, rej) => { const r = indexedDB.open("ds_draft", 1); r.onupgradeneeded = () => r.result.createObjectStore("d"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function idb(mode, fn){ const db = await IDB(); return new Promise((res, rej) => { const tx = db.transaction("d", mode), st = tx.objectStore("d"), q = fn(st); tx.oncomplete = () => { res(q && q.result); db.close(); }; tx.onerror = () => { rej(tx.error); db.close(); }; }); }
+let draftT = null;
+function draftSoon(){ clearTimeout(draftT); draftT = setTimeout(saveDraftNow, 700); }
+async function saveDraftNow(){
+  clearTimeout(draftT); draftT = null; if(!DS.pages.length) return;
+  const d = { v: 1, t: Date.now(), kind: DS.kind, bytes: DS.bytes, pages: DS.pages, name: $("#dsName").value, nameAuto: $("#dsName").dataset.auto,
+    items: DS.items, fields: DS.fields.map(f => ({ ...f, moving: false })) };
+  try{ await idb("readwrite", st => st.put(d, "cur")); }catch(_){}
+}
+async function clearDraft(){ clearTimeout(draftT); draftT = null; try{ await idb("readwrite", st => st.delete("cur")); }catch(_){} }
+async function restoreDraft(){
+  if(DS.pages.length) return; let d = null;
+  try{ d = await idb("readonly", st => st.get("cur")); }catch(_){ return; }
+  if(!d || !d.pages || !d.pages.length || DS.pages.length) return;
+  Object.assign(DS, { kind: d.kind, bytes: d.bytes, pages: d.pages, items: d.items || [], fields: d.fields || [], sel: null, cur: null, file: null, lastPage: null });
+  $("#dsName").value = d.name || ""; $("#dsName").dataset.auto = d.nameAuto || "0";
+  renderPages(); $("#ds2").hidden = $("#ds3").hidden = false;
+  const dt = new Date(d.t), filled = DS.fields.filter(filledF).length;
+  setStatus("#dsLoadStatus", `ממשיכים מאיפה שעצרת: "${d.name || "מסמך"}" (נשמר ב-${dt.getDate()}.${dt.getMonth()+1}, ${pad2(dt.getHours())}:${pad2(dt.getMinutes())})` +
+    (DS.fields.length ? ` · ${filled}/${DS.fields.length} שדות מולאו` : "") + '. להתחלה מחדש – "מסמך חדש".', "ok");
+}
+// יציאה מהאפליקציה / מעבר לאפליקציה אחרת – שומרים מיד
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && draftT) saveDraftNow(); });
+window.addEventListener("pagehide", () => { if(draftT) saveDraftNow(); });
+
+window.DSF = { DS, buildPdf, addItem, textPng, renderPages, openFill, fieldOrder, saveDraftNow, restoreDraft, enter(){ restoreDraft(); if(cloud.user) dsRenderFiles().catch(() => {}); } };
+restoreDraft();
 if(cloud.user) dsRenderFiles().catch(() => {});
 })();
 </script>
