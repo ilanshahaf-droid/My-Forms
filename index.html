@@ -5002,7 +5002,7 @@ $("#dsFile").onchange = async ev => {
         DS.pages.push({ src: c.toDataURL("image/jpeg", 0.85), w: v1.width, h: v1.height });
         try{ await detectFields(pg, v1, i - 1); }catch(_){}
       }
-      autofill();
+      dedupe(); autofill();
     } else {
       if(!/^image\//.test(f.type)) throw new Error("type");
       const url = URL.createObjectURL(f), im = await loadImg(url).catch(() => null); URL.revokeObjectURL(url);
@@ -5137,11 +5137,52 @@ $("#dsPadDlg").addEventListener("close", async () => {
 const GENERIC = /^(text|field|untitled|check ?(box)?|button|fill|radio|combo|list|dropdown|sign(ature)?|טקסט|שדה)[\s_-]*\d*$/i;
 const BLANK = /_{3,}|\.{6,}|…{2,}/;   // בלי g: לפיצול ולהחלפה
 const blankG = () => /_{3,}|\.{6,}|…{2,}/g;   // חדש לכל לולאה
-const cleanLabel = s => String(s || "").replace(/_{2,}|\.{3,}|…+/g, " ").replace(/[:\s]+$/,"").replace(/^[:\s]+/,"").replace(/\s+/g," ").trim()
+const cleanLabel = (s, head) => String(s || "").replace(/_{2,}|\.{3,}|…+/g, " ").replace(/[:\s]+$/,"").replace(/^[:\s]+/,"").replace(/\s+/g," ").trim()
   .replace(/(^|\s)([\u05d0-\u05ea])\.([\u05d0-\u05ea])(?=\s|$)/g, (m, a, x, y) => a + y + "." + x)   // "ז.ת" שהתהפך -> "ת.ז"
-  .slice(-40);
+  .replace(/^(.{40}).+$/, head ? "$1…" : "$&").slice(head ? 0 : -40);
 const mctx = document.createElement("canvas").getContext("2d");
 function posFrac(str, i){ mctx.font = "20px Arial, sans-serif"; const all = mctx.measureText(str).width || 1; return mctx.measureText(str.slice(0, i)).width / all; }
+// טבלאות: פס כותרת (מלבן נמוך עם טקסט) – השדה הוא התא הריק שמעליו, או השורות הריקות שמתחתיו (כותרת של טבלה)
+async function detectCells(pg, texts, frac, pi){
+  const OPS = pdfjsLib.OPS, ol = await pg.getOperatorList(), H = [], R = [];
+  let ctm = [1,0,0,1,0,0]; const st = [];
+  const mul = (m, n) => [m[0]*n[0]+m[2]*n[1], m[1]*n[0]+m[3]*n[1], m[0]*n[2]+m[2]*n[3], m[1]*n[2]+m[3]*n[3], m[0]*n[4]+m[2]*n[5]+m[4], m[1]*n[4]+m[3]*n[5]+m[5]];
+  const T = (x, y) => [ctm[0]*x + ctm[2]*y + ctm[4], ctm[1]*x + ctm[3]*y + ctm[5]];
+  ol.fnArray.forEach((fn, i) => { const a = ol.argsArray[i];
+    if(fn === OPS.save) st.push(ctm.slice()); else if(fn === OPS.restore) ctm = st.pop() || ctm; else if(fn === OPS.transform) ctm = mul(ctm, a);
+    else if(fn === OPS.constructPath){ const ops = a[0], ar = a[1]; let j = 0, cur = null;
+      ops.forEach(op => {
+        if(op === OPS.rectangle){ const p1 = T(ar[j], ar[j+1]), p2 = T(ar[j] + ar[j+2], ar[j+1] + ar[j+3]); j += 4;
+          const x0 = Math.min(p1[0], p2[0]), x1 = Math.max(p1[0], p2[0]), y0 = Math.min(p1[1], p2[1]), y1 = Math.max(p1[1], p2[1]);
+          R.push({ x0, x1, y0, y1 }); if(x1 - x0 > 15){ H.push({ x0, x1, y: y0 }, { x0, x1, y: y1 }); } }
+        else if(op === OPS.moveTo){ cur = T(ar[j], ar[j+1]); j += 2; }
+        else if(op === OPS.lineTo){ const p = T(ar[j], ar[j+1]); j += 2; if(cur && Math.abs(p[1] - cur[1]) < 0.8 && Math.abs(p[0] - cur[0]) > 15) H.push({ x0: Math.min(p[0], cur[0]), x1: Math.max(p[0], cur[0]), y: (p[1] + cur[1]) / 2 }); cur = p; }
+        else if(op === OPS.curveTo) j += 6; else if(op === OPS.curveTo2 || op === OPS.curveTo3) j += 4;
+      }); }
+  });
+  if(!H.length) return;
+  const isMark = s => /^[-✗✘✓✔×xX○◯☐□▢❑*]+$/.test(s.trim());
+  const textIn = (x0, x1, y0, y1) => texts.some(t => { if(isMark(t.str)) return false; const cy = t.y + t.h * 0.35; return Math.min(t.x + t.w, x1) - Math.max(t.x, x0) > 2 && cy > y0 && cy < y1; });
+  const covers = (h, x0, x1) => Math.min(h.x1, x1) - Math.max(h.x0, x0) > (x1 - x0) * 0.6;
+  const strips = R.filter(r => r.y1 - r.y0 > 6 && r.y1 - r.y0 < 20 && r.x1 - r.x0 > 20).map(r => ({ ...r, txt: texts.filter(t => !isMark(t.str) && t.x + t.w / 2 > r.x0 && t.x + t.w / 2 < r.x1 && t.y > r.y0 - 1 && t.y < r.y1 - 2) }))
+    .filter(r => r.txt.length && r.txt.every(t => t.h < 12) && r.y0 > 28);   // לא בשולי הדף (מספר עמוד וכו')
+  const add = (x0, x1, y0, y1, label) => { const r = frac([x0 + 1.5, y0 + 1, x1 - 1.5, y1 - 1]);
+    DS.fields.push({ id: uid(), src: "line", page: pi, ...r, label, kind: /חתימ/.test(label) ? "sig" : "text", value: "", cell: true }); };
+  strips.forEach(S => {
+    const label = cleanLabel(S.txt.sort((a, b) => b.y - a.y || b.x - a.x).map(t => t.str).join(" ").replace(/\*/g, ""));
+    const up = H.filter(h => h.y > S.y1 + 2 && covers(h, S.x0, S.x1)).sort((a, b) => a.y - b.y)[0];
+    if(up && up.y - S.y1 >= 8 && up.y - S.y1 <= 46 && !textIn(S.x0, S.x1, S.y1 + 0.5, up.y - 0.5) && !strips.some(o => o !== S && o.y0 > S.y1 && o.y0 < up.y && covers(o, S.x0, S.x1))){
+      add(S.x0, S.x1, S.y1, up.y, label); return; }
+    // כותרת של טבלה: שורות ריקות מתחת
+    let top = S.y0, row = 0; const rows = [];
+    while(row < 12){
+      const dn = H.filter(h => h.y < top - 2 && covers(h, S.x0, S.x1)).sort((a, b) => b.y - a.y)[0];
+      if(!dn || top - dn.y < 8 || top - dn.y > 40 || textIn(S.x0, S.x1, dn.y + 0.5, top - 0.5) || strips.some(o => o !== S && o.y1 > dn.y + 1 && o.y0 < top - 1 && covers(o, S.x0, S.x1))) break;
+      row++; rows.push([dn.y, top]); top = dn.y;
+    }
+    if(rows.length >= 2) rows.forEach(([y0, y1], k) => add(S.x0, S.x1, y0, y1, `${label} – שורה ${k + 1}`));
+  });
+}
 async function detectFields(pg, v1, pi){
   const W = v1.width, H = v1.height;
   const frac = r => { const [a,b,c,d] = v1.convertToViewportRectangle(r); const x0 = Math.min(a,c), x1 = Math.max(a,c), y0 = Math.min(b,d), y1 = Math.max(b,d);
@@ -5149,14 +5190,15 @@ async function detectFields(pg, v1, pi){
   let tc = null; try{ tc = await pg.getTextContent(); }catch(_){}
   const texts = (tc ? tc.items : []).filter(t => t.str && t.str.trim()).map(t => ({ str: t.str, dir: t.dir, x: t.transform[4], y: t.transform[5], w: t.width, h: Math.hypot(t.transform[2], t.transform[3]) || t.height || 10 }));
   // כותרת לשדה: טקסט באותה שורה – קודם מימין (עברית), אחר כך משמאל, ואם אין – מעל
+  const words = () => texts.filter(t => !/^[\ue000-\uf8ff○◯☐□▢❑✗✘✓✔]+$/.test(t.str.trim()));   // בלי סמלים (עיגולים, ✗)
   const labelNear = (x0, x1, yb, h) => {
-    const same = texts.filter(t => Math.abs(t.y - yb) < Math.max(h, t.h) * 0.7 && t.str.replace(blankG(), "").trim());
+    const same = words().filter(t => Math.abs(t.y - yb) < Math.max(h, t.h) * 0.45 && t.str.replace(blankG(), "").trim());
     let best = null, bd = 1e9;
     same.forEach(t => { const d = t.x - x1; if(d > -3 && d < 260 && d < bd){ bd = d; best = t; } });
     if(best) return cleanLabel(best.str.split(BLANK).filter(z => z.trim()).pop());
     bd = 1e9; same.forEach(t => { const d = x0 - (t.x + t.w); if(d > -3 && d < 200 && d < bd){ bd = d; best = t; } });
     if(best) return cleanLabel(best.str.split(BLANK).filter(z => z.trim())[0]);
-    bd = 1e9; texts.forEach(t => { const d = t.y - yb; if(d > 0 && d < h * 2.6 && t.x < x1 + 20 && t.x + t.w > x0 - 20 && d < bd){ bd = d; best = t; } });
+    bd = 1e9; words().forEach(t => { const d = t.y - yb; if(d > 0 && d < h * 2.6 && t.x < x1 + 20 && t.x + t.w > x0 - 20 && d < bd){ bd = d; best = t; } });
     return best ? cleanLabel(best.str) : "";
   };
   let anns = []; try{ anns = await pg.getAnnotations(); }catch(_){}
@@ -5180,7 +5222,17 @@ async function detectFields(pg, v1, pi){
   });
   Object.values(radios).forEach(g => { const o = g.options[0]; Object.assign(g, { page: o.page, x: o.x, y: o.y, w: o.w, h: o.h, label: g.label || "בחירה" }); DS.fields.push(g); });
   if(wid.length) return;
-  // אין שדות אמיתיים: מחפשים קווים ריקים וריבועי סימון בטקסט
+  // אין שדות אמיתיים: 1) טבלאות – תא ריק ליד פס כותרת; 2) קווים ריקים; 3) עיגולים וריבועי סימון
+  try{ await detectCells(pg, texts, frac, pi); }catch(_){}
+  const GLY = /^[\ue000-\uf8ff○◯☐□▢❑]$/;
+  texts.filter(t => GLY.test(t.str.trim())).forEach(t => {
+    const sz = Math.max(t.w, t.h * 0.8), same = texts.filter(z => z !== t && !GLY.test(z.str.trim()) && Math.abs(z.y - t.y) < t.h * 0.6);
+    let best = null, bd = 30;
+    same.forEach(z => { const g = Math.min(Math.abs(z.x + z.w - t.x), Math.abs(t.x + sz - z.x)); if(g < bd){ bd = g; best = z; } });
+    const r = frac([t.x, t.y - t.h * 0.12, t.x + sz, t.y + t.h * 0.88]);
+    if(!DS.fields.some(f => f.page === pi && Math.abs(f.x - r.x) < 0.004 && Math.abs(f.y - r.y) < 0.004))
+      DS.fields.push({ id: uid(), src: "line", page: pi, ...r, label: best ? cleanLabel(best.str, true) : "", kind: "check", value: false });
+  });
   texts.forEach(t => {
     const n = t.str.length, re = blankG(); let m, prev = 0;
     while((m = re.exec(t.str))){
@@ -5196,7 +5248,7 @@ async function detectFields(pg, v1, pi){
       }
       prev = b;
     }
-    const cb = /[☐□▢❑]/g; let c;
+    const cb = /[☐□▢❑]/g; let c; if(t.str.trim().length <= 1) return;
     while((c = cb.exec(t.str))){
       const a = c.index, cw = t.w / n, cx = t.dir === "rtl" ? t.x + t.w - (a + 1) * cw : t.x + a * cw, sz = Math.max(cw, t.h * 0.8);
       const lab = cleanLabel(t.str.slice(a + 1).split(/[☐□▢❑]/)[0]) || labelNear(cx, cx + sz, t.y, t.h);
@@ -5204,16 +5256,22 @@ async function detectFields(pg, v1, pi){
     }
   });
 }
+function dedupe(){
+  const ov = (a, b) => a.page === b.page && Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.3 * Math.min(a.w, b.w) && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.3 * Math.min(a.h, b.h);
+  DS.fields = DS.fields.filter(f => !(f.cell && DS.fields.some(g => !g.cell && g.kind !== "check" && ov(f, g))));
+}
 // מילוי אוטומטי מ"הפרטים שלי"
 function autofill(){
   const name = (store.get("att_name") || "").trim(), tz = (store.get("att_tz") || "").trim(), parts = name.split(/\s+/);
-  DS.fields.forEach(f => {
-    if(f.kind !== "text" || f.value) return; const l = f.label; let v = "";
-    if(/שם\s*פרטי/.test(l) && !/משפחה/.test(l)) v = parts[0] || "";
-    else if(/שם\s*ה?משפחה/.test(l) && !/פרטי/.test(l)) v = parts.slice(1).join(" ");
-    else if(/^שם$|שם\s*מלא|שם\s*פרטי\s*ו|שם\s*ה?(עובד|מבקש|מטפל|פסיכולוג|חותם|ממלא|מגיש)/.test(l)) v = name;
-    else if(/ת\.?\s?ז|ז\.\s?ת|תעודת\s*זהות|מס(פר|')?\s*זהות/.test(l)) v = tz;
+  const used = {};   // השם והת.ז שלי – רק בשדה הראשון מכל סוג (השאר שייכים לאנשים אחרים בטופס), ולא בשורות של טבלה
+  fieldOrder().forEach(f => {
+    if(f.kind !== "text" || f.value || / – שורה \d+$/.test(f.label)) return; const l = f.label; let v = "", key = "";
+    if(/שם\s*פרטי/.test(l) && !/משפחה/.test(l)){ v = parts[0] || ""; key = "first"; }
+    else if(/שם\s*ה?משפחה/.test(l) && !/פרטי/.test(l)){ v = parts.slice(1).join(" "); key = "last"; }
+    else if(/^שם$|שם\s*מלא|שם\s*פרטי\s*ו|שם\s*ה?(עובד|מבקש|מטפל|פסיכולוג|חותם|ממלא|מגיש)/.test(l)){ v = name; key = "name"; }
+    else if(/ת\.?\s?ז|ז\.\s?ת|תעודת\s*זהות|מס(פר|[׳'])?\s*זהות/.test(l)){ v = tz; key = "tz"; }
     else if(/^תאריך$|^תאריך\s*(החתימה|הבקשה|מילוי|היום)/.test(l)) v = dmyFull();
+    if(key){ if(used[key]) return; used[key] = true; }
     if(v){ f.value = v; f.auto = true; }
   });
 }
@@ -5225,7 +5283,7 @@ function drawField(f){
   const pg = DS.pages[f.page];
   el.className = `ds-field k-${f.kind}${filledF(f) ? " filled" : ""}${f.auto ? " auto" : ""}${DS.cur === f.id ? " cur" : ""}`;
   Object.assign(el.style, { left: f.x * 100 + "%", top: f.y * 100 + "%", width: f.w * 100 + "%", height: f.h * 100 + "%",
-    fontSize: `max(7px, ${(f.h * pg.h / pg.w * 100 * 0.68).toFixed(2)}cqw)` });
+    fontSize: `max(7px, ${Math.min(f.h * pg.h / pg.w * 100 * 0.68, 12 / pg.w * 100).toFixed(2)}cqw)` });
   el.title = f.label || "";
   if(f.kind === "radio"){ el.innerHTML = ""; drawRadioOpts(f); el.style.display = "none"; return; }
   el.innerHTML = f.kind === "check" ? (f.value ? "✓" : "") : f.kind === "sig" ? (f.value ? `<img src="${f.value}" alt="">` : '<span class="ph">חתימה</span>') : f.value ? e(f.value) : "";
@@ -5335,7 +5393,9 @@ async function fieldItems(){
   const out = [];
   const place = (f, box, src, ar, align, minHfrac) => {
     const pg = DS.pages[box.page], k = pg.w / pg.h;   // גובה כשבר מגובה הדף = w * ar * k
-    let h = Math.max(box.h * (f.kind === "sig" ? 1 : 0.86), minHfrac || 0), w = h / (ar * k);
+    let h = Math.max(box.h * (f.kind === "sig" ? 1 : 0.86), minHfrac || 0), w;
+    if(f.kind !== "sig") h = Math.min(h, (f.kind === "check" || f.kind === "radio" ? 11 : 14) / pg.h);   // בתא גבוה – כתב בגודל רגיל
+    w = h / (ar * k);
     if(w > box.w * 0.98){ w = box.w * 0.98; h = w * ar * k; }
     if(align !== "center" && w > box.w * 0.94){ w = box.w * 0.94; h = w * ar * k; }
     const x = align === "center" ? box.x + (box.w - w) / 2 : box.x + box.w - w - Math.min(box.w * 0.04, 6 / pg.w);   // רווח קטן מהכותרת
@@ -5347,7 +5407,7 @@ async function fieldItems(){
     if(f.kind === "text" || f.kind === "select"){ const p = valuePng(f.value); place(f, f, p.src, p.ar, "right"); }
     else if(f.kind === "check"){ const p = valuePng("✓", true); place(f, f, p.src, p.ar, "center"); }
     else if(f.kind === "radio"){ const o = f.options.find(z => z.value === f.value); if(o){ const p = valuePng("✓", true); place(f, o, p.src, p.ar, "center"); } }
-    else if(f.kind === "sig"){ const im = await loadImg(f.value); const ar = im.naturalHeight / im.naturalWidth; place(f, f, f.value, ar, "center", f.src === "line" ? 0.045 : 0); }
+    else if(f.kind === "sig"){ const im = await loadImg(f.value); const ar = im.naturalHeight / im.naturalWidth; place(f, f, f.value, ar, "center", f.src === "line" && !f.cell ? 0.045 : 0); }
   }
   return out;
 }
