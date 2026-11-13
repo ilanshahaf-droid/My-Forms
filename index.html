@@ -284,6 +284,28 @@ body.mf-empty #myForms{border:2px solid var(--btn)}
 .ds-pad canvas{width:100%;height:100%;display:block}
 .ds-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9AA3B5;pointer-events:none}
 
+.ds-fillbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 8px}
+.ds-page{container-type:inline-size}
+.ds-field{position:absolute;box-sizing:border-box;border:1.5px solid rgba(37,99,235,.75);background:rgba(59,130,246,.10);border-radius:3px;cursor:pointer;touch-action:none;
+  display:flex;align-items:center;justify-content:flex-end;overflow:hidden;color:#0b1d4d;font-family:Arimo,Arial,sans-serif;white-space:nowrap;padding:0 2px;direction:rtl}
+.ds-field.filled{background:rgba(255,255,255,.55);border-color:rgba(37,99,235,.35)}
+.ds-field.auto{border-color:rgba(22,163,74,.85);background:rgba(220,252,231,.55)}
+.ds-field.cur{outline:3px solid #f59e0b;outline-offset:1px;z-index:3}
+.ds-field.k-check,.ds-field.k-radio{justify-content:center;font-weight:800}
+.ds-field.k-sig{justify-content:center;border-style:dashed}
+.ds-field.k-sig img{max-width:100%;max-height:100%}
+.ds-field .ph{color:rgba(37,99,235,.9);font-family:inherit;opacity:.85}
+.ds-tapmode .ds-page{cursor:crosshair;outline:3px dashed #f59e0b;outline-offset:2px}
+dialog.ds-filldlg[open]{position:fixed;inset:auto 0 0 0;margin:0 auto;width:min(560px,100%);max-height:62vh;overflow:auto;border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25)}
+.dsf-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--soft)}
+#dsfBody input[type=text],#dsfBody select{font-size:18px}
+.dsf-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.dsf-chips button{font-size:13px !important;padding:4px 10px !important}
+.dsf-sigprev{min-height:70px;border:1.5px dashed var(--rule);border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fff;margin-bottom:8px}
+.dsf-sigprev img{max-height:66px;max-width:90%}
+.dsf-more{display:flex;justify-content:space-between;margin-top:6px}
+.dsf-more .x{font-size:13px}
+
 .ver-choice{margin-top:12px}
 .ver-list{margin-top:8px}
 .ver-list summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--soft)}
@@ -858,13 +880,14 @@ dialog.ck-dlg form{padding:20px 18px}
 </section>
 
 <section class="step tab m-docsign" id="ds2" hidden><span class="punch">2</span>
-  <h2>הוספת חתימה</h2>
-  <p class="hint">בוחרים מה להוסיף, והוא מופיע בעמוד שמוצג על המסך. גוררים אותו למקום, מגדילים או מקטינים מהפינה, ומוחקים ב-✕.</p>
+  <h2>מילוי וחתימה</h2>
+  <div class="ds-fillbar" id="dsFillBar" hidden><button type="button" class="primary" id="dsFillGo">📝 מילוי השדות</button><span class="hint" id="dsFillInfo" style="margin:0"></span></div>
+  <p class="hint">השדות שזוהו מסומנים בכחול על הדף – נוגעים בשדה כדי למלא אותו. חתימה ותאריך מופיעים בעמוד שעל המסך: גוררים למקום, מגדילים מהפינה, מוחקים ב-✕. "כתיבה על הדף" – נוגעים במקום ומקלידים.</p>
   <div class="ds-tools">
     <button type="button" data-tool="mysig">✍️ החתימה שלי</button>
     <button type="button" data-tool="draw">🖊️ חתימה ביד</button>
     <button type="button" data-tool="date">📅 תאריך</button>
-    <button type="button" data-tool="text">🔤 טקסט</button>
+    <button type="button" data-tool="text">🔤 כתיבה על הדף</button>
   </div>
   <div id="dsPages"></div>
 </section>
@@ -888,6 +911,16 @@ dialog.ck-dlg form{padding:20px 18px}
     <h2 style="font-size:18px;margin:0 0 10px">חתימה ביד</h2>
     <div class="ds-pad"><canvas id="dsPad"></canvas><div class="ds-ph" id="dsPadPh">חותמים כאן באצבע</div></div>
     <div class="bar"><button class="primary" value="ok" id="dsPadOk">הוספה למסמך</button><button type="button" id="dsPadClear">ניקוי</button><button value="cancel" formnovalidate>ביטול</button></div>
+  </form>
+</dialog>
+
+<dialog class="ck-dlg ds-filldlg" id="dsFillDlg">
+  <form method="dialog" style="padding:14px 16px 16px">
+    <div class="dsf-top"><span id="dsfPos"></span><button value="close" class="x" aria-label="סגירה">✕</button></div>
+    <label class="f" id="dsfLabel" style="margin-top:2px"></label>
+    <div id="dsfBody"></div>
+    <div class="bar"><button type="button" id="dsfPrev">הקודם</button><button type="button" class="primary" id="dsfNext">הבא</button></div>
+    <div class="dsf-more"><button type="button" class="x" id="dsfRename">שינוי שם השדה</button><button type="button" class="x" id="dsfDel">זה לא שדה – הסרה</button></div>
   </form>
 </dialog>
 
@@ -4942,7 +4975,7 @@ document.addEventListener("visibilitychange", () => { if(document.visibilityStat
 const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
 const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 const PDFLIB = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
-const DS = { kind: null, bytes: null, pages: [], items: [], sel: null, file: null, padSig: null, docs: [] };
+const DS = { kind: null, bytes: null, pages: [], items: [], fields: [], sel: null, cur: null, tapMode: false, file: null, padSig: null, docs: [] };
 const e = s => esc(s == null ? "" : s);
 const loaded = {};
 const loadScript = src => loaded[src] = loaded[src] || new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error("lib")); }; document.head.appendChild(s); });
@@ -4952,11 +4985,12 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ---------- טעינת המסמך ---------- */
 $("#dsFile").onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ""; if(!f) return;
-  if(DS.items.length && !confirm("להחליף את המסמך הנוכחי? החתימות שהוספת יימחקו.")) return;
+  if((DS.items.length || DS.fields.some(filledF)) && !confirm("להחליף את המסמך הנוכחי? מה שמילאת והחתימות יימחקו.")) return;
+  if($("#dsFillDlg").open) $("#dsFillDlg").close(); setTapMode(false);
   setStatus("#dsLoadStatus", "טוען את המסמך…");
   try{
     const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
-    DS.items = []; DS.sel = null; DS.file = null; DS.pages = []; DS.lastPage = null;
+    DS.items = []; DS.fields = []; DS.cur = null; DS.sel = null; DS.file = null; DS.pages = []; DS.lastPage = null;
     if(isPdf){
       await loadScript(PDFJS); pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
       DS.kind = "pdf"; DS.bytes = new Uint8Array(await f.arrayBuffer());
@@ -4966,7 +5000,9 @@ $("#dsFile").onchange = async ev => {
         const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
         await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
         DS.pages.push({ src: c.toDataURL("image/jpeg", 0.85), w: v1.width, h: v1.height });
+        try{ await detectFields(pg, v1, i - 1); }catch(_){}
       }
+      autofill();
     } else {
       if(!/^image\//.test(f.type)) throw new Error("type");
       const url = URL.createObjectURL(f), im = await loadImg(url).catch(() => null); URL.revokeObjectURL(url);
@@ -4981,7 +5017,9 @@ $("#dsFile").onchange = async ev => {
     }
     if(!$("#dsName").value.trim() || $("#dsName").dataset.auto === "1"){ $("#dsName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " ").trim(); $("#dsName").dataset.auto = "1"; }
     renderPages(); $("#ds2").hidden = $("#ds3").hidden = false; resetOut();
-    setStatus("#dsLoadStatus", DS.pages.length === 1 ? "המסמך נטען." : `המסמך נטען: ${DS.pages.length} עמודים.`, "ok");
+    const nf = DS.fields.length, na = DS.fields.filter(f => f.auto).length;
+    setStatus("#dsLoadStatus", (DS.pages.length === 1 ? "המסמך נטען." : `המסמך נטען: ${DS.pages.length} עמודים.`) +
+      (nf ? ` זוהו ${nf === 1 ? "שדה אחד" : nf + " שדות"} למילוי${na ? `, ${na} מולאו מ"הפרטים שלי"` : ""}.` : DS.kind === "pdf" ? " לא זוהו שדות – אפשר לכתוב על הדף בכל מקום." : ""), "ok");
     setTimeout(() => $("#ds2").scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }catch(err){
     const m = err.message === "lib" ? "ספריית ה-PDF לא נטענה. בדוק את החיבור לאינטרנט ונסה שוב." :
@@ -4996,7 +5034,7 @@ $("#dsName").addEventListener("input", () => { $("#dsName").dataset.auto = "0"; 
 /* ---------- עמודים ופריטים ---------- */
 function renderPages(){
   $("#dsPages").innerHTML = DS.pages.map((p, i) => `<div class="ds-page" data-p="${i}" style="aspect-ratio:${p.w}/${p.h}"><img class="bg" src="${p.src}" alt="עמוד ${i+1}"><span class="pn">${i+1}/${DS.pages.length}</span></div>`).join("");
-  DS.items.forEach(drawItem);
+  DS.items.forEach(drawItem); drawFields();
 }
 function pageEl(i){ return document.querySelector(`.ds-page[data-p="${i}"]`); }
 function drawItem(it){
@@ -5060,7 +5098,7 @@ document.querySelector(".ds-tools").addEventListener("click", async ev => {
   if(t === "mysig"){ const s = store.get("att_sig"); if(!s) return setStatus("#dsLoadStatus", 'אין חתימה שמורה. אפשר להוסיף אותה ב"הפרטים שלי" בלוח הבקרה, או לחתום ביד.', "err"); await addItem(s, 0.28); }
   if(t === "draw") openPad();
   if(t === "date") await addItem(textPng(dmyFull()), 0.2);
-  if(t === "text"){ const v = prompt("הטקסט להוספה (למשל השם המלא):", store.get("att_name") || ""); if(v && v.trim()) await addItem(textPng(v.trim()), Math.min(0.6, 0.035 * v.trim().length + 0.08)); }
+  if(t === "text") setTapMode(!DS.tapMode);
 });
 
 /* ---------- חתימה ביד ---------- */
@@ -5089,18 +5127,260 @@ function trimmed(cv){
 }
 $("#dsPadDlg").addEventListener("close", async () => {
   if($("#dsPadDlg").returnValue !== "ok" || !pdrawn) return;
-  const src = trimmed($("#dsPad")); if(src){ DS.padSig = src; await addItem(src, 0.28); }
+  const src = trimmed($("#dsPad")); if(!src) return; DS.padSig = src;
+  const f = DS.padTarget && DS.fields.find(z => z.id === DS.padTarget); DS.padTarget = null;
+  if(f){ f.value = src; drawField(f); fillInfo(); resetOut(); openFill(f.id); } else await addItem(src, 0.28);
 });
 
+/* ---------- שדות למילוי: זיהוי, מילוי, ציור ב-PDF ---------- */
+// מקורות: "acro" – שדות אמיתיים של PDF; "line" – קווים ריקים (____ / ....); "manual" – נגיעה בדף
+const GENERIC = /^(text|field|untitled|check ?(box)?|button|fill|radio|combo|list|dropdown|sign(ature)?|טקסט|שדה)[\s_-]*\d*$/i;
+const BLANK = /_{3,}|\.{6,}|…{2,}/;   // בלי g: לפיצול ולהחלפה
+const blankG = () => /_{3,}|\.{6,}|…{2,}/g;   // חדש לכל לולאה
+const cleanLabel = s => String(s || "").replace(/_{2,}|\.{3,}|…+/g, " ").replace(/[:\s]+$/,"").replace(/^[:\s]+/,"").replace(/\s+/g," ").trim()
+  .replace(/(^|\s)([\u05d0-\u05ea])\.([\u05d0-\u05ea])(?=\s|$)/g, (m, a, x, y) => a + y + "." + x)   // "ז.ת" שהתהפך -> "ת.ז"
+  .slice(-40);
+const mctx = document.createElement("canvas").getContext("2d");
+function posFrac(str, i){ mctx.font = "20px Arial, sans-serif"; const all = mctx.measureText(str).width || 1; return mctx.measureText(str.slice(0, i)).width / all; }
+async function detectFields(pg, v1, pi){
+  const W = v1.width, H = v1.height;
+  const frac = r => { const [a,b,c,d] = v1.convertToViewportRectangle(r); const x0 = Math.min(a,c), x1 = Math.max(a,c), y0 = Math.min(b,d), y1 = Math.max(b,d);
+    return { x: x0 / W, y: y0 / H, w: (x1 - x0) / W, h: (y1 - y0) / H }; };
+  let tc = null; try{ tc = await pg.getTextContent(); }catch(_){}
+  const texts = (tc ? tc.items : []).filter(t => t.str && t.str.trim()).map(t => ({ str: t.str, dir: t.dir, x: t.transform[4], y: t.transform[5], w: t.width, h: Math.hypot(t.transform[2], t.transform[3]) || t.height || 10 }));
+  // כותרת לשדה: טקסט באותה שורה – קודם מימין (עברית), אחר כך משמאל, ואם אין – מעל
+  const labelNear = (x0, x1, yb, h) => {
+    const same = texts.filter(t => Math.abs(t.y - yb) < Math.max(h, t.h) * 0.7 && t.str.replace(blankG(), "").trim());
+    let best = null, bd = 1e9;
+    same.forEach(t => { const d = t.x - x1; if(d > -3 && d < 260 && d < bd){ bd = d; best = t; } });
+    if(best) return cleanLabel(best.str.split(BLANK).filter(z => z.trim()).pop());
+    bd = 1e9; same.forEach(t => { const d = x0 - (t.x + t.w); if(d > -3 && d < 200 && d < bd){ bd = d; best = t; } });
+    if(best) return cleanLabel(best.str.split(BLANK).filter(z => z.trim())[0]);
+    bd = 1e9; texts.forEach(t => { const d = t.y - yb; if(d > 0 && d < h * 2.6 && t.x < x1 + 20 && t.x + t.w > x0 - 20 && d < bd){ bd = d; best = t; } });
+    return best ? cleanLabel(best.str) : "";
+  };
+  let anns = []; try{ anns = await pg.getAnnotations(); }catch(_){}
+  const wid = anns.filter(a => a.subtype === "Widget" && a.fieldType && !a.hidden && !a.pushButton && !a.readOnly);
+  const radios = {};
+  wid.forEach(a => {
+    const r = frac(a.rect), nm = String(a.fieldName || ""), last = nm.split(".").pop();
+    let label = a.alternativeText || (last && !GENERIC.test(last) ? last.replace(/[_]+/g, " ").trim() : "");
+    if(!label){ const yb = Math.min(a.rect[1], a.rect[3]); label = labelNear(Math.min(a.rect[0], a.rect[2]), Math.max(a.rect[0], a.rect[2]), yb + 2, Math.abs(a.rect[3] - a.rect[1])); }
+    const base = { id: uid(), src: "acro", name: nm, page: pi, ...r, label: cleanLabel(label) };
+    const isSig = /חתימ/.test(label) || /^sign(ature)?[\s_-]*\d*$/i.test(last);
+    if(a.fieldType === "Tx") DS.fields.push({ ...base, kind: isSig ? "sig" : "text", value: typeof a.fieldValue === "string" ? a.fieldValue : "" });
+    else if(a.fieldType === "Sig") DS.fields.push({ ...base, kind: "sig", value: "" });
+    else if(a.fieldType === "Ch") DS.fields.push({ ...base, kind: "select", options: (a.options || []).map(o => o.displayValue || o.exportValue), value: [].concat(a.fieldValue || [])[0] || "" });
+    else if(a.fieldType === "Btn" && a.radioButton){
+      const g = radios[nm] = radios[nm] || { ...base, kind: "radio", options: [], value: "" };
+      const opt = String(a.buttonValue || ""); g.options.push({ value: opt, page: pi, ...r, label: labelNear(Math.min(a.rect[0], a.rect[2]), Math.max(a.rect[0], a.rect[2]), Math.min(a.rect[1], a.rect[3]) + 2, Math.abs(a.rect[3] - a.rect[1])) || opt });
+      if(a.fieldValue && a.fieldValue === a.buttonValue) g.value = opt;
+    }
+    else if(a.fieldType === "Btn") DS.fields.push({ ...base, kind: "check", value: !!(a.fieldValue && a.fieldValue !== "Off") });
+  });
+  Object.values(radios).forEach(g => { const o = g.options[0]; Object.assign(g, { page: o.page, x: o.x, y: o.y, w: o.w, h: o.h, label: g.label || "בחירה" }); DS.fields.push(g); });
+  if(wid.length) return;
+  // אין שדות אמיתיים: מחפשים קווים ריקים וריבועי סימון בטקסט
+  texts.forEach(t => {
+    const n = t.str.length, re = blankG(); let m, prev = 0;
+    while((m = re.exec(t.str))){
+      const a = m.index, b = a + m[0].length; let x0, x1;
+      const fa = posFrac(t.str, a), fb = posFrac(t.str, b);   // לפי רוחב התווים האמיתי (נקודות צרות מאותיות)
+      if(t.dir === "rtl"){ x1 = t.x + t.w - fa * t.w; x0 = t.x + t.w - fb * t.w; } else { x0 = t.x + fa * t.w; x1 = t.x + fb * t.w; }
+      if(x1 - x0 >= 18){
+        // הכותרת שמימין לקו: בשורה הפוכה (ltr) היא אחרי הקו במחרוזת, בשורה רגילה (rtl) – לפניו
+        const nb = blankG(); nb.lastIndex = b; const nx = nb.exec(t.str), next = nx ? nx.index : n;
+        const right = cleanLabel(t.dir === "rtl" ? t.str.slice(prev, a) : t.str.slice(b, next)), left = cleanLabel(t.dir === "rtl" ? t.str.slice(b, next) : t.str.slice(prev, a));
+        const label = right || labelNear(x0, x1, t.y, t.h) || left;
+        DS.fields.push({ id: uid(), src: "line", page: pi, ...frac([x0, t.y - t.h * 0.22, x1, t.y + t.h * 1.0]), label, kind: /חתימ/.test(label) ? "sig" : "text", value: "" });
+      }
+      prev = b;
+    }
+    const cb = /[☐□▢❑]/g; let c;
+    while((c = cb.exec(t.str))){
+      const a = c.index, cw = t.w / n, cx = t.dir === "rtl" ? t.x + t.w - (a + 1) * cw : t.x + a * cw, sz = Math.max(cw, t.h * 0.8);
+      const lab = cleanLabel(t.str.slice(a + 1).split(/[☐□▢❑]/)[0]) || labelNear(cx, cx + sz, t.y, t.h);
+      DS.fields.push({ id: uid(), src: "line", page: pi, ...frac([cx, t.y - t.h * 0.1, cx + sz, t.y + t.h * 0.85]), label: lab, kind: "check", value: false });
+    }
+  });
+}
+// מילוי אוטומטי מ"הפרטים שלי"
+function autofill(){
+  const name = (store.get("att_name") || "").trim(), tz = (store.get("att_tz") || "").trim(), parts = name.split(/\s+/);
+  DS.fields.forEach(f => {
+    if(f.kind !== "text" || f.value) return; const l = f.label; let v = "";
+    if(/שם\s*פרטי/.test(l) && !/משפחה/.test(l)) v = parts[0] || "";
+    else if(/שם\s*ה?משפחה/.test(l) && !/פרטי/.test(l)) v = parts.slice(1).join(" ");
+    else if(/^שם$|שם\s*מלא|שם\s*פרטי\s*ו|שם\s*ה?(עובד|מבקש|מטפל|פסיכולוג|חותם|ממלא|מגיש)/.test(l)) v = name;
+    else if(/ת\.?\s?ז|ז\.\s?ת|תעודת\s*זהות|מס(פר|')?\s*זהות/.test(l)) v = tz;
+    else if(/^תאריך$|^תאריך\s*(החתימה|הבקשה|מילוי|היום)/.test(l)) v = dmyFull();
+    if(v){ f.value = v; f.auto = true; }
+  });
+}
+const fieldOrder = () => DS.fields.slice().sort((a,b) => a.page - b.page || (Math.abs(a.y - b.y) > 0.008 ? a.y - b.y : (b.x + b.w) - (a.x + a.w)));
+const filledF = f => f.kind === "check" ? f.value === true : !!f.value;
+function drawField(f){
+  let el = document.getElementById("dsf_" + f.id), pgEl = pageEl(f.page); if(!pgEl) return;
+  if(!el){ el = document.createElement("div"); el.id = "dsf_" + f.id; el.className = "ds-field"; pgEl.appendChild(el); bindField(el, f); }
+  const pg = DS.pages[f.page];
+  el.className = `ds-field k-${f.kind}${filledF(f) ? " filled" : ""}${f.auto ? " auto" : ""}${DS.cur === f.id ? " cur" : ""}`;
+  Object.assign(el.style, { left: f.x * 100 + "%", top: f.y * 100 + "%", width: f.w * 100 + "%", height: f.h * 100 + "%",
+    fontSize: `max(7px, ${(f.h * pg.h / pg.w * 100 * 0.68).toFixed(2)}cqw)` });
+  el.title = f.label || "";
+  if(f.kind === "radio"){ el.innerHTML = ""; drawRadioOpts(f); el.style.display = "none"; return; }
+  el.innerHTML = f.kind === "check" ? (f.value ? "✓" : "") : f.kind === "sig" ? (f.value ? `<img src="${f.value}" alt="">` : '<span class="ph">חתימה</span>') : f.value ? e(f.value) : "";
+}
+function drawRadioOpts(f){
+  f.options.forEach((o, i) => { const id = "dsf_" + f.id + "_" + i; let el = document.getElementById(id), pgEl = pageEl(o.page); if(!pgEl) return;
+    if(!el){ el = document.createElement("div"); el.id = id; pgEl.appendChild(el); bindField(el, f, true); }
+    const pg = DS.pages[o.page];
+    el.className = `ds-field k-radio${f.value ? " filled" : ""}${DS.cur === f.id ? " cur" : ""}`;
+    Object.assign(el.style, { left: o.x * 100 + "%", top: o.y * 100 + "%", width: o.w * 100 + "%", height: o.h * 100 + "%", fontSize: `max(7px, ${(o.h * pg.h / pg.w * 100 * 0.8).toFixed(2)}cqw)` });
+    el.textContent = f.value === o.value ? "✓" : ""; });
+}
+function bindField(el, f, fixed){
+  el.addEventListener("pointerdown", ev => {
+    if(DS.tapMode) return; ev.preventDefault(); ev.stopPropagation();
+    const box = pageEl(f.page).getBoundingClientRect(), sx = ev.clientX, sy = ev.clientY, o = { x: f.x, y: f.y }; let moved = false;
+    el.setPointerCapture(ev.pointerId);
+    const mv = m => { const dx = (m.clientX - sx) / box.width, dy = (m.clientY - sy) / box.height;
+      if(!moved && Math.hypot(m.clientX - sx, m.clientY - sy) < 7) return; if(fixed || f.src === "acro") return; moved = true;
+      f.x = Math.min(1 - f.w, Math.max(0, o.x + dx)); f.y = Math.min(1 - f.h, Math.max(0, o.y + dy)); drawField(f); };
+    const up = () => { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); if(!moved) openFill(f.id); else resetOut(); };
+    el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  });
+}
+function drawFields(){ DS.fields.forEach(drawField); fillInfo(); }
+function fillInfo(){
+  const n = DS.fields.length, done = DS.fields.filter(filledF).length;
+  $("#dsFillBar").hidden = !n;
+  $("#dsFillGo").textContent = done === 0 ? `📝 מילוי השדות (${n})` : done < n ? `📝 המשך מילוי (${done}/${n})` : `📝 עריכת השדות (${n})`;
+  $("#dsFillInfo").textContent = n ? (DS.fields.some(f => f.src === "acro") ? "בטופס יש שדות מובנים למילוי." : "השדות זוהו לפי הקווים הריקים בטופס – אפשר להזיז שדה, להסיר, או להוסיף ב\"כתיבה על הדף\".") : "";
+}
+
+/* ---------- חלון המילוי (בתחתית המסך, הדף נשאר גלוי) ---------- */
+function openFill(id){
+  const list = fieldOrder(), i = list.findIndex(f => f.id === id), f = list[i]; if(!f) return;
+  const prevCur = DS.cur; DS.cur = id; [prevCur, id].forEach(x => { const z = DS.fields.find(q => q.id === x); if(z) drawField(z); });
+  const dlg = $("#dsFillDlg"); if(!dlg.open) dlg.show();
+  $("#dsfPos").textContent = `שדה ${i + 1} מתוך ${list.length}${f.auto ? " · מולא אוטומטית" : ""}`;
+  $("#dsfLabel").textContent = f.label || (f.kind === "sig" ? "חתימה" : f.kind === "check" ? "סימון" : "שדה בלי כותרת");
+  const body = $("#dsfBody"), chips = `<div class="dsf-chips">${[["השם שלי", store.get("att_name")], ["ת.ז", store.get("att_tz")], ["התאריך היום", dmyFull()]].filter(c => c[1]).map(c => `<button type="button" data-chip="${e(c[1])}">${c[0]}</button>`).join("")}</div>`;
+  if(f.kind === "text") body.innerHTML = `<input type="text" id="dsfIn" value="${e(f.value)}" enterkeyhint="next">${chips}`;
+  else if(f.kind === "select") body.innerHTML = `<select id="dsfIn"><option value="">—</option>${f.options.map(o => `<option ${o === f.value ? "selected" : ""}>${e(o)}</option>`).join("")}</select>`;
+  else if(f.kind === "check") body.innerHTML = `<label class="chk" style="font-size:17px"><input type="checkbox" id="dsfIn" ${f.value ? "checked" : ""} style="width:24px;height:24px"> מסומן</label>`;
+  else if(f.kind === "radio") body.innerHTML = `<div class="opts">${f.options.map((o, k) => `<label><input type="radio" name="dsfR" value="${k}" ${f.value === o.value ? "checked" : ""}> ${e(o.label || o.value)}</label>`).join("")}</div>`;
+  else body.innerHTML = `<div class="dsf-sigprev">${f.value ? `<img src="${f.value}" alt="">` : '<span class="hint" style="margin:0">עוד לא נחתם</span>'}</div>
+    <div class="bar" style="margin-top:0"><button type="button" data-sig="mine">✍️ החתימה שלי</button><button type="button" data-sig="draw">🖊️ חתימה ביד</button>${f.value ? '<button type="button" class="x" data-sig="clear">ניקוי</button>' : ""}</div>`;
+  $("#dsfPrev").disabled = i === 0; $("#dsfNext").textContent = i === list.length - 1 ? "סיום" : "הבא";
+  const inEl = $("#dsfIn"); if(inEl && f.kind === "text") setTimeout(() => inEl.focus({ preventScroll: true }), 60);
+  const el = document.getElementById("dsf_" + f.id) || document.getElementById("dsf_" + f.id + "_0");
+  if(el){ const r = el.getBoundingClientRect(), room = innerHeight - dlg.getBoundingClientRect().height; if(r.top < 60 || r.bottom > room - 20) window.scrollBy({ top: r.top - Math.max(70, room / 2 - r.height), behavior: "smooth" }); }
+}
+const curF = () => DS.fields.find(f => f.id === DS.cur);
+function commit(){
+  const f = curF(); if(!f) return; const inEl = $("#dsfIn");
+  if(f.kind === "text" || f.kind === "select"){ const v = inEl.value.trim(); if(v !== f.value){ f.value = v; f.auto = false; } }
+  else if(f.kind === "check") f.value = inEl.checked;
+  else if(f.kind === "radio"){ const r = document.querySelector('input[name="dsfR"]:checked'); f.value = r ? f.options[+r.value].value : ""; }
+  drawField(f); fillInfo(); resetOut();
+}
+function step(d){
+  commit(); const list = fieldOrder(), i = list.findIndex(f => f.id === DS.cur), n = list[i + d];
+  if(n) openFill(n.id); else closeFill();
+}
+function closeFill(){
+  commit(); const dlg = $("#dsFillDlg"); if(dlg.open) dlg.close(); const p = DS.cur; DS.cur = null; const f = DS.fields.find(q => q.id === p); if(f) drawField(f);
+  const empty = DS.fields.filter(f => !filledF(f) && f.kind !== "check").length;
+  setStatus("#dsLoadStatus", empty ? `נשארו ${empty === 1 ? "שדה אחד ריק" : empty + " שדות ריקים"} (אפשר להשאיר ריקים).` : "כל השדות מולאו.", empty ? "" : "ok");
+}
+// נגיעה מחוץ לחלון ומחוץ לשדות סוגרת אותו, כדי שלא יסתיר את כפתורי השמירה
+document.addEventListener("pointerdown", ev => { const d = $("#dsFillDlg"); if(d.open && !ev.target.closest("#dsFillDlg") && !ev.target.closest(".ds-field") && !ev.target.closest("#dsPadDlg")) closeFill(); }, true);
+$("#dsfNext").onclick = () => step(1);
+$("#dsfPrev").onclick = () => step(-1);
+$("#dsFillDlg").addEventListener("close", () => { if(DS.cur){ commit(); const p = DS.cur; DS.cur = null; const f = DS.fields.find(q => q.id === p); if(f) drawField(f); } });
+$("#dsFillDlg").addEventListener("keydown", ev => { if(ev.key === "Enter" && ev.target.id === "dsfIn"){ ev.preventDefault(); step(1); } });
+$("#dsfBody").addEventListener("click", ev => {
+  const c = ev.target.closest("[data-chip]"); if(c){ $("#dsfIn").value = c.dataset.chip; commit(); return; }
+  const s = ev.target.closest("[data-sig]"), f = curF(); if(!s || !f) return;
+  if(s.dataset.sig === "mine"){ const v = store.get("att_sig"); if(!v) return setStatus("#dsLoadStatus", 'אין חתימה שמורה. אפשר להוסיף ב"הפרטים שלי", או לחתום ביד.', "err"); f.value = v; drawField(f); fillInfo(); resetOut(); openFill(f.id); }
+  if(s.dataset.sig === "clear"){ f.value = ""; drawField(f); fillInfo(); resetOut(); openFill(f.id); }
+  if(s.dataset.sig === "draw"){ DS.padTarget = f.id; openPad(); }
+});
+$("#dsfDel").onclick = () => { const f = curF(); if(!f) return; const list = fieldOrder(), i = list.findIndex(z => z.id === f.id);
+  DS.fields = DS.fields.filter(z => z !== f); document.querySelectorAll(`[id^="dsf_${f.id}"]`).forEach(x => x.remove()); DS.cur = null; resetOut(); fillInfo();
+  const n = fieldOrder()[Math.min(i, DS.fields.length - 1)]; if(n) openFill(n.id); else $("#dsFillDlg").close(); };
+$("#dsfRename").onclick = () => { const f = curF(); if(!f) return; const v = prompt("שם השדה:", f.label || ""); if(v != null){ f.label = v.trim(); drawField(f); openFill(f.id); } };
+$("#dsFillGo").onclick = () => { const list = fieldOrder(), first = list.find(f => !filledF(f)) || list[0]; if(first) openFill(first.id); };
+
+/* ---------- כתיבה על הדף: נוגעים במקום ומקלידים ---------- */
+function setTapMode(on){ DS.tapMode = on; document.body.classList.toggle("ds-tapmode", on);
+  if(on) setStatus("#dsLoadStatus", "גע במקום בדף שבו לכתוב (נגיעה נוספת בכפתור מבטלת).", ""); }
+$("#dsPages").addEventListener("click", ev => {
+  if(!DS.tapMode) return; const pgEl = ev.target.closest(".ds-page"); if(!pgEl) return;
+  const r = pgEl.getBoundingClientRect(), pi = +pgEl.dataset.p, pg = DS.pages[pi], fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
+  const h = 15 / pg.h, w = Math.min(0.4, Math.max(0.12, fx));   // השדה נפתח שמאלה מהנקודה (כתיבה מימין לשמאל)
+  const f = { id: uid(), src: "manual", page: pi, kind: "text", label: "", value: "", x: Math.max(0, fx - w), y: Math.min(1 - h, Math.max(0, fy - h / 2)), w, h };
+  DS.fields.push(f); setTapMode(false); setStatus("#dsLoadStatus", ""); drawField(f); fillInfo(); openFill(f.id);
+});
+
+/* ---------- ציור השדות ב-PDF: כל ערך הופך לתמונה במקום של השדה ---------- */
+function valuePng(t, bold){
+  const c = document.createElement("canvas"), x = c.getContext("2d"), f = `${bold ? 700 : 400} 72px Arimo, Arial, sans-serif`;
+  x.font = f; const w = Math.ceil(x.measureText(t).width) + 8; c.width = Math.max(w, 10); c.height = 92;
+  x.font = f; x.direction = "rtl"; x.textAlign = "center"; x.textBaseline = "alphabetic"; x.fillStyle = "#0b1d4d"; x.fillText(t, c.width / 2, 70);
+  return { src: c.toDataURL("image/png"), ar: c.height / c.width };
+}
+async function fieldItems(){
+  const out = [];
+  const place = (f, box, src, ar, align, minHfrac) => {
+    const pg = DS.pages[box.page], k = pg.w / pg.h;   // גובה כשבר מגובה הדף = w * ar * k
+    let h = Math.max(box.h * (f.kind === "sig" ? 1 : 0.86), minHfrac || 0), w = h / (ar * k);
+    if(w > box.w * 0.98){ w = box.w * 0.98; h = w * ar * k; }
+    if(align !== "center" && w > box.w * 0.94){ w = box.w * 0.94; h = w * ar * k; }
+    const x = align === "center" ? box.x + (box.w - w) / 2 : box.x + box.w - w - Math.min(box.w * 0.04, 6 / pg.w);   // רווח קטן מהכותרת
+    const y = f.kind === "sig" ? box.y + box.h - h : box.y + (box.h - h) / 2;
+    out.push({ page: box.page, src, ar, w, x: Math.max(0, x), y: Math.max(0, y) });
+  };
+  for(const f of DS.fields){
+    if(!filledF(f)) continue;
+    if(f.kind === "text" || f.kind === "select"){ const p = valuePng(f.value); place(f, f, p.src, p.ar, "right"); }
+    else if(f.kind === "check"){ const p = valuePng("✓", true); place(f, f, p.src, p.ar, "center"); }
+    else if(f.kind === "radio"){ const o = f.options.find(z => z.value === f.value); if(o){ const p = valuePng("✓", true); place(f, o, p.src, p.ar, "center"); } }
+    else if(f.kind === "sig"){ const im = await loadImg(f.value); const ar = im.naturalHeight / im.naturalWidth; place(f, f, f.value, ar, "center", f.src === "line" ? 0.045 : 0); }
+  }
+  return out;
+}
+
+
 /* ---------- בניית ה-PDF החתום ---------- */
+// מסירים את השדות שמילאנו מרשימת ההערות של כל עמוד ומהטופס, בלי למחוק אובייקטים מהקובץ (מחיקה משאירה בו "חורים")
+function dropFields(doc, names){
+  const { PDFName, PDFArray, PDFDict } = PDFLib, N = PDFName.of.bind(PDFName), ctx = doc.context;
+  const txt = v => v && v.decodeText ? v.decodeText() : (v ? String(v) : "");
+  const fullName = d => { const parts = []; let n = d, guard = 0; while(n && guard++ < 20){ const t = n.get(N("T")); if(t) parts.unshift(txt(t)); const p = n.get(N("Parent")); n = p ? ctx.lookup(p) : null; } return parts.join("."); };
+  const ours = d => d instanceof PDFDict && d.get(N("Subtype")) === N("Widget") && names.has(fullName(d));
+  doc.getPages().forEach(pg => {
+    const arr = pg.node.lookup(N("Annots")); if(!(arr instanceof PDFArray)) return;
+    const keep = arr.asArray().filter(r => !ours(ctx.lookup(r)));
+    if(keep.length !== arr.size()) pg.node.set(N("Annots"), ctx.obj(keep));
+  });
+  const af = doc.catalog.lookup(N("AcroForm")); if(!(af instanceof PDFDict)) return;
+  const fs = af.lookup(N("Fields")); if(!(fs instanceof PDFArray)) return;
+  const rest = fs.asArray().filter(r => { const d = ctx.lookup(r), nm = fullName(d); return !(names.has(nm) || [...names].some(x => x.startsWith(nm + "."))); });
+  if(rest.length) af.set(N("Fields"), ctx.obj(rest)); else doc.catalog.delete(N("AcroForm"));
+}
 async function buildPdf(){
   await loadScript(PDFLIB);
   const { PDFDocument, degrees } = PDFLib;
   let doc;
   if(DS.kind === "pdf") doc = await PDFDocument.load(DS.bytes, { ignoreEncryption: true });
   else { doc = await PDFDocument.create(); const im = await doc.embedJpg(DS.bytes), pg = DS.pages[0], p = doc.addPage([pg.w, pg.h]); p.drawImage(im, { x: 0, y: 0, width: pg.w, height: pg.h }); }
+  // שדות ה-PDF שמילאנו מוסרים, והערכים מצוירים במקומם (כך גם עברית נראית נכון)
+  const acro = new Set(DS.fields.filter(f => f.src === "acro").map(f => f.name));
+  if(acro.size){ try{ dropFields(doc, acro); }catch(_){} }
   const pages = doc.getPages(), cache = {};
-  for(const it of DS.items){
+  for(const it of [...DS.items, ...await fieldItems()]){
     const page = pages[it.page]; if(!page) continue;
     const img = cache[it.src] = cache[it.src] || (it.src.startsWith("data:image/png") ? await doc.embedPng(it.src) : await doc.embedJpg(it.src));
     const cb = page.getCropBox(), rot = ((page.getRotation().angle % 360) + 360) % 360, pw = cb.width, ph = cb.height;
@@ -5123,7 +5403,8 @@ async function putIndex(list){ return cloud.sb.storage.from(BUCKET).upload(P(`${
 $("#dsMake").onclick = async () => {
   if(!DS.pages.length) return setStatus("#dsStatus", "קודם בוחרים מסמך.", "err");
   const name = $("#dsName").value.trim(); if(!name) return setStatus("#dsStatus", "יש לתת שם למסמך.", "err");
-  if(!DS.items.length && !confirm("לא הוספת חתימה. לשמור בכל זאת?")) return;
+  if(!DS.items.length && !DS.fields.some(f => f.kind === "sig" && f.value) && !confirm("לא הוספת חתימה. לשמור בכל זאת?")) return;
+  if($("#dsFillDlg").open) closeFill();
   const btn = $("#dsMake"); btn.disabled = true; setStatus("#dsStatus", "בונה את ה-PDF…");
   try{
     const blob = await buildPdf(); DS.file = new File([blob], fileName(name), { type: "application/pdf" });
@@ -5146,8 +5427,10 @@ $("#dsShare").onclick = () => DS.file && shareOrOpen(DS.file);
 $("#dsDl").onclick = () => DS.file && downloadBlob(DS.file, DS.file.name);
 driveButton("#dsDrive", "#dsStatus", () => DS.file, "docs");
 $("#dsNew").onclick = () => {
-  if(DS.items.length && !DS.file && !confirm("להתחיל מסמך חדש? החתימות שהוספת יימחקו.")) return;
-  Object.assign(DS, { kind: null, bytes: null, pages: [], items: [], sel: null, file: null });
+  if((DS.items.length || DS.fields.some(filledF)) && !DS.file && !confirm("להתחיל מסמך חדש? מה שמילאת והחתימות יימחקו.")) return;
+  if($("#dsFillDlg").open) $("#dsFillDlg").close(); setTapMode(false);
+  Object.assign(DS, { kind: null, bytes: null, pages: [], items: [], fields: [], cur: null, sel: null, file: null });
+  $("#dsFillBar").hidden = true;
   $("#dsPages").innerHTML = ""; $("#dsName").value = ""; $("#dsName").dataset.auto = "1"; $("#ds2").hidden = $("#ds3").hidden = true;
   setStatus("#dsStatus", ""); setStatus("#dsLoadStatus", ""); window.scrollTo({ top: 0 });
 };
@@ -5177,7 +5460,7 @@ async function dsRenderFiles(){
 const origRender = renderFiles;
 renderFiles = async function(){ await origRender(); try{ await dsRenderFiles(); }catch(_){} };
 
-window.DSF = { DS, buildPdf, addItem, textPng, renderPages, enter(){ if(cloud.user) dsRenderFiles().catch(() => {}); } };
+window.DSF = { DS, buildPdf, addItem, textPng, renderPages, openFill, fieldOrder, enter(){ if(cloud.user) dsRenderFiles().catch(() => {}); } };
 if(cloud.user) dsRenderFiles().catch(() => {});
 })();
 </script>
