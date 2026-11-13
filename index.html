@@ -5325,7 +5325,7 @@ function fillInfo(){
 function openFill(id){
   const list = fieldOrder(), i = list.findIndex(f => f.id === id), f = list[i]; if(!f) return;
   const prevCur = DS.cur; DS.cur = id; [prevCur, id].forEach(x => { const z = DS.fields.find(q => q.id === x); if(z) drawField(z); });
-  const dlg = $("#dsFillDlg"); if(!dlg.open) dlg.show();
+  const dlg = $("#dsFillDlg"); if(!dlg.open) dlg.show(); placeSheet();
   $("#dsfPos").textContent = `שדה ${i + 1} מתוך ${list.length}${f.auto ? " · מולא אוטומטית" : ""}`;
   $("#dsfLabel").textContent = f.label || (f.kind === "sig" ? "חתימה" : f.kind === "check" ? "סימון" : "שדה בלי כותרת");
   const body = $("#dsfBody"), chips = `<div class="dsf-chips">${[["השם שלי", store.get("att_name")], ["ת.ז", store.get("att_tz")], ["התאריך היום", dmyFull()]].filter(c => c[1]).map(c => `<button type="button" data-chip="${e(c[1])}">${c[0]}</button>`).join("")}</div>`;
@@ -5338,7 +5338,11 @@ function openFill(id){
   $("#dsfPrev").disabled = i === 0; $("#dsfNext").textContent = i === list.length - 1 ? "סיום" : "הבא";
   const inEl = $("#dsfIn"); if(inEl && f.kind === "text") setTimeout(() => inEl.focus({ preventScroll: true }), 60);
   const el = document.getElementById("dsf_" + f.id) || document.getElementById("dsf_" + f.id + "_0");
-  if(el){ const r = el.getBoundingClientRect(), room = innerHeight - dlg.getBoundingClientRect().height; if(r.top < 60 || r.bottom > room - 20) window.scrollBy({ top: r.top - Math.max(70, room / 2 - r.height), behavior: "smooth" }); }
+  // השדה צריך להיראות מעל החלון (ומעל המקלדת, אם היא פתוחה)
+  const keep = () => { if(!el) return; const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, vh = vv ? vv.height : innerHeight;
+    const r = el.getBoundingClientRect(), room = top + vh - dlg.getBoundingClientRect().height;
+    if(r.top < top + 60 || r.bottom > room - 16) window.scrollBy({ top: r.top - top - Math.max(60, (room - top) / 2 - r.height), behavior: "smooth" }); };
+  keep(); setTimeout(() => { placeSheet(); keep(); }, 450);   // שוב אחרי שהמקלדת סיימה להיפתח
 }
 const curF = () => DS.fields.find(f => f.id === DS.cur);
 function commit(){
@@ -5358,7 +5362,17 @@ function closeFill(){
   setStatus("#dsLoadStatus", empty ? `נשארו ${empty === 1 ? "שדה אחד ריק" : empty + " שדות ריקים"} (אפשר להשאיר ריקים).` : "כל השדות מולאו.", empty ? "" : "ok");
 }
 // נגיעה מחוץ לחלון ומחוץ לשדות סוגרת אותו, כדי שלא יסתיר את כפתורי השמירה
-document.addEventListener("pointerdown", ev => { const d = $("#dsFillDlg"); if(d.open && !ev.target.closest("#dsFillDlg") && !ev.target.closest(".ds-field") && !ev.target.closest("#dsPadDlg")) closeFill(); }, true);
+// "click" ולא "pointerdown": גלילה של הדף לא סוגרת את החלון – רק נגיעה קצרה מחוץ לו
+document.addEventListener("click", ev => { const d = $("#dsFillDlg"); if(d.open && !ev.target.closest("#dsFillDlg") && !ev.target.closest(".ds-field") && !ev.target.closest("#dsPadDlg") && !ev.target.closest(".ds-tools")) closeFill(); }, true);
+// כשהמקלדת פתוחה – החלון עולה מעליה (אחרת הוא נשאר מאחורי המקלדת ולא רואים אותו)
+function placeSheet(){
+  const d = $("#dsFillDlg"), vv = window.visualViewport; if(!d.open || !vv) return;
+  const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);   // הגובה שהמקלדת מסתירה
+  d.style.bottom = hidden + "px"; d.style.maxHeight = Math.max(160, vv.height * 0.6) + "px";
+  document.body.style.paddingBottom = (d.getBoundingClientRect().height + hidden + 40) + "px";   // מקום לגלול גם את השדות שבתחתית הדף
+}
+if(window.visualViewport){ visualViewport.addEventListener("resize", placeSheet); visualViewport.addEventListener("scroll", placeSheet); }
+$("#dsFillDlg").addEventListener("close", () => { document.body.style.paddingBottom = ""; });
 $("#dsfNext").onclick = () => step(1);
 $("#dsfPrev").onclick = () => step(-1);
 $("#dsFillDlg").addEventListener("close", () => { if(DS.cur){ commit(); const p = DS.cur; DS.cur = null; const f = DS.fields.find(q => q.id === p); if(f) drawField(f); } });
