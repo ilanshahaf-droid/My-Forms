@@ -1097,7 +1097,17 @@ dialog.ck-dlg form{padding:20px 18px}
   </div>
   <label class="f" for="abSigDate">תאריך החתימה</label>
   <input type="date" id="abSigDate">
-  <p class="hint" style="margin-top:10px">לפי הטופס מצרפים אישור רופא (פעם בשנה במוגבלות זמנית, או פעם אחת במוגבלות קבועה), ואישור של הגורם המטפל כשהסיוע היה ליווי לטיפול רפואי או פרה-רפואי.</p>
+  <fieldset class="grp" style="margin-top:14px"><legend>עמוד שני: אישור על מוגבלות</legend>
+    <p class="hint" style="margin:0 0 8px">מסמך שמצרפים פעם אחת, והוא נכנס כעמוד שני לכל הצהרה. נשמר רק אצלך (במכשיר ובענן שלך). כשמקבלים אישור חדש – מחליפים.</p>
+    <div class="status" id="abAttInfo" style="display:block"></div>
+    <div class="bar" style="margin-top:8px">
+      <button type="button" id="abAttPick">צרף מסמך (PDF או תמונה)</button>
+      <button type="button" id="abAttView" hidden>הצג</button>
+      <button type="button" id="abAttDel" class="del" hidden>הסר</button>
+      <input type="file" id="abAttFile" accept="application/pdf,image/*" hidden>
+    </div>
+    <div class="status" id="abAttStatus"></div>
+  </fieldset>
   <div class="bar" style="margin-top:14px">
     <button class="primary" id="abMake" type="button">הפק קובץ וורד</button>
     <button id="abShare" type="button" hidden>שתף PDF</button>
@@ -2063,35 +2073,41 @@ function drawHofeshMgr(x,v){   // חלק ב׳ כפי שהמנהלת מילאה (
 
 /* PDF בלי ספרייה חיצונית: עמוד A4 מצויר על canvas ונארז כתמונת JPEG בתוך קובץ PDF מינימלי.
    כך זה עובד גם בלי אינטרנט ובכל דפדפן (כולל Safari באייפד). */
-function canvasToPdf(c){
-  const url=c.toDataURL("image/jpeg",0.92), b64=url.split(",")[1];
-  if(!b64) throw new Error("הדפדפן לא הצליח לצייר את העמוד");
-  const bin=atob(b64), jpg=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
+function canvasToPdf(cs){   // עמוד אחד או כמה (מערך של קנבסים)
+  cs=Array.isArray(cs)?cs:[cs];
   const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
   const put=b=>{ parts.push(b); len+=b.length; }, str=t=>put(enc.encode(t));
   const obj=(n,body)=>{ offs[n]=len; str(n+" 0 obj\n"+body+"\nendobj\n"); };
   str("%PDF-1.4\n");
+  const N=cs.length, kids=cs.map((_,i)=>(3+i*3)+" 0 R").join(" ");
   obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
-  obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-  obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
-  offs[4]=len; str("4 0 obj\n<< /Type /XObject /Subtype /Image /Width "+c.width+" /Height "+c.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");
-  put(jpg); str("\nendstream\nendobj\n");
-  const content="q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
-  obj(5,"<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream");
-  const xref=len; let t="xref\n0 6\n0000000000 65535 f \n";
-  for(let i=1;i<=5;i++) t+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
-  str(t+"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF");
+  obj(2,"<< /Type /Pages /Kids ["+kids+"] /Count "+N+" >>");
+  cs.forEach((c,i)=>{
+    const url=c.toDataURL("image/jpeg",0.92), b64=url.split(",")[1];
+    if(!b64) throw new Error("הדפדפן לא הצליח לצייר את העמוד");
+    const bin=atob(b64), jpg=new Uint8Array(bin.length); for(let j=0;j<bin.length;j++) jpg[j]=bin.charCodeAt(j);
+    const p=3+i*3, im=p+1, ct=p+2;
+    obj(p,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+ct+" 0 R >>");
+    offs[im]=len; str(im+" 0 obj\n<< /Type /XObject /Subtype /Image /Width "+c.width+" /Height "+c.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");
+    put(jpg); str("\nendstream\nendobj\n");
+    const content="q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
+    obj(ct,"<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream");
+  });
+  const total=3+N*3, xref=len; let t="xref\n0 "+total+"\n0000000000 65535 f \n";
+  for(let i=1;i<total;i++) t+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+  str(t+"trailer\n<< /Size "+total+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF");
   return new Blob(parts,{type:"application/pdf"});
 }
 async function buildPdf(kind,d){
   await pdfFonts();
   const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
   const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
-  const {c,x}=pdfCanvas();
+  const {c,x}=pdfCanvas(); const extra=[];
+  if(kind==="absence"){ const p2=await ABATT.pdfPage().catch(()=>null); if(p2) extra.push(p2); }
   if(kind==="gefen") drawGefen(x,d,sig);
   else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig);
   else drawWork(x,d,sig);
-  return canvasToPdf(c);
+  return canvasToPdf(extra.length?[c,...extra]:c);
 }
 
 // buttons: "שתף PDF" (only where the browser can share files) and "הורד PDF" (a plain link, works everywhere)
@@ -2232,7 +2248,7 @@ function prefillForm(k){
   const name=(store.get("att_name")||"").trim(), tz=store.get("att_tz")||"", set=(id,v)=>{ const el=$("#"+id); if(el&&!el.value&&v) el.value=v; };
   if(k==="maanak"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("mFirst",p[0]); set("mLast",p.slice(1).join(" ")); } set("mTz",tz); }
   if(k==="hofesh"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("hFirst",p[0]); set("hLast",p.slice(1).join(" ")); } set("hTz",tz); const sd=$("#hSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
-  if(k==="absence"){ set("abName",name); set("abTz",tz); const sd=$("#abSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
+  if(k==="absence"){ set("abName",name); set("abTz",tz); const sd=$("#abSigDate"); if(sd&&!sd.value) sd.value=todayISO(); if(window.ABATT) ABATT.pull(); }
   syncFormUi();
 }
 KINDS.forEach(k=>{ const F=FORMS[k]; const d=loadDraft(k); if(d) writeForm(k,d); prefillForm(k);
@@ -2361,6 +2377,97 @@ function drawAbsencePdf(x,d,sig){
   const note="(מצורף אישור של רופא בדבר הזדקקות של אדם עם מוגבלות לסיוע אישי [פעם בשנה למוגבלות זמנית או פעם אחת בלבד לקבועה] וכן מצורף אישור הגורם המטפל המעיד על יום ושעה שבו ניתן הטיפול [ככל שהסיוע האישי נדרש לצורך לווי, סיוע או השגחה בקשר לטיפול רפואי או פרה רפואי]).";
   wrapLines(x,note,R-L,16).forEach(l=>{ ptext(x,l,R,y,{size:16}); y+=LH; });
 }
+/* ---- עמוד שני קבוע להצהרה: אישור על מוגבלות ----
+   המסמך נשמר אצל המשתמש בלבד (במכשיר ובענן הפרטי שלו), לא בקוד האפליקציה. */
+var ABATT = (function(){
+  const cu=()=>{ try{ return cloud.user; }catch(e){ return null; } };   // cloud מוגדר בהמשך הקובץ
+  const KEY="ab_attach", CPATH="absence_attach/page2.json";
+  const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_W="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  let cur=null; try{ cur=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
+  const saveLocal=()=>{ try{ cur?localStorage.setItem(KEY,JSON.stringify(cur)):localStorage.removeItem(KEY); }catch(e){} };
+  const lib=()=>window.pdfjsLib?Promise.resolve():new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=PDFJS; s.onload=res; s.onerror=()=>rej(new Error("טעינת קורא ה-PDF נכשלה. בדוק את החיבור לאינטרנט.")); document.head.appendChild(s); });
+  // הופכים את הקובץ (PDF – העמוד הראשון, או תמונה) לתמונת JPEG בגודל עמוד
+  async function toJpeg(file){
+    let src;
+    if(/pdf/i.test(file.type)||/\.pdf$/i.test(file.name)){
+      await lib(); pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_W;
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise, pg=await pdf.getPage(1);
+      const vp0=pg.getViewport({scale:1}), vp=pg.getViewport({scale:1600/Math.max(vp0.width,vp0.height)});
+      src=document.createElement("canvas"); src.width=Math.round(vp.width); src.height=Math.round(vp.height);
+      const cx=src.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,src.width,src.height);
+      await pg.render({canvasContext:cx,viewport:vp}).promise;
+    } else {
+      const url=URL.createObjectURL(file); try{ src=await loadImg(url); } finally{ setTimeout(()=>URL.revokeObjectURL(url),2000); }
+    }
+    const W=src.width||src.naturalWidth, H=src.height||src.naturalHeight, k=Math.min(1,1600/Math.max(W,H));
+    const c=document.createElement("canvas"); c.width=Math.round(W*k); c.height=Math.round(H*k);
+    const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(src,0,0,c.width,c.height);
+    return {jpg:c.toDataURL("image/jpeg",0.85), w:c.width, h:c.height};
+  }
+  async function pull(){
+    if(!cu()) return;
+    try{ const r=await cloud.sb.storage.from(BUCKET).download(P(CPATH)); if(r.data){ const j=JSON.parse(await r.data.text()); if(!cur||(j.at||0)>(cur.at||0)){ cur=j; saveLocal(); draw(); } } }catch(e){}
+  }
+  async function push(){
+    if(!cu()) return false;
+    if(!cur){ await cloud.sb.storage.from(BUCKET).remove([P(CPATH)]); return true; }
+    const { error } = await cloud.sb.storage.from(BUCKET).upload(P(CPATH), new Blob([JSON.stringify(cur)],{type:"application/json"}), {upsert:true, contentType:"application/json"});
+    return !error;
+  }
+  function draw(){
+    const box=$("#abAttInfo"); if(!box) return;
+    const on=!!cur; $("#abAttDel").hidden=!on; $("#abAttView").hidden=!on; $("#abAttPick").textContent=on?"החלף מסמך":"צרף מסמך (PDF או תמונה)";
+    box.textContent=on?`מצורף: ${cur.name||"מסמך"} (נוסף ב-${new Date(cur.at).toLocaleDateString("he-IL")}). יתווסף כעמוד שני לכל הצהרה, בוורד וב-PDF.`:"אין מסמך מצורף. ההצהרה תהיה עמוד אחד.";
+  }
+  async function pick(file){
+    setStatus("#abAttStatus","מכין את המסמך…");
+    try{
+      const j=await toJpeg(file); cur={name:file.name, at:Date.now(), ...j}; saveLocal(); draw();
+      const ok=await push();
+      setStatus("#abAttStatus", cu()?(ok?"המסמך נשמר, גם בענן.":"המסמך נשמר במכשיר, אבל השמירה בענן נכשלה."):"המסמך נשמר במכשיר.", ok||!cu()?"ok":"err");
+    }catch(e){ console.error(e); setStatus("#abAttStatus",e.message||"לא הצלחתי לקרוא את הקובץ.","err"); }
+  }
+  async function remove(){
+    if(!confirm("להסיר את המסמך המצורף? ההצהרות הבאות יהיו בלי עמוד שני.")) return;
+    cur=null; saveLocal(); draw(); try{ await push(); }catch(e){} setStatus("#abAttStatus","המסמך הוסר.","ok");
+  }
+  // עמוד שני בוורד: מעבר עמוד ותמונת המסמך בגודל העמוד
+  async function addToDocx(blob){
+    if(!cur) return blob;
+    const zip=await JSZip.loadAsync(blob), RID="rIdAbAttach", CM=360000;
+    let cx=Math.round(15.9*CM), cy=Math.round(cx*cur.h/cur.w); const maxH=Math.round(23.6*CM); if(cy>maxH){ cy=maxH; cx=Math.round(cy*cur.w/cur.h); }
+    const A="http://schemas.openxmlformats.org/drawingml/2006/main", PIC="http://schemas.openxmlformats.org/drawingml/2006/picture";
+    const pic=`<w:p><w:pPr><w:pageBreakBefore/><w:bidi/><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="9901" name="Attachment"/>`+
+      `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="${A}" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="${A}"><a:graphicData uri="${PIC}"><pic:pic xmlns:pic="${PIC}">`+
+      `<pic:nvPicPr><pic:cNvPr id="0" name="attachment.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${RID}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+    let xml=await zip.file("word/document.xml").async("string"); const i=xml.lastIndexOf("<w:sectPr");
+    xml=xml.slice(0,i)+pic+xml.slice(i); zip.file("word/document.xml",xml);
+    zip.file("word/media/absence_attachment.jpg", b64ToBytes(cur.jpg.split(",")[1]));
+    const rp="word/_rels/document.xml.rels"; let rels=await zip.file(rp).async("string");
+    rels=rels.replace("</Relationships>",`<Relationship Id="${RID}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/absence_attachment.jpg"/></Relationships>`); zip.file(rp,rels);
+    let ct=await zip.file("[Content_Types].xml").async("string");
+    if(!/Extension="jpg"/i.test(ct)) ct=ct.replace(/(<Types[^>]*>)/,'$1<Default Extension="jpg" ContentType="image/jpeg"/>'); zip.file("[Content_Types].xml",ct);
+    return zip.generateAsync({type:"blob",mimeType:DOCX_MIME,compression:"DEFLATE"});
+  }
+  // עמוד שני ב-PDF
+  async function pdfPage(){
+    if(!cur) return null;
+    const img=await loadImg(cur.jpg), {c,x}=pdfCanvas(), m=28;
+    let w=A4W-2*m, h=w*cur.h/cur.w; if(h>A4H-2*m){ h=A4H-2*m; w=h*cur.w/cur.h; }
+    x.drawImage(img,(A4W-w)/2,(A4H-h)/2,w,h); return c;
+  }
+  function wire(){
+    const inp=$("#abAttFile"); if(!inp) return;
+    $("#abAttPick").onclick=()=>inp.click();
+    inp.onchange=()=>{ const f=inp.files&&inp.files[0]; inp.value=""; if(f) pick(f); };
+    $("#abAttDel").onclick=remove;
+    $("#abAttView").onclick=()=>{ if(!cur) return; fetch(cur.jpg).then(r=>r.blob()).then(b=>{ const u=URL.createObjectURL(b); window.open(u,"_blank"); setTimeout(()=>URL.revokeObjectURL(u),60000); }); };
+    draw();
+  }
+  wire();
+  return { pull, addToDocx, pdfPage, get on(){ return !!cur; } };
+})();
 /* חישוב אוטומטי של ימי החופשה, עד שהמשתמש מתקן ידנית */
 document.addEventListener("input",e=>{ if(e.target&&e.target.id==="hDays") e.target.dataset.auto="0"; });
 document.addEventListener("change",e=>{ if(!e.target||(e.target.id!=="hFrom"&&e.target.id!=="hTo")) return;
@@ -2461,7 +2568,8 @@ async function makeForm(k){
   try{
     const snap=readForm(k), d=F.data(snap); if(d.error) throw new Error(d.error);
     const sig=await sigData();
-    const blob=await fillTemplate(F.tpl(),d.vals,d.sel,sig);
+    let blob=await fillTemplate(F.tpl(),d.vals,d.sel,sig);
+    if(k==="absence") blob=await ABATT.addToDocx(blob);
     const fname=`${F.base}_${slug(d.who)||"טופס"}_${todayISO()}.docx`;
     downloadBlob(blob,fname); F.last=new File([blob],fname,{type:blob.type}); $(F.drive).hidden=!driveOn();
     clearTimeout(_draftT); saveDraft(k,{doneAt:Date.now()});
