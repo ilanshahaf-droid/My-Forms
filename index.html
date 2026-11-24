@@ -316,6 +316,17 @@ dialog.ds-filldlg[open]{position:fixed;inset:auto 0 0 0;margin:0 auto;width:min(
 .ver-row{align-items:center;margin-top:6px}
 .cu-ins button{font-size:14px;padding:8px 12px}
 #cuBody{min-height:220px;line-height:1.6}
+.cu-sig{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--rule)}
+.cu-sig:last-child{border-bottom:none}
+.cu-sig-img{flex:0 0 108px;height:54px;border:1px solid var(--rule);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cu-sig-img img{max-width:100%;max-height:100%}
+.cu-sig-img span{color:#9AA3B5}
+.cu-sig-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cu-sig-meta small{color:var(--soft);font-size:12.5px}
+.cu-tag{font-weight:400;font-size:12px;color:var(--soft)}
+.cu-bottom{font-size:13.5px;display:flex;align-items:center;gap:6px}
+.cu-sig-btns{display:flex;flex-wrap:wrap;gap:6px}
+.cu-sig-btns button{font-size:13px;padding:6px 10px}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -1237,15 +1248,21 @@ dialog.ck-dlg form{padding:20px 18px}
   <p class="hint" style="margin:10px 0 6px">שדה בתוך הטקסט: מציבים את הסמן במקום הרצוי ולוחצים:</p>
   <div class="bar cu-ins">
     <button type="button" data-cu-ins="[תאריך]">+ תאריך</button>
-    <button type="button" data-cu-ins="[חתימה]">+ חתימה</button>
+    <button type="button" data-cu-ins="[חתימה]">+ החתימה שלי</button>
     <button type="button" data-cu-ins="[שם]">+ שם</button>
     <button type="button" data-cu-ins="[ת.ז.]">+ ת.ז.</button>
   </div>
+  <fieldset class="grp" style="margin-top:14px"><legend>חתימות</legend>
+    <div id="cuSigList"></div>
+    <div class="bar" style="margin-top:10px"><button type="button" id="cuSigAdd">✍️ חתימה נוספת באצבע</button></div>
+    <p class="hint" style="margin:8px 0 0">כל חתימה נוספת מקבלת מספר ([חתימה 2], [חתימה 3]…). אפשר לשים אותה בסוף הטופס, או בתוך הטקסט בכפתור "+ בתוך הטקסט".</p>
+    <input type="hidden" id="cuSigs">
+  </fieldset>
   <fieldset class="grp" style="margin-top:14px"><legend>שדות בסוף הטופס</legend><div class="opts">
     <label><input type="checkbox" id="cuAddDate" checked> תאריך</label>
     <label><input type="checkbox" id="cuAddName"> שם</label>
     <label><input type="checkbox" id="cuAddTz"> ת.ז.</label>
-    <label><input type="checkbox" id="cuAddSig" checked> חתימה</label>
+    <label><input type="checkbox" id="cuAddSig" checked> החתימה שלי</label>
   </div></fieldset>
   <h3 class="fsub">מה ייכנס בשדות</h3>
   <label class="f" for="cuDate">תאריך</label>
@@ -1254,7 +1271,6 @@ dialog.ck-dlg form{padding:20px 18px}
     <div><label class="f" for="cuName">שם</label><input type="text" id="cuName" autocomplete="name"></div>
     <div><label class="f" for="cuTz">ת.ז.</label><input type="text" id="cuTz" inputmode="numeric" autocomplete="off"></div>
   </div>
-  <p class="hint">החתימה היא החתימה השמורה באפליקציה.</p>
   <div class="bar" style="margin-top:14px">
     <button class="primary" id="cuMake" type="button">הפק קובץ וורד</button>
     <button id="cuShare" type="button" hidden>שתף PDF</button>
@@ -1265,6 +1281,16 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="status" id="cuStatus"></div>
   <div class="status" id="cuPdf"></div>
 </section>
+
+<dialog class="ck-dlg" id="cuPadDlg">
+  <form method="dialog" style="padding:18px">
+    <h2 style="font-size:18px;margin:0 0 10px" id="cuPadTitle">חתימה באצבע</h2>
+    <div id="cuPadLabelWrap"><label class="f" for="cuPadLabel">של מי החתימה (יופיע ליד החתימה בסוף הטופס)</label>
+      <input type="text" id="cuPadLabel" placeholder="למשל: חתימת ההורה" autocomplete="off" style="margin-bottom:10px"></div>
+    <div class="ds-pad"><canvas id="cuPad"></canvas><div class="ds-ph" id="cuPadPh">חותמים כאן באצבע</div></div>
+    <div class="bar"><button class="primary" value="ok">שמירה</button><button type="button" id="cuPadClear">ניקוי</button><button value="cancel" formnovalidate>ביטול</button></div>
+  </form>
+</dialog>
 
 <!-- ========== בקשת יציאה לחופש ========== -->
 <section class="step tab m-hofesh" id="h1"><span class="punch">1</span>
@@ -2267,7 +2293,7 @@ async function buildPdf(kind,d){
   const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
   const {c,x}=pdfCanvas(); const extra=[];
   if(kind==="absence"){ const p2=await ABATT.pdfPage().catch(()=>null); if(p2) extra.push(p2); }
-  if(kind==="custom") drawCustomPdf(x,d,sig,extra); else if(kind==="gefen") drawGefen(x,d,sig);
+  if(kind==="custom"){ await CUSTOM.preload(d); drawCustomPdf(x,d,sig,extra); } else if(kind==="gefen") drawGefen(x,d,sig);
   else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig);
   else drawWork(x,d,sig);
   return canvasToPdf(extra.length?[c,...extra]:c);
@@ -2382,7 +2408,7 @@ const FORMS={
     core:["owEmployer","owContent","owFrom"] },
   custom:{ key:"custom_form", label:"טופס בכתיבה עצמית", base:"טופס", folder:"custom", tpl:()=>null,
     btn:"#cuMake", status:"#cuStatus", drive:"#cuDriveBtn", clear:"#cuClear", sections:["#cu1"], last:null,
-    text:["cuTitle","cuBody","cuDate","cuName","cuTz"], radios:[], checks:["cuAddDate","cuAddName","cuAddTz","cuAddSig"],
+    text:["cuTitle","cuBody","cuDate","cuName","cuTz","cuSigs"], radios:[], checks:["cuAddDate","cuAddName","cuAddTz","cuAddSig"],
     volatile:["cuDate"], session:false,
     keep:{text:["cuName","cuTz"],radios:[],checks:["cuAddDate","cuAddName","cuAddTz","cuAddSig"]},
     core:["cuBody"] }
@@ -2495,46 +2521,64 @@ function hofeshData(s){
   return out;
 }
 FORMS.hofesh.data=hofeshData;
-/* ---- טופס בכתיבה עצמית: טקסט חופשי (מוקלד או מודבק) + שדות תאריך / שם / ת.ז. / חתימה לפי בחירה ----
-   שדה בתוך הטקסט נכתב כסימון: [תאריך] [חתימה] [שם] [ת.ז.]. שדות בסוף הטופס נבחרים בתיבות הסימון. */
-const CU_TOK=/\[(תאריך|חתימה|שם|ת\.?ז\.?)\]/g;
-const cuKey=t=>t==="תאריך"?"date":t==="חתימה"?"sig":t==="שם"?"name":"tz";
+/* ---- טופס בכתיבה עצמית: טקסט חופשי (מוקלד או מודבק) + שדות תאריך / שם / ת.ז. / חתימות לפי בחירה ----
+   שדה בתוך הטקסט נכתב כסימון: [תאריך] [שם] [ת.ז.] [חתימה] (החתימה שלי) [חתימה 2], [חתימה 3]… (חתימות נוספות באצבע).
+   החתימות שנחתמו באצבע נשמרות עם הטופס (בשדה מוסתר cuSigs, כ-JSON). */
+const CU_TOK=/\[(תאריך|חתימה(?: \d+)?|שם|ת\.?ז\.?)\]/g;
+const cuKey=t=>t==="תאריך"?"date":t==="שם"?"name":/^חתימה/.test(t)?"sig"+(t.split(" ")[1]||"1"):"tz";
+const cuSigsOf=s=>{ try{ const a=JSON.parse(s||"[]"); return Array.isArray(a)?a.filter(x=>x&&x.n&&x.src):[]; }catch(e){ return []; } };
 function customData(s){
   const v=id=>(s.v[id]||"").trim(), c=id=>!!s.c[id]; const out={error:"",warn:[]};
   const body=(s.v.cuBody||"").replace(/\r/g,"").replace(/\s+$/,"");
   if(!body.trim()) out.error="יש לכתוב או להדביק את תוכן הטופס.";
+  const sigs=cuSigsOf(s.v.cuSigs), mine=sigs.find(x=>x.n===1);
   const opts={date:c("cuAddDate"),name:c("cuAddName"),tz:c("cuAddTz"),sig:c("cuAddSig")};
   const used=new Set([...body.matchAll(CU_TOK)].map(m=>cuKey(m[1])));
-  if((opts.sig||used.has("sig")) && !store.get("att_sig")) out.warn.push("אין חתימה שמורה – במקום החתימה יופיע קו ריק.");
+  if((opts.sig||used.has("sig1")) && !mine && !store.get("att_sig")) out.warn.push("אין חתימה שמורה – אפשר לחתום באצבע, אחרת במקום החתימה יופיע קו ריק.");
+  [...used].filter(k=>/^sig\d+$/.test(k)&&k!=="sig1").forEach(k=>{ if(!sigs.some(x=>"sig"+x.n===k)) out.warn.push(`בטקסט יש [חתימה ${k.slice(3)}], אבל עדיין לא נחתמה – יופיע קו ריק.`); });
   if((opts.tz||used.has("tz")) && v("cuTz") && !validIsraeliId(v("cuTz"))) out.warn.push("מספר הזהות לא עובר בדיקת תקינות.");
-  out.vals={ title:v("cuTitle"), body, date:fmtD(v("cuDate")||todayISO()), name:v("cuName"), tz:v("cuTz"), opts };
+  out.vals={ title:v("cuTitle"), body, date:fmtD(v("cuDate")||todayISO()), name:v("cuName"), tz:v("cuTz"), opts, sigs };
   out.sel={}; out.who=v("cuTitle")||body.trim().split("\n")[0].slice(0,30); out.pdf=out.vals;
   return out;
 }
 FORMS.custom.data=customData;
 
-/* ---- וורד: בונים תבנית לפי הטקסט, ואז אותו מילוי כמו בכל הטפסים ---- */
 const CUSTOM=(function(){
+  /* ---- תמונות החתימות: נטענות מראש, כדי שהציור ב-PDF יהיה מיידי ---- */
+  const imgs={};
+  const preload=async v=>{ await Promise.all((v.sigs||[]).map(async x=>{ if(!imgs[x.src]) imgs[x.src]=await loadImg(x.src).catch(()=>null); })); };
+  const imgOf=(v,n,saved)=>{ const x=(v.sigs||[]).find(z=>z.n===n); if(x) return imgs[x.src]||null; return n===1?saved:null; };
+
+  /* ---- וורד: בונים תבנית לפי הטקסט, ואז אותו מילוי כמו בכל הטפסים ---- */
   const RPR=(b,sz)=>`<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>${b?"<w:b/><w:bCs/>":""}<w:sz w:val="${sz||24}"/><w:szCs w:val="${sz||24}"/><w:rtl/></w:rPr>`;
   const t=(s,b,sz)=>`<w:r>${RPR(b,sz)}<w:t xml:space="preserve">${xmlEsc(s)}</w:t></w:r>`;
-  const ph=(tok,b)=>`<w:r>${RPR(b)}<w:t>{{${tok}}}</w:t></w:r>`;
-  const fld=k=>k==="sig"?ph("sig:1.0|______________"):ph(`v:${k}|______________`);
+  const ph=tok=>`<w:r>${RPR()}<w:t>{{${tok}}}</w:t></w:r>`;
   // בפסקה מימין לשמאל ערכי היישור הם לוגיים: בלי jc = צמוד לימין
   const P=(runs,o)=>{ o=o||{}; const jc=o.jc==="start"?"":`<w:jc w:val="${o.jc||"both"}"/>`; return `<w:p><w:pPr><w:bidi/><w:spacing w:before="${o.before||0}" w:after="${o.after==null?120:o.after}" w:line="${o.line||320}" w:lineRule="auto"/>${jc}</w:pPr>${runs}</w:p>`; };
-  function line(s){ let out="", last=0; s.replace(CU_TOK,(m,tk,i)=>{ if(i>last) out+=t(s.slice(last,i)); out+=fld(cuKey(tk)); last=i+m.length; return m; }); if(last<s.length) out+=t(s.slice(last)); return out; }
   async function tpl(v){
+    const z=new JSZip(), rels=[], CM=360000; let nPic=0;
+    const media={};   // חתימות באצבע: קובץ תמונה אחד לכל חתימה
+    for(const x of v.sigs||[]){ const im=await loadImg(x.src).catch(()=>null); if(!im) continue;
+      const rid="rIdCuSig"+x.n, file=`media/cu_sig_${x.n}.png`; z.file("word/"+file,b64ToBytes(x.src.split(",")[1]));
+      rels.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${file}"/>`);
+      let cy=Math.round(1.0*CM), cx=Math.round(cy*im.width/im.height); if(cx>4.6*CM){ cx=Math.round(4.6*CM); cy=Math.round(cx*im.height/im.width); }
+      media[x.n]={rid,cx,cy}; }
+    const sigRunN=n=>{ const m=media[n]; if(m){ nPic++; return sigRun(m.rid,m.cx,m.cy,50+nPic); } return n===1?ph("sig:1.0|______________"):t("______________"); };
+    const fld=k=>/^sig/.test(k)?sigRunN(+k.slice(3)):ph(`v:${k}|______________`);
+    const line=s=>{ let out="", last=0; s.replace(CU_TOK,(m,tk,i)=>{ if(i>last) out+=t(s.slice(last,i)); out+=fld(cuKey(tk)); last=i+m.length; return m; }); if(last<s.length) out+=t(s.slice(last)); return out; };
     let body="";
     if(v.title) body+=P(t(v.title,true,30),{jc:"center",after:360});
     v.body.split("\n").forEach(l=>{ body+=l.trim()?P(line(l)):P("",{after:0}); });
-    const LB={date:"תאריך: ",name:"שם: ",tz:"ת.ז.: ",sig:"חתימה: "}; let first=true;
-    ["date","name","tz","sig"].forEach(k=>{ if(!v.opts[k]) return; body+=P(t(LB[k])+fld(k),{jc:"start",before:first?600:120,after:120}); first=false; });
+    let first=true; const add=(label,runs)=>{ body+=P(t(label)+runs,{jc:"start",before:first?600:160,after:120}); first=false; };
+    if(v.opts.date) add("תאריך: ",fld("date")); if(v.opts.name) add("שם: ",fld("name")); if(v.opts.tz) add("ת.ז.: ",fld("tz"));
+    if(v.opts.sig) add("חתימה: ",fld("sig1"));
+    (v.sigs||[]).filter(x=>x.n>1&&x.bottom).forEach(x=>add((x.label||"חתימה")+": ",fld("sig"+x.n)));
     const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
     const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/><w:bidi/></w:sectPr></w:body></w:document>`;
     const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="en-US" w:bidi="he-IL"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:bidi/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
-    const z=new JSZip();
     z.file("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
     z.file("_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
-    z.file("word/_rels/document.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    z.file("word/_rels/document.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+rels.join("")+'</Relationships>');
     z.file("word/styles.xml",styles); z.file("word/document.xml",doc);
     return z.generateAsync({type:"base64"});
   }
@@ -2549,9 +2593,79 @@ const CUSTOM=(function(){
     try{ const tx=await navigator.clipboard.readText(); if(!tx){ setStatus("#cuStatus","הלוח ריק.","err"); return; }
       const ta=$("#cuBody"); const a=ta.selectionStart??ta.value.length, b=ta.selectionEnd??a; ta.value=ta.value.slice(0,a)+tx+ta.value.slice(b); ta.dispatchEvent(new Event("input",{bubbles:true})); setStatus("#cuStatus","הטקסט הודבק.","ok"); }
     catch(e){ setStatus("#cuStatus","הדפדפן לא אפשר לקרוא מהלוח. לחץ לחיצה ארוכה בתיבת הטקסט ובחר \"הדבק\".","err"); } };
-  return { tpl, build };
+
+  /* ---- חתימות: החתימה שלי (שמורה או באצבע) + חתימות נוספות באצבע ---- */
+  const hid=()=>$("#cuSigs");
+  const getSigs=()=>cuSigsOf(hid()&&hid().value);
+  const setSigs=a=>{ const h=hid(); if(!h) return; h.value=a.length?JSON.stringify(a):""; h.dispatchEvent(new Event("input",{bubbles:true})); drawSigs(); };
+  function drawSigs(){
+    const box=$("#cuSigList"); if(!box) return; const sigs=getSigs(), mine=sigs.find(x=>x.n===1), saved=store.get("att_sig");
+    sigs.forEach(x=>{ if(!imgs[x.src]) loadImg(x.src).then(i=>imgs[x.src]=i).catch(()=>{}); });
+    const row=(x,isMine)=>{
+      const src=isMine?(mine?mine.src:saved):x.src;
+      const title=isMine?"החתימה שלי":(esc(x.label||"חתימה "+x.n)+` <span class="cu-tag">[חתימה ${x.n}]</span>`);
+      const sub=isMine?(mine?"נחתמה באצבע לטופס הזה":(saved?"החתימה השמורה":"אין חתימה שמורה")):"";
+      return `<div class="cu-sig" data-n="${isMine?1:x.n}"><div class="cu-sig-img">${src?`<img src="${src}" alt="">`:'<span>—</span>'}</div>
+        <div class="cu-sig-meta"><b>${title}</b>${sub?`<small>${sub}</small>`:""}
+        ${isMine?"":`<label class="cu-bottom"><input type="checkbox" data-bottom ${x.bottom?"checked":""}> גם בסוף הטופס</label>`}
+        <div class="cu-sig-btns">
+          <button type="button" data-act="draw">${isMine?(mine?"חתום מחדש":"חתום באצבע"):"חתום מחדש"}</button>
+          ${isMine&&mine?'<button type="button" data-act="saved">החתימה השמורה</button>':""}
+          ${isMine?"":'<button type="button" data-act="ins">+ בתוך הטקסט</button><button type="button" class="del" data-act="del">מחק</button>'}
+        </div></div></div>`;
+    };
+    box.innerHTML=row(null,true)+sigs.filter(x=>x.n>1).sort((a,b)=>a.n-b.n).map(x=>row(x,false)).join("");
+  }
+  let padN=null, pctx=null, inked=false;
+  function openPad(n){
+    padN=n; const x=getSigs().find(z=>z.n===n), dlg=$("#cuPadDlg");
+    $("#cuPadTitle").textContent=n===1?"החתימה שלי – חתימה באצבע":(x?"חתימה מחדש":"חתימה נוספת באצבע");
+    $("#cuPadLabelWrap").hidden=n===1; $("#cuPadLabel").value=x?(x.label||""):"";
+    dlg.showModal();
+    const cv=$("#cuPad"), r=cv.getBoundingClientRect(), dpr=Math.max(1,devicePixelRatio||1);
+    cv.width=r.width*dpr; cv.height=r.height*dpr; pctx=cv.getContext("2d"); pctx.scale(dpr,dpr);
+    pctx.lineWidth=2.6; pctx.lineCap=pctx.lineJoin="round"; pctx.strokeStyle="#0b1d4d"; pctx.fillStyle="#0b1d4d"; inked=false; $("#cuPadPh").hidden=false;
+  }
+  (function(){
+    const cv=$("#cuPad"); if(!cv) return; let last=null;
+    const pt=ev=>{ const b=cv.getBoundingClientRect(); return [ev.clientX-b.left,ev.clientY-b.top]; };
+    cv.addEventListener("pointerdown",ev=>{ cv.setPointerCapture(ev.pointerId); last=pt(ev); pctx.beginPath(); pctx.arc(last[0],last[1],1.2,0,7); pctx.fill(); inked=true; $("#cuPadPh").hidden=true; });
+    cv.addEventListener("pointermove",ev=>{ if(!last) return; const p=pt(ev); pctx.beginPath(); pctx.moveTo(last[0],last[1]); pctx.lineTo(p[0],p[1]); pctx.stroke(); last=p; });
+    ["pointerup","pointercancel"].forEach(tp=>cv.addEventListener(tp,()=>{ last=null; }));
+    $("#cuPadClear").onclick=()=>{ pctx.save(); pctx.setTransform(1,0,0,1,0,0); pctx.clearRect(0,0,cv.width,cv.height); pctx.restore(); inked=false; $("#cuPadPh").hidden=false; };
+    $("#cuPadDlg").addEventListener("close",()=>{
+      if($("#cuPadDlg").returnValue!=="ok"||!inked) return;
+      const tc=trimCanvas(cv); if(!tc) return;
+      // מקטינים לרוחב סביר – שהטופס השמור לא יהיה כבד
+      const k=Math.min(1,480/tc.width), o=document.createElement("canvas"); o.width=Math.round(tc.width*k); o.height=Math.round(tc.height*k);
+      o.getContext("2d").drawImage(tc,0,0,o.width,o.height); const src=o.toDataURL("image/png");
+      const a=getSigs().filter(z=>z.n!==padN), old=getSigs().find(z=>z.n===padN);
+      const label=padN===1?"":($("#cuPadLabel").value.trim()||(old&&old.label)||"");
+      a.push({n:padN,src,label,bottom:old?!!old.bottom:padN>1});
+      setSigs(a.sort((p,q)=>p.n-q.n));
+      setStatus("#cuStatus",padN===1?"החתימה שלך נוספה לטופס.":`החתימה נוספה. בתוך הטקסט היא מסומנת [חתימה ${padN}].`,"ok");
+    });
+  })();
+  const box=$("#cuSigList");
+  if(box){
+    box.addEventListener("click",ev=>{ const b=ev.target.closest("[data-act]"); if(!b) return; const n=+b.closest(".cu-sig").dataset.n, act=b.dataset.act;
+      if(act==="draw") openPad(n);
+      if(act==="saved") setSigs(getSigs().filter(z=>z.n!==1));
+      if(act==="ins") insert(`[חתימה ${n}]`);
+      if(act==="del"){ if(!confirm("למחוק את החתימה הזו?")) return; setSigs(getSigs().filter(z=>z.n!==n)); }
+    });
+    box.addEventListener("change",ev=>{ const c=ev.target.closest("[data-bottom]"); if(!c) return; const n=+c.closest(".cu-sig").dataset.n;
+      setSigs(getSigs().map(z=>z.n===n?{...z,bottom:c.checked}:z)); });
+  }
+  const more=$("#cuSigAdd"); if(more) more.onclick=()=>{ const ns=getSigs().map(z=>z.n); openPad(Math.max(1,...ns)+1); };
+  drawSigs();
+  return { tpl, build, preload, imgOf, drawSigs };
 })();
 FORMS.custom.build=CUSTOM.build;
+// כשהטופס נטען (טיוטה / ענן / גרסה) או מתנקה – מציירים מחדש את רשימת החתימות
+{ const wf=writeForm, rf=resetForm;
+  writeForm=function(k,s){ const r=wf.apply(this,arguments); if(k==="custom") CUSTOM.drawSigs(); return r; };
+  resetForm=function(k){ const r=rf.apply(this,arguments); if(k==="custom") CUSTOM.drawSigs(); return r; }; }
 
 /* ---- PDF: אותו טקסט, עם מעבר לעמודים נוספים כשצריך ---- */
 function drawCustomPdf(x0,v,sig,extra){
@@ -2562,25 +2676,27 @@ function drawCustomPdf(x0,v,sig,extra){
   const val=k=>k==="date"?v.date:k==="name"?v.name:k==="tz"?v.tz:"";
   // שורה אחת של הטקסט: מילים ושדות, זרימה מימין לשמאל
   function flow(items){
-    x.font=pf(false,SZ); const sp=x.measureText(" ").width; let cx=R, lineHasSig=false, rows=[[]];
+    x.font=pf(false,SZ); const sp=x.measureText(" ").width; let cx=R, rows=[[]];
     items.forEach(it=>{ let w; if(it.sig) w=130; else if(it.f){ const s=val(it.f); x.font=pf(false,SZ); w=s?x.measureText(s).width+6:110; } else { x.font=pf(false,SZ); w=x.measureText(it.s).width; }
       const g=it.gap?sp:0; if(cx-g-w<L && rows[rows.length-1].length){ rows.push([]); cx=R; } else cx-=g;
       rows[rows.length-1].push({...it,w,x1:cx}); cx-=w; });
-    rows.forEach(r=>{ lineHasSig=r.some(i=>i.sig&&sig); const h=lineHasSig?LH+16:LH; need(h); if(stop) return; if(lineHasSig) y+=16;
+    rows.forEach(r=>{ const hasSig=r.some(i=>i.sig&&CUSTOM.imgOf(v,i.sig,sig)); const h=hasSig?LH+24:LH; need(h); if(stop) return; if(hasSig) y+=24;
       r.forEach(it=>{
-        if(it.sig){ x.save(); x.lineWidth=0.8; pline(x,it.x1-it.w,y+10,it.x1,y+10); x.restore();
-          if(sig){ try{ const hh=42, sw=Math.min(it.w,hh*sig.width/sig.height); x.drawImage(sig,it.x1-it.w/2-sw/2,y+8-hh,sw,hh); }catch(e){} } }
+        if(it.sig){ x.save(); x.lineWidth=0.8; pline(x,it.x1-it.w,y+10,it.x1,y+10); x.restore(); const im=CUSTOM.imgOf(v,it.sig,sig);
+          if(im){ try{ const hh=42, sw=Math.min(it.w,hh*im.width/im.height); x.drawImage(im,it.x1-it.w/2-sw/2,y+8-hh,sw,hh); }catch(e){} } }
         else if(it.f){ const s=val(it.f); if(s) ptext(x,s,it.x1-3,y,{size:SZ}); else { x.save(); x.lineWidth=0.8; pline(x,it.x1-it.w,y+10,it.x1,y+10); x.restore(); } }
         else ptext(x,it.s,it.x1,y,{size:SZ});
       }); y+=LH; });
   }
   function items(line){ const out=[]; let last=0, gap=false;
     const words=s=>{ const re=/(\s*)(\S+)/g; let m; while((m=re.exec(s))){ out.push({s:m[2],gap:gap||!!m[1]}); gap=false; } gap=/\s$/.test(s); };
-    line.replace(CU_TOK,(m,tk,i)=>{ words(line.slice(last,i)); const k=cuKey(tk); out.push(k==="sig"?{sig:true,gap}:{f:k,gap}); gap=false; last=i+m.length; return m; });
+    line.replace(CU_TOK,(m,tk,i)=>{ words(line.slice(last,i)); const k=cuKey(tk); out.push(/^sig/.test(k)?{sig:+k.slice(3),gap}:{f:k,gap}); gap=false; last=i+m.length; return m; });
     words(line.slice(last)); return out; }
   v.body.split("\n").forEach(l=>{ if(stop) return; if(!l.trim()){ y+=LH*0.6; return; } flow(items(l)); y+=4; });
-  const LB={date:"תאריך:",name:"שם:",tz:"ת.ז.:",sig:"חתימה:"}; const ks=["date","name","tz","sig"].filter(k=>v.opts[k]);
-  if(ks.length && !stop){ y+=26; ks.forEach(k=>{ if(stop) return; flow([{s:LB[k]},k==="sig"?{sig:true,gap:true}:{f:k,gap:true}]); y+=6; }); }
+  const rows=[]; if(v.opts.date) rows.push(["תאריך:",{f:"date"}]); if(v.opts.name) rows.push(["שם:",{f:"name"}]); if(v.opts.tz) rows.push(["ת.ז.:",{f:"tz"}]);
+  if(v.opts.sig) rows.push(["חתימה:",{sig:1}]);
+  (v.sigs||[]).filter(z=>z.n>1&&z.bottom).forEach(z=>rows.push([(z.label||"חתימה")+":",{sig:z.n}]));
+  if(rows.length && !stop){ y+=26; rows.forEach(([lb,it])=>{ if(stop) return; flow([...items(lb),{...it,gap:true}]); y+=6; }); }
 }
 /* ---- בקשה לקבלת היתר לעסוק בעבודת חוץ (עיריית חיפה) ----
    ממלאים את קובץ ה-PDF המקורי של העירייה: רק חלק א' בעמוד 1 (עד חתימת העובד). שאר החלקים נשארים ריקים לגורמים המאשרים.
@@ -5419,7 +5535,7 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
     const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
     const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
     const {c,x}=pdfCanvas();
-    if(kind==="custom") drawCustomPdf(x,d,sig,null); else if(kind==="gefen") drawGefen(x,d,sig); else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig); else drawWork(x,d,sig);
+    if(kind==="custom"){ await CUSTOM.preload(d); drawCustomPdf(x,d,sig,null); } else if(kind==="gefen") drawGefen(x,d,sig); else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig); else drawWork(x,d,sig);
     return c;
   }
   const DATA={
