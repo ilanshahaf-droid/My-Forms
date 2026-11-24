@@ -1,5 +1,5 @@
 /* Service Worker – ממלא טפסים PWA (כולל עבודה בלי אינטרנט) */
-const CACHE = "mmale-tfasim-v5";
+const CACHE = "mmale-tfasim-v6";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -13,7 +13,8 @@ const PRECACHE = [
   "./logo.png",
   "./shortcut-in.png",
   "./shortcut-out.png",
-  "./shortcut-consent.png"
+  "./shortcut-consent.png",
+  "./outside_work_form.pdf"
 ];
 // ספריות חיצוניות שהאפליקציה צריכה כדי לעלות גם בלי חיבור
 const LIBS = [

@@ -138,6 +138,7 @@ body[data-mode="gefen"] .tab:not(.m-gefen),
 body[data-mode="maanak"] .tab:not(.m-maanak),
 body[data-mode="hofesh"] .tab:not(.m-hofesh),
 body[data-mode="absence"] .tab:not(.m-absence),
+body[data-mode="outside"] .tab:not(.m-outside),
 body[data-mode="clock"] .tab:not(.m-clock),
 body[data-mode="hadracha"] .tab:not(.m-hadracha),
 body[data-mode="rikuz"] .tab:not(.m-rikuz),
@@ -338,6 +339,7 @@ body[data-mode="gefen"] .back-row,
 body[data-mode="maanak"] .back-row,
 body[data-mode="hofesh"] .back-row,
 body[data-mode="absence"] .back-row,
+body[data-mode="outside"] .back-row,
 body[data-mode="clock"] .back-row,
 body[data-mode="hadracha"] .back-row,
 body[data-mode="rikuz"] .back-row,
@@ -632,6 +634,11 @@ dialog.ck-dlg form{padding:20px 18px}
     <button type="button" class="form-card-btn" data-open="absence">
       <span class="ficon" aria-hidden="true">🧾</span>
       <span class="finfo"><span class="ft">הצהרה על היעדרות</span><span class="fd">טופס א-1: היעדרות למתן סיוע אישי לאדם עם מוגבלות</span><span class="badge new" data-badge="absence">חדש</span></span>
+      <span class="farrow" aria-hidden="true">‹</span>
+    </button>
+    <button type="button" class="form-card-btn" data-open="outside">
+      <span class="ficon" aria-hidden="true">💼</span>
+      <span class="finfo"><span class="ft">בקשה להיתר עבודת חוץ</span><span class="fd">עיריית חיפה: בקשת העובד והתחייבותו (חלק א')</span><span class="badge new" data-badge="outside">חדש</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
   </div>
@@ -1119,6 +1126,94 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="status" id="abPdf"></div>
 </section>
 
+<!-- ========== בקשה להיתר עבודת חוץ (עיריית חיפה) ========== -->
+<section class="step tab m-outside" id="ow1"><span class="punch">1</span>
+  <h2>בקשה לקבלת היתר לעסוק בעבודת חוץ</h2>
+  <p class="hint">ממלאים את חלק א' (בקשת העובד והתחייבותו). הטופס המקורי של העירייה ממולא ונחתם בחתימה השמורה. החלקים ב'–ד' נשארים ריקים לגורמים המאשרים.</p>
+  <fieldset class="grp"><legend>סוג הבקשה</legend><div class="opts">
+    <label><input type="radio" name="owType" value="אישור חדש"> אישור חדש</label>
+    <label><input type="radio" name="owType" value="חידוש אישור קודם זהה"> חידוש אישור קודם זהה</label>
+    <label><input type="radio" name="owType" value="אישור לעבודת חוץ נוספת בתקופה מקבילה"> עבודת חוץ נוספת בתקופה מקבילה</label>
+  </div></fieldset>
+
+  <h3 class="fsub">1. פרטי העובד</h3>
+  <div class="row2">
+    <div><label class="f" for="owLast">שם משפחה</label><input type="text" id="owLast" autocomplete="family-name"></div>
+    <div><label class="f" for="owFirst">שם פרטי</label><input type="text" id="owFirst" autocomplete="given-name"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="owTz">מס' זהות</label><input type="text" id="owTz" inputmode="numeric" autocomplete="off"></div>
+    <div><label class="f" for="owStart">תחילת עבודה בעירייה</label><input type="date" id="owStart"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="owUnit">היחידה</label><input type="text" id="owUnit"></div>
+    <div><label class="f" for="owRole">תפקיד</label><input type="text" id="owRole"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="owRank">דרוג</label><input type="text" id="owRank"></div>
+    <div><label class="f" for="owGrade">דרגה</label><input type="text" id="owGrade"></div>
+  </div>
+  <fieldset class="grp"><legend>מעמד</legend><div class="opts">
+    <label><input type="radio" name="owStatus" value="קבוע"> קבוע</label>
+    <label><input type="radio" name="owStatus" value="ארעי"> ארעי</label>
+    <label><input type="radio" name="owStatus" value="זמני"> זמני</label>
+    <label><input type="radio" name="owStatus" value="חוזה"> חוזה</label>
+  </div></fieldset>
+  <div class="row2">
+    <div><label class="f" for="owDays">ימי עבודה קבועים</label><input type="text" id="owDays" placeholder="למשל א'–ה'"></div>
+    <div><label class="f" for="owHours">שעות עבודה קבועות</label><input type="text" id="owHours" placeholder="למשל 08:00–15:00"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="owScope">משרה מלאה/חלקית</label><input type="text" id="owScope" list="owScopeList"><datalist id="owScopeList"><option value="משרה מלאה"><option value="משרה חלקית"></datalist></div>
+    <div><label class="f" for="owPhone">טלפון משרד/נייד</label><input type="tel" id="owPhone" autocomplete="tel"></div>
+  </div>
+
+  <h3 class="fsub">2. פרטים על עבודת החוץ</h3>
+  <label class="f" for="owEmployer">שם המעסיק בעבודת החוץ וכתובתו</label>
+  <input type="text" id="owEmployer">
+  <label class="f" for="owPlace">מקום עבודת החוץ</label>
+  <input type="text" id="owPlace">
+  <label class="f" for="owContent">פירוט תוכן עבודת החוץ</label>
+  <textarea id="owContent" rows="3"></textarea>
+  <div class="row2">
+    <div><label class="f" for="owFrom">תקופה: מתאריך</label><input type="date" id="owFrom"></div>
+    <div><label class="f" for="owTo">עד לתאריך</label><input type="date" id="owTo"></div>
+  </div>
+  <div class="row2">
+    <div><label class="f" for="owWDays">זמני ביצוע: בימים</label><input type="text" id="owWDays"></div>
+    <div><label class="f" for="owWHours">בשעות</label><input type="text" id="owWHours"></div>
+  </div>
+  <label class="f" for="owWeekly">מס' שעות עבודת החוץ בשבוע</label>
+  <input type="text" id="owWeekly" inputmode="decimal">
+  <fieldset class="grp"><legend>משכורת חודשית (ברוטו) בעבודת החוץ או הרווח הצפוי</legend><div class="opts">
+    <label><input type="radio" name="owPayType" value="חודשי"> ₪ לחודש</label>
+    <label><input type="radio" name="owPayType" value="אחר"> חישוב אחר</label>
+  </div>
+  <div class="row2" style="margin-top:8px">
+    <div><label class="f" for="owPay">סכום לחודש (₪)</label><input type="text" id="owPay" inputmode="decimal"></div>
+    <div><label class="f" for="owPayOther">חישוב אחר – פירוט</label><input type="text" id="owPayOther"></div>
+  </div></fieldset>
+  <p class="hint">לפי הטופס יש לצרף אישור של המעסיק בעבודת החוץ על ימי העבודה ושעות העבודה.</p>
+
+  <h3 class="fsub">3. נימוקי הבקשה</h3>
+  <label class="f" for="owReasons">נימוקים (לפי הטופס: הצורך הכלכלי בעבודה נוספת, הכנסה, צרכים ומצב משפחתי)</label>
+  <textarea id="owReasons" rows="3"></textarea>
+
+  <h3 class="fsub">4. הצהרת העובד</h3>
+  <p class="hint">ההצהרה (סעיפים א'–ח') מודפסת בטופס כפי שהיא. בחתימה אתה מצהיר עליה.</p>
+  <label class="f" for="owSigDate">תאריך</label>
+  <input type="date" id="owSigDate">
+  <div class="bar" style="margin-top:14px">
+    <button class="primary" id="owMake" type="button">הפק PDF</button>
+    <button id="owShare" type="button" hidden>שתף PDF</button>
+    <a id="owShareOpen" class="btnlink" hidden>הורד PDF</a>
+    <button id="owDriveBtn" class="drivebtn" type="button" hidden>שמור בדרייב</button>
+    <button id="owClear" type="button">טופס חדש</button>
+  </div>
+  <div class="status" id="owStatus"></div>
+  <div class="status" id="owPdf"></div>
+</section>
+
 <!-- ========== בקשת יציאה לחופש ========== -->
 <section class="step tab m-hofesh" id="h1"><span class="punch">1</span>
   <h2>בקשת יציאה לחופש</h2>
@@ -1242,6 +1337,14 @@ dialog.ck-dlg form{padding:20px 18px}
         <span class="folder-chevron">‹</span>
       </button>
       <div class="folder-body" id="fileListAbsence"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
+    </div>
+    <div class="folder" id="folderOutside" data-folder="outside">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon">📁</span>
+        <span class="folder-meta"><h3>בקשות לעבודת חוץ</h3><p id="folderOutsideCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListOutside"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
     </div>
   </div>
   <div class="status" id="filesStatus"></div>
@@ -2116,14 +2219,15 @@ const PDF_UI={
   gefen:{share:"#gShare",dl:"#gShareOpen",status:"#gPdf"},
   maanak:{share:"#mShare",dl:"#mShareOpen",status:"#mPdf"},
   hofesh:{share:"#hShare",dl:"#hShareOpen",status:"#hPdf"},
-  absence:{share:"#abShare",dl:"#abShareOpen",status:"#abPdf"}
+  absence:{share:"#abShare",dl:"#abShareOpen",status:"#abPdf"},
+  outside:{share:"#owShare",dl:"#owShareOpen",status:"#owPdf"}
 };
 const pdfFiles={};
 /* שיתוף קבצים שעובד גם בדפדפן של סמסונג:
    סמסונג דוחה שיתוף של קובץ ששמו בעברית – אז שם הקובץ בשיתוף הוא באנגלית (בכרום נשאר השם העברי).
    אם השיתוף עדיין נכשל – הקובץ נפתח בצופה של הדפדפן, ומשם אפשר לשתף. */
 const IS_SAMSUNG = /SamsungBrowser/i.test(navigator.userAgent);
-const SHARE_PREFIX = {docs:"signed-document", rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", absence:"absence-declaration", clock:"attendance-report"};
+const SHARE_PREFIX = {docs:"signed-document", rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", absence:"absence-declaration", outside:"outside-work-request", clock:"attendance-report"};
 function asciiFile(file,kind){
   const ext=(file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0];
   let n=file.name; HEB_MONTHS.forEach((m,i)=>{ n=n.replace(new RegExp(m+"[_ ]+(\\d{4})"),"$1-"+pad2(i+1)); });
@@ -2145,10 +2249,10 @@ function openFileFallback(file,kind){
   const url=URL.createObjectURL(f), a=document.createElement("a"); a.href=url; a.download=f.name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
-async function preparePdf(kind,data,docName){
+async function preparePdf(kind,data,docName,pre){
   const ui=PDF_UI[kind]; if(!ui) return; $(ui.share).hidden=true; $(ui.dl).hidden=true; setStatus(ui.status,"מכין PDF…");
   try{
-    const blob=await buildPdf(kind,data);
+    const blob=pre||await buildPdf(kind,data);
     const name=docName.replace(/\.docx$/i,".pdf"); const file=new File([blob],name,{type:"application/pdf"});
     if(pdfFiles[kind]) URL.revokeObjectURL(pdfFiles[kind].url);
     const url=URL.createObjectURL(file); pdfFiles[kind]={file,url};
@@ -2158,7 +2262,7 @@ async function preparePdf(kind,data,docName){
     setStatus(ui.status,can?'ה-PDF מוכן. "שתף PDF" לשליחה בוואטסאפ או במייל, או "הורד PDF" לשמירה בטלפון.':'ה-PDF מוכן. לחץ "הורד PDF", ואז פתח אותו מההורדות כדי לשתף.',"ok");
   }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה ("+((e&&e.message)||"שגיאה לא ידועה")+"). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
 }
-["work","gefen","maanak","hofesh","absence"].forEach(kind=>{
+["work","gefen","maanak","hofesh","absence","outside"].forEach(kind=>{
   const ui=PDF_UI[kind]; if(!ui) return;
   const shareEl=$(ui.share); if(shareEl) shareEl.onclick=async()=>{
     const st=pdfFiles[kind]; if(!st) return;
@@ -2206,7 +2310,15 @@ const FORMS={
     text:["abName","abTz","abDate","abFrom","abTo","abCName","abCTz","abCBirth","abSigDate"],
     radios:["abRel"], checks:[], volatile:["abSigDate"], session:false,
     keep:{text:["abName","abTz","abCName","abCTz","abCBirth"],radios:["abRel"],checks:[]},
-    core:["abDate","abFrom"] }
+    core:["abDate","abFrom"] },
+  outside:{ key:"outside_form", label:"בקשה להיתר עבודת חוץ", base:"בקשה_לעבודת_חוץ", folder:"outside", ext:"pdf", tpl:()=>null,
+    btn:"#owMake", status:"#owStatus", drive:"#owDriveBtn", clear:"#owClear", sections:["#ow1"], last:null,
+    text:["owLast","owFirst","owTz","owStart","owUnit","owRole","owRank","owGrade","owDays","owHours","owScope","owPhone",
+      "owEmployer","owPlace","owContent","owFrom","owTo","owWDays","owWHours","owWeekly","owPay","owPayOther","owReasons","owSigDate"],
+    radios:["owType","owStatus","owPayType"], checks:[], volatile:["owSigDate"], session:false,
+    keep:{text:["owLast","owFirst","owTz","owStart","owUnit","owRole","owRank","owGrade","owDays","owHours","owScope","owPhone",
+      "owEmployer","owPlace","owContent","owWDays","owWHours","owWeekly","owPay","owPayOther","owReasons"],radios:["owStatus","owPayType"],checks:[]},
+    core:["owEmployer","owContent","owFrom"] }
 };
 const KINDS=Object.keys(FORMS);
 const storeOf = F => F.session ? sessionStorage : localStorage;
@@ -2249,6 +2361,7 @@ function prefillForm(k){
   if(k==="maanak"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("mFirst",p[0]); set("mLast",p.slice(1).join(" ")); } set("mTz",tz); }
   if(k==="hofesh"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("hFirst",p[0]); set("hLast",p.slice(1).join(" ")); } set("hTz",tz); const sd=$("#hSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
   if(k==="absence"){ set("abName",name); set("abTz",tz); const sd=$("#abSigDate"); if(sd&&!sd.value) sd.value=todayISO(); if(window.ABATT) ABATT.pull(); }
+  if(k==="outside"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("owFirst",p[0]); set("owLast",p.slice(1).join(" ")); } set("owTz",tz); const sd=$("#owSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
   syncFormUi();
 }
 KINDS.forEach(k=>{ const F=FORMS[k]; const d=loadDraft(k); if(d) writeForm(k,d); prefillForm(k);
@@ -2313,6 +2426,117 @@ function hofeshData(s){
   return out;
 }
 FORMS.hofesh.data=hofeshData;
+/* ---- בקשה לקבלת היתר לעסוק בעבודת חוץ (עיריית חיפה) ----
+   ממלאים את קובץ ה-PDF המקורי של העירייה: רק חלק א' בעמוד 1 (עד חתימת העובד). שאר החלקים נשארים ריקים לגורמים המאשרים.
+   הערכים מצוירים על שכבה שקופה בגודל העמוד (בנקודות של ה-PDF) ומונחים מעל העמוד הראשון. */
+const OUTW_PDF = "outside_work_form.pdf";
+function outsideData(s){
+  const v=id=>(s.v[id]||"").trim(), r=n=>s.r[n]||""; const out={error:"",warn:[]};
+  if(!v("owLast")&&!v("owFirst")) out.error="יש למלא את השם.";
+  if(v("owTz") && !validIsraeliId(v("owTz"))) out.warn.push("מספר הזהות לא עובר בדיקת תקינות.");
+  if(!r("owType")) out.warn.push("לא סומן סוג הבקשה (אישור חדש / חידוש / עבודה נוספת).");
+  if(!v("owEmployer")) out.warn.push("חסר שם המעסיק בעבודת החוץ.");
+  if(v("owFrom")&&v("owTo")&&v("owTo")<v("owFrom")) out.warn.push("תאריך הסיום של עבודת החוץ מוקדם מתאריך ההתחלה.");
+  if(v("owFrom")&&v("owTo")&&(Date.parse(v("owTo"))-Date.parse(v("owFrom")))>366*864e5) out.warn.push("לפי הטופס לא יינתן היתר לתקופה העולה על שנה.");
+  const vals={ type:r("owType"), last:v("owLast"), first:v("owFirst"), tz:v("owTz").replace(/\D/g,""), start:fmtD(v("owStart")),
+    unit:v("owUnit"), role:v("owRole"), rank:v("owRank"), grade:v("owGrade"), status:r("owStatus"),
+    days:v("owDays"), hours:v("owHours"), scope:v("owScope"), phone:v("owPhone"),
+    employer:v("owEmployer"), place:v("owPlace"), content:v("owContent"),
+    from:fmtD(v("owFrom")), to:fmtD(v("owTo")), wdays:v("owWDays"), whours:v("owWHours"), weekly:v("owWeekly"),
+    payType:r("owPayType"), pay:v("owPay"), payOther:v("owPayOther"), reasons:v("owReasons"), sigDate:fmtD(v("owSigDate")||todayISO()) };
+  out.vals=vals; out.sel={}; out.pdf=vals;
+  out.who=[vals.first,vals.last].filter(Boolean).join(" ");
+  return out;
+}
+FORMS.outside.data=outsideData;
+FORMS.outside.build=d=>OUTW.build(d.vals);
+
+var OUTW=(function(){
+  const PW=600.949, PH=847.559;
+  const PDFLIB_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
+  const PDFJS_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_W="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const libs={}; const lib=src=>libs[src]=libs[src]||new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>{ delete libs[src]; rej(new Error("טעינת ספריית ה-PDF נכשלה. בדוק את החיבור לאינטרנט.")); }; document.head.appendChild(s); });
+  let src=null;
+  async function bytes(){
+    if(src) return src.slice();
+    const r=await fetch(OUTW_PDF).catch(()=>null);
+    if(!r||!r.ok) throw new Error("לא הצלחתי לטעון את הטופס המקורי. בדוק את החיבור לאינטרנט.");
+    src=new Uint8Array(await r.arrayBuffer()); return src.slice();
+  }
+  const SZ=9.5;
+  // טקסט בתוך תא: מקטינים עד שנכנס, ואם לא – שתי שורות
+  function cell(x,str,x0,x1,cy,o){
+    o=o||{}; str=String(str||""); if(!str) return; const w=x1-x0-6, ax=o.align==="right"?x1-3:(x0+x1)/2, al=o.align||"center";
+    for(let s=o.size||SZ; s>=7; s-=0.25){ x.font=pf(false,s); if(x.measureText(str).width<=w) return ptext(x,str,ax,cy,{size:s,align:al}); }
+    const ls=wrapLines(x,str,w,7.5); const two=[ls[0], fitText(x,ls.slice(1).join(" "),w,7.5)];
+    two.forEach((l,i)=>ptext(x,l,ax,cy+(i?4.3:-4.3),{size:7.5,align:al}));
+  }
+  // כמה שורות באזור: מקטינים את הגופן עד שהכול נכנס
+  function block(x,str,x0,x1,tops,o){
+    str=String(str||""); if(!str) return; const w=x1-x0, n=tops.length;
+    let s=o&&o.size||SZ, ls;
+    for(; s>=6.5; s-=0.25){ ls=wrapLines(x,str,w,s); if(ls.length<=n) break; }
+    if(ls.length>n){ ls=ls.slice(0,n); ls[n-1]=fitText(x,ls[n-1]+" …",w,s); }
+    ls.forEach((l,i)=>ptext(x,l,x1,tops[i],{size:s}));
+  }
+  function mark(x,cx,cy,h){ x.save(); x.lineWidth=1.1; x.lineCap="round"; const m=h/2-1.6;
+    pline(x,cx-m,cy-m,cx+m,cy+m); pline(x,cx-m,cy+m,cx+m,cy-m); x.restore(); }
+  function overlay(x,v,sig){
+    x.fillStyle="#0a1a5c"; x.strokeStyle="#0a1a5c"; x.direction="rtl"; x.textBaseline="middle";
+    // סוג הבקשה
+    const TYPE={"אישור חדש":[502.3,128.3],"חידוש אישור קודם זהה":[423.8,128.8],"אישור לעבודת חוץ נוספת בתקופה מקבילה":[292.3,129.1]};
+    if(TYPE[v.type]) mark(x,...TYPE[v.type],13);
+    // 1. פרטי העובד
+    cell(x,v.last,426.8,513.8,205.5); cell(x,v.first,331.8,426.8,205.5); cell(x,v.start,88.8,202.3,205.5);
+    const E=[202.3,216.3,230.3,245.3,259.3,273.8,287.8,302.8,316.8,331.8];
+    if(v.tz){ const t=v.tz.length<9?v.tz.padStart(9,"0"):v.tz.slice(0,9); x.save(); x.direction="ltr";
+      t.split("").forEach((ch,i)=>ptext(x,ch,(E[i]+E[i+1])/2,205.5,{size:11,align:"center"})); x.restore(); }
+    cell(x,v.unit,426.8,513.8,251.3); cell(x,v.role,331.8,426.8,251.3); cell(x,v.rank,230.8,331.8,251.3); cell(x,v.grade,161.8,230.8,251.3);
+    const ST={"קבוע":[131.5,243.3],"ארעי":[97,242.8],"זמני":[131.5,259.1],"חוזה":[97,258.6]};
+    if(ST[v.status]) mark(x,...ST[v.status],8);
+    cell(x,v.days,426.8,513.8,297); cell(x,v.hours,331.8,426.8,297); cell(x,v.scope,230.8,331.8,297); cell(x,v.phone,88.8,161.8,297);
+    // 2. עבודת החוץ
+    cell(x,v.employer,301.3,513.8,358.5); cell(x,v.place,88.8,301.3,358.5);
+    block(x,v.content,93,509,[396,406,416]);
+    // ערך על קו, משמאל לתווית: מקטינים עד שנכנס עד גבול התא
+    const ln=(s,xr,y,w)=>{ if(!s) return; let z=8.5; for(; z>6.5; z-=0.25){ x.font=pf(false,z); if(x.measureText(s).width<=w) break; } ptext(x,fitText(x,s,w,z),xr,y,{size:z}); };
+    ln(v.from,476,474,47); ln(v.to,466,493,38);
+    ln(v.wdays,388,474,64); ln(v.whours,387,493,63);
+    cell(x,v.weekly,206.8,320.8,486,{size:11});
+    if(v.payType==="חודשי"){ mark(x,182.8,465.8,8); if(v.pay) ptext(x,fitText(x,v.pay,40,9),175,465,{size:9}); }
+    if(v.payType==="אחר"){ mark(x,182.8,479.3,8); if(v.payOther) block(x,v.payOther,92,186,[499,508],{size:8}); }
+    // 3. נימוקים
+    block(x,v.reasons,90,510,[548,571]);
+    // תאריך וחתימה
+    ptext(x,v.sigDate,487.5,797,{size:10,align:"center"});
+    if(sig){ try{ const h=27, w=Math.min(80,h*sig.width/sig.height); x.drawImage(sig,150-w/2,802-h,w,h); }catch(e){} }
+  }
+  async function sigImg(){ const s=store.get("att_sig"); return s?await loadImg(s).catch(()=>null):null; }
+  async function layer(v,S){
+    await pdfFonts(); const sig=await sigImg();
+    const c=document.createElement("canvas"); c.width=Math.round(PW*S); c.height=Math.round(PH*S);
+    const x=c.getContext("2d"); x.scale(S,S); overlay(x,v,sig); return c;
+  }
+  // הקובץ: ה-PDF המקורי (3 עמודים) עם השכבה על העמוד הראשון
+  async function build(v){
+    await lib(PDFLIB_URL);
+    const doc=await PDFLib.PDFDocument.load(await bytes()), pg=doc.getPage(0), {width,height}=pg.getSize();
+    const c=await layer(v,4), blob=await new Promise(r=>c.toBlob(r,"image/png"));
+    const png=await doc.embedPng(new Uint8Array(await blob.arrayBuffer()));
+    pg.drawImage(png,{x:0,y:0,width,height});
+    return new Blob([await doc.save()],{type:"application/pdf"});
+  }
+  // תצוגה מקדימה: העמוד הראשון של המקור עם הערכים
+  async function pageCanvas(v){
+    await lib(PDFJS_URL); pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_W;
+    const pdf=await pdfjsLib.getDocument({data:await bytes()}).promise, pg=await pdf.getPage(1), S=2.2, vp=pg.getViewport({scale:S});
+    const c=document.createElement("canvas"); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+    const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+    await pg.render({canvasContext:x,viewport:vp}).promise;
+    x.drawImage(await layer(v,S),0,0); return c;
+  }
+  return { build, pageCanvas };
+})();
 /* ---- הצהרה על היעדרות לצורך מתן סיוע אישי לאדם עם מוגבלות (טופס א-1) ---- */
 const ABS_REL_FB = "הורה (או אפוטרופוס, או הורה במשפחת אומנה – יש לבחור את ההגדרה הרלוונטית)";
 function absenceData(s){
@@ -2541,7 +2765,7 @@ async function cloudSaveForm(k,blob){
   if(!cloud.user) return null; const F=FORMS[k];
   const stamp=(F.editing&&!(window.VER&&VER.asNew(k)))?F.editing:new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");   // "לשמור כטופס חדש" – קובץ נפרד   // ASCII בלבד: אחסון הענן לא מקבל שמות קבצים בעברית
   const base=P(`forms/${F.folder}/${stamp}`);
-  const up=await cloud.sb.storage.from(BUCKET).upload(base+".docx",blob,{contentType:DOCX_MIME,upsert:true});
+  const up=await cloud.sb.storage.from(BUCKET).upload(base+"."+(F.ext||"docx"),blob,{contentType:F.ext==="pdf"?"application/pdf":DOCX_MIME,upsert:true});
   if(up.error) return false;
   const snap=readForm(k); F.volatile.forEach(id=>delete snap.v[id]);   // תמונת מצב של השדות, לטעינה חוזרת לעריכה
   await cloud.sb.storage.from(BUCKET).upload(base+".json",new Blob([JSON.stringify(snap)],{type:"application/json"}),{contentType:"application/json",upsert:true});
@@ -2553,13 +2777,13 @@ async function cloudLoadForm(k,stamp){
   let s=null; if(!error&&data){ try{ s=JSON.parse(await data.text()); }catch(e){} }
   if(!s) return setStatus("#filesStatus","הטעינה נכשלה.","err");
   resetForm(k); writeForm(k,s); F.editing=stamp; F.last=null; $(F.drive).hidden=true; setMode(k); saveDraft(k,{doneAt:0});
-  setStatus(F.status,"הטופס נטען מהענן. אחרי התיקון לחץ \"הפק קובץ וורד\" והקובץ בענן יתעדכן.","ok");
+  setStatus(F.status,`הטופס נטען מהענן. אחרי התיקון לחץ "${$(F.btn).textContent}" והקובץ בענן יתעדכן.`,"ok");
   setStatus("#filesStatus","");
 }
 async function cloudDeleteForm(f){
   if(!confirm("למחוק את הקובץ מהענן?")) return;
   const base="forms/"+FORMS[f.k].folder+"/"+f.stamp;
-  const {error}=await cloud.sb.storage.from(BUCKET).remove([P(base+".docx"),P(base+".json")]);
+  const {error}=await cloud.sb.storage.from(BUCKET).remove([P(base+"."+(FORMS[f.k].ext||"docx")),P(base+".json")]);
   if(!error && FORMS[f.k].editing===f.stamp) FORMS[f.k].editing=null;
   setStatus("#filesStatus",error?"המחיקה נכשלה.":"נמחק.",error?"err":"ok"); renderFiles();
 }
@@ -2568,12 +2792,12 @@ async function makeForm(k){
   try{
     const snap=readForm(k), d=F.data(snap); if(d.error) throw new Error(d.error);
     const sig=await sigData();
-    let blob=await fillTemplate(F.tpl(),d.vals,d.sel,sig);
+    let blob=F.ext==="pdf"?await F.build(d):await fillTemplate(F.tpl(),d.vals,d.sel,sig);
     if(k==="absence") blob=await ABATT.addToDocx(blob);
-    const fname=`${F.base}_${slug(d.who)||"טופס"}_${todayISO()}.docx`;
+    const fname=`${F.base}_${slug(d.who)||"טופס"}_${todayISO()}.${F.ext||"docx"}`;
     downloadBlob(blob,fname); F.last=new File([blob],fname,{type:blob.type}); $(F.drive).hidden=!driveOn();
     clearTimeout(_draftT); saveDraft(k,{doneAt:Date.now()});
-    preparePdf(k,d.pdf,fname);
+    preparePdf(k,d.pdf,fname,F.ext==="pdf"?blob:null);
     let msg="הקובץ מוכן והורד.", bad=false;
     if(cloud.user){ const ok=await cloudSaveForm(k,blob); msg+= ok?" נשמר גם בענן.":" השמירה בענן נכשלה."; if(!ok) bad=true; }
     if(!sig) msg+=" לא נוספה חתימה כי אין חתימה שמורה (לוח הבקרה).";
@@ -2589,7 +2813,7 @@ var cloudIndex=null;
 function formStates(){ return {
   work: S.rows.length ? ((S.rows.every(rowDone)&&lastFile)?"done":"pending") : "new",
   gefen: G.rows.length ? (gLast?"done":"pending") : "new",
-  maanak: formState("maanak"), hofesh: formState("hofesh"), absence: formState("absence") }; }
+  maanak: formState("maanak"), hofesh: formState("hofesh"), absence: formState("absence"), outside: formState("outside") }; }
 const BADGE={done:["done","הופק"],pending:["pending","בתהליך"],new:["new","חדש"]};
 function updateBadges(){ try{ const st=formStates();
   document.querySelectorAll("[data-badge]").forEach(b=>{ const x=BADGE[st[b.dataset.badge]]||BADGE.new; b.className="badge "+x[0]; b.textContent=x[1]; }); }catch(e){} }
@@ -2619,7 +2843,8 @@ function renderDash(){
       formOn("docsign")&&card("מסמכים חתומים","🖋️",L&&L.docs,x=>x.name||"","folderDocs"),
       formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
       formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh"),
-      formOn("absence")&&card("הצהרה על היעדרות","🧾",L&&L.absence,()=>"","folderAbsence")].filter(Boolean);
+      formOn("absence")&&card("הצהרה על היעדרות","🧾",L&&L.absence,()=>"","folderAbsence"),
+      formOn("outside")&&card("בקשה להיתר עבודת חוץ","💼",L&&L.outside,()=>"","folderOutside")].filter(Boolean);
     if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
     else box.innerHTML="";
     cards.forEach(c=>{ const b=document.createElement("button"); b.className="dcard";
@@ -2627,9 +2852,9 @@ function renderDash(){
 
     const rec=$("#recent"); if(!rec) return; rec.innerHTML="";
     const acts=[];
-    const LBL={work:"כרטיס נוכחות",gefen:'דיווח גפ"ן',maanak:"בקשה למענק",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות"};
-    const DET={work:()=>open?`${open} ימים חסרים`:`${n} ימים`, gefen:()=>`${G.rows.length} שורות`, maanak:()=>"במכשיר", hofesh:()=>"במכשיר", absence:()=>"במכשיר"};
-    ["work","gefen","maanak","hofesh","absence"].forEach(k=>{ const s=st[k]; if(s==="new"||!formOn(k)) return;
+    const LBL={work:"כרטיס נוכחות",gefen:'דיווח גפ"ן',maanak:"בקשה למענק",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ"};
+    const DET={work:()=>open?`${open} ימים חסרים`:`${n} ימים`, gefen:()=>`${G.rows.length} שורות`, maanak:()=>"במכשיר", hofesh:()=>"במכשיר", absence:()=>"במכשיר", outside:()=>"במכשיר"};
+    ["work","gefen","maanak","hofesh","absence","outside"].forEach(k=>{ const s=st[k]; if(s==="new"||!formOn(k)) return;
       acts.push({text:`${LBL[k]} – ${s==="done"?"הופק":"בתהליך"}`,time:s==="done"?"הופק במכשיר":DET[k](),dot:s==="done"?"ok":"warn",go:()=>setMode(k)}); });
     if(cloudIndex){
       if(formOn("work")) Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
@@ -2650,12 +2875,12 @@ $("#month").addEventListener("input",renderDash);
 $("#gMonth").addEventListener("input",renderDash);
 
 /* mode tabs */
-const FORM_MODES=["work","gefen","maanak","hofesh","absence","clock","hadracha","rikuz","docsign"];
+const FORM_MODES=["work","gefen","maanak","hofesh","absence","outside","clock","hadracha","rikuz","docsign"];
 function setMode(m){
   const mainTab=FORM_MODES.includes(m)?"forms":m;
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
   document.querySelectorAll(".modes button").forEach(b=>{ if(b.dataset.mode===mainTab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-  if(m==="maanak"||m==="hofesh"||m==="absence") prefillForm(m);
+  if(m==="maanak"||m==="hofesh"||m==="absence"||m==="outside") prefillForm(m);
   if(m==="hofesh"&&window.SGN) SGN.enter();
   if((m==="clock"||m==="dash")&&window.CK) CK.enter();
   if(m==="hadracha"&&window.HDF) HDF.enter();
@@ -2668,7 +2893,7 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{ btn.onclick=()=>setMo
 $("#backToForms").onclick=()=>setMode("forms");
 document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","polite"));
 
-const validModes=["dash","forms","files","work","gefen","maanak","hofesh","absence","clock","hadracha","rikuz","docsign"];
+const validModes=["dash","forms","files","work","gefen","maanak","hofesh","absence","outside","clock","hadracha","rikuz","docsign"];
 syncFormUi(); updateBadges();
 setMode("dash");   // תמיד נפתח בלוח הבקרה, עם כרטיס השעון למעלה
 
@@ -2705,6 +2930,7 @@ function driveFolderName(kind){
   if(kind==="maanak") return "מענק השתלמות";
   if(kind==="hofesh") return "בקשות יציאה לחופש";
   if(kind==="absence") return "הצהרות על היעדרות";
+  if(kind==="outside") return "בקשות לעבודת חוץ";
   if(kind==="hadracha") return "תיעוד הדרכות";
   if(kind==="rikuz") return "ריכוז הדרכות";
   if(kind==="docs") return "מסמכים חתומים";
@@ -2760,6 +2986,7 @@ driveButton("#gDriveBtn","#gMakeStatus",()=>gLast,"gefen");
 driveButton("#mDriveBtn","#mStatus",()=>FORMS.maanak.last,"maanak");
 driveButton("#hDriveBtn","#hStatus",()=>FORMS.hofesh.last,"hofesh");
 driveButton("#abDriveBtn","#abStatus",()=>FORMS.absence.last,"absence");
+driveButton("#owDriveBtn","#owStatus",()=>FORMS.outside.last,"outside");
 
 
 /* ================= cloud (Supabase) ================= */
@@ -2917,7 +3144,7 @@ async function cloudLoadSnap(kind,m,ym){
 async function listDir(dir){ const {data,error}=await cloud.sb.storage.from(BUCKET).list(P(dir),{limit:1000,sortBy:{column:"name",order:"desc"}}); return error?[]:(data||[]).filter(f=>f.id); }
 async function renderFiles(){
   if(!cloud.user) return;
-  const [wr,ws,lr,ls,gr,gs,fm,fh,fa]=await Promise.all(["work/reports","work/sources","reports","sources","gefen/reports","gefen/sources","forms/maanak","forms/hofesh","forms/absence"].map(listDir));
+  const [wr,ws,lr,ls,gr,gs,fm,fh,fa,fo]=await Promise.all(["work/reports","work/sources","reports","sources","gefen/reports","gefen/sources","forms/maanak","forms/hofesh","forms/absence","forms/outside"].map(listDir));
   const work={}, gef={};
   const put=(map,ym,k,v)=>{ (map[ym]=map[ym]||{})[k]=v; };
   [[lr,"reports"],[wr,"work/reports"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.(docx|json)$/); if(m) put(work,m[1],m[2]==="json"?"snap":"report",d+"/"+f.name); }));
@@ -2950,11 +3177,11 @@ async function renderFiles(){
     const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6])); return {d,label:d.toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"})}; };
   const setCount=(id,n,empty)=>{ const el=document.getElementById(id); if(el) el.textContent=n?(n===1?"קובץ אחד":`${n} קבצים`):(empty||"ריק"); };
   const cntFiles=m=>Object.values(m).reduce((a,x)=>a+Object.keys(x).filter(k=>k!=="snap").length,0);
-  [["maanak",fm,"#fileListForms","folderFormsCount"],["hofesh",fh,"#fileListHofesh","folderHofeshCount"],["absence",fa,"#fileListAbsence","folderAbsenceCount"]].forEach(([k,files,boxSel,countId])=>{
-    const box=$(boxSel); files=files||[]; const names=new Set(files.map(f=>f.name));
-    const items=files.filter(f=>/\.docx$/i.test(f.name)).map(f=>{ const stamp=f.name.replace(/\.docx$/i,""), w=when(stamp);
+  [["maanak",fm,"#fileListForms","folderFormsCount"],["hofesh",fh,"#fileListHofesh","folderHofeshCount"],["absence",fa,"#fileListAbsence","folderAbsenceCount"],["outside",fo,"#fileListOutside","folderOutsideCount"]].forEach(([k,files,boxSel,countId])=>{
+    const box=$(boxSel); files=files||[]; const names=new Set(files.map(f=>f.name)); const ext=FORMS[k].ext||"docx", EXT=new RegExp("\\."+ext+"$","i");
+    const items=files.filter(f=>EXT.test(f.name)).map(f=>{ const stamp=f.name.replace(EXT,""), w=when(stamp);
       return {k,stamp,path:"forms/"+FORMS[k].folder+"/"+f.name,hasJson:names.has(stamp+".json"),label:FORMS[k].label,when:w?w.label:f.name,t:w?+w.d:0,
-        dl:FORMS[k].base+"_"+(w?w.d.toISOString().slice(0,10):stamp)+".docx"}; }).sort((a,b)=>b.t-a.t);
+        dl:FORMS[k].base+"_"+(w?w.d.toISOString().slice(0,10):stamp)+"."+ext}; }).sort((a,b)=>b.t-a.t);
     setCount(countId,items.length,"ריק – עדיין אין קבצים");
     if(!box) return;
     box.innerHTML = items.length ? "" : '<div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div>';
@@ -2969,7 +3196,7 @@ async function renderFiles(){
   });
   const lastOf=(files,re)=>(files||[]).filter(f=>re.test(f.name)).map(f=>({name:f.name,t:Date.parse(f.updated_at||f.created_at||"")||0})).sort((a,b)=>b.t-a.t)[0]||null;
   const RE=/^\d{4}-\d{2}\.docx$/i, DOCX=/\.docx$/i;
-  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,docs:(window.lastReports||{}).docs||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX),absence:lastOf(fa,DOCX)};
+  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,docs:(window.lastReports||{}).docs||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX),absence:lastOf(fa,DOCX),outside:lastOf(fo,/\.pdf$/i)};
   const wc=cntFiles(work), gc=cntFiles(gef);
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
@@ -3029,7 +3256,8 @@ const MY_FORMS=[
   {k:"docsign", label:"🖋️ חתימה על מסמך", card:"docsign", folder:"folderDocs"},
   {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
   {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"},
-  {k:"absence", label:"🧾 הצהרה על היעדרות (טופס א-1)", card:"absence", folder:"folderAbsence"}];
+  {k:"absence", label:"🧾 הצהרה על היעדרות (טופס א-1)", card:"absence", folder:"folderAbsence"},
+  {k:"outside", label:"💼 בקשה להיתר עבודת חוץ", card:"outside", folder:"folderOutside"}];
 function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
 function formOn(k){ return myForms().includes(k); }
 function applyMyForms(){
@@ -5026,6 +5254,7 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
   $("#pvFit").onclick=()=>{ zoom=1; applyZoom(); $("#pvBody").scrollTo(0,0); };
   dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
   async function canvasOf(kind,d){   // אותו ציור של ה-PDF, בלי לייצר קובץ
+    if(kind==="outside") return OUTW.pageCanvas(d);
     await pdfFonts();
     const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
     const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
@@ -5040,9 +5269,10 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
       return {school:$("#school").value.trim(),name:$("#name").value.trim(),tz:$("#tz").value.trim(),month:$("#gMonth").value.trim(),rows}; },
     maanak:()=>{ const d=FORMS.maanak.data(readForm("maanak")); if(d.error) throw new Error(d.error); return d.pdf; },
     hofesh:()=>{ const d=FORMS.hofesh.data(readForm("hofesh")); if(d.error) throw new Error(d.error); return d.pdf; },
-    absence:()=>{ const d=FORMS.absence.data(readForm("absence")); if(d.error) throw new Error(d.error); return d.pdf; }
+    absence:()=>{ const d=FORMS.absence.data(readForm("absence")); if(d.error) throw new Error(d.error); return d.pdf; },
+    outside:()=>{ const d=FORMS.outside.data(readForm("outside")); if(d.error) throw new Error(d.error); return d.pdf; }
   };
-  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",hadracha:"תיעוד הדרכה",rikuz:"דף ריכוז הדרכות"};
+  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ",hadracha:"תיעוד הדרכה",rikuz:"דף ריכוז הדרכות"};
   async function show(kind,statusSel){
     const body=$("#pvBody"); $("#pvTitle").textContent="תצוגה מקדימה · "+TITLE[kind];
     try{
@@ -5052,7 +5282,7 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
       dlg.showModal(); zoom=1; applyZoom(); body.scrollTop=0;
     }catch(e){ setStatus(statusSel,(e&&e.message)||"אי אפשר להציג תצוגה מקדימה.","err"); }
   }
-  [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["absence","#abMake","#abStatus"],["hadracha","#hdMake","#hdStatus"],["rikuz","#rkMake","#rkStatus"]].forEach(([k,btn,st])=>{
+  [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["absence","#abMake","#abStatus"],["outside","#owMake","#owStatus"],["hadracha","#hdMake","#hdStatus"],["rikuz","#rkMake","#rkStatus"]].forEach(([k,btn,st])=>{
     const b=$(btn); if(!b) return;
     const p=document.createElement("button"); p.type="button"; p.className="pvbtn"; p.textContent="👁 תצוגה מקדימה"; p.onclick=()=>show(k,st);
     b.after(p);
@@ -5829,7 +6059,7 @@ const stampTxt = s => `${+s.slice(6,8)}.${+s.slice(4,6)}.${s.slice(2,4)}, ${s.sl
 // טפסים חודשיים: קובץ אחד לכל חודש. אפשר לשמור את הקודם כגרסה לפני שמעדכנים.
 const MONTHLY = { work: ["#make", "כרטיס הנוכחות"], gefen: ["#gMake", "דוח גפ\"ן"], hadracha: ["#hdMake", "תיעוד ההדרכה"] };
 // טפסים חד-פעמיים: כשטוענים טופס לעריכה – לעדכן אותו או לשמור כטופס חדש
-const ONEOFF = { maanak: "#mMake", hofesh: "#hMake", absence: "#abMake" };
+const ONEOFF = { maanak: "#mMake", hofesh: "#hMake", absence: "#abMake", outside: "#owMake" };
 
 function addChoice(btnSel, k, html){
   const btn = $(btnSel); if(!btn) return; const bar = btn.closest(".bar");
