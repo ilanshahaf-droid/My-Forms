@@ -139,6 +139,7 @@ body[data-mode="maanak"] .tab:not(.m-maanak),
 body[data-mode="hofesh"] .tab:not(.m-hofesh),
 body[data-mode="absence"] .tab:not(.m-absence),
 body[data-mode="outside"] .tab:not(.m-outside),
+body[data-mode="custom"] .tab:not(.m-custom),
 body[data-mode="clock"] .tab:not(.m-clock),
 body[data-mode="hadracha"] .tab:not(.m-hadracha),
 body[data-mode="rikuz"] .tab:not(.m-rikuz),
@@ -313,6 +314,8 @@ dialog.ds-filldlg[open]{position:fixed;inset:auto 0 0 0;margin:0 auto;width:min(
 .ver-list{margin-top:8px}
 .ver-list summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--soft)}
 .ver-row{align-items:center;margin-top:6px}
+.cu-ins button{font-size:14px;padding:8px 12px}
+#cuBody{min-height:220px;line-height:1.6}
 .drivebtn::before{content:"";width:16px;height:16px;background:conic-gradient(#0F9D58 0 33%,#F4B400 0 66%,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%);display:inline-block}
 .status a{color:inherit;font-weight:700}
 a.btnlink{font:600 15px "Assistant",Arial,sans-serif;border-radius:7px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);
@@ -340,6 +343,7 @@ body[data-mode="maanak"] .back-row,
 body[data-mode="hofesh"] .back-row,
 body[data-mode="absence"] .back-row,
 body[data-mode="outside"] .back-row,
+body[data-mode="custom"] .back-row,
 body[data-mode="clock"] .back-row,
 body[data-mode="hadracha"] .back-row,
 body[data-mode="rikuz"] .back-row,
@@ -639,6 +643,11 @@ dialog.ck-dlg form{padding:20px 18px}
     <button type="button" class="form-card-btn" data-open="outside">
       <span class="ficon" aria-hidden="true">💼</span>
       <span class="finfo"><span class="ft">בקשה להיתר עבודת חוץ</span><span class="fd">עיריית חיפה: בקשת העובד והתחייבותו (חלק א')</span><span class="badge new" data-badge="outside">חדש</span></span>
+      <span class="farrow" aria-hidden="true">‹</span>
+    </button>
+    <button type="button" class="form-card-btn" data-open="custom">
+      <span class="ficon" aria-hidden="true">✍️</span>
+      <span class="finfo"><span class="ft">טופס בכתיבה עצמית</span><span class="fd">כותבים או מדביקים טקסט, ומוסיפים תאריך וחתימה</span><span class="badge new" data-badge="custom">חדש</span></span>
       <span class="farrow" aria-hidden="true">‹</span>
     </button>
   </div>
@@ -1214,6 +1223,49 @@ dialog.ck-dlg form{padding:20px 18px}
   <div class="status" id="owPdf"></div>
 </section>
 
+<!-- ========== טופס בכתיבה עצמית ========== -->
+<section class="step tab m-custom" id="cu1"><span class="punch">1</span>
+  <h2>טופס בכתיבה עצמית</h2>
+  <p class="hint">כותבים או מדביקים את הטקסט של הטופס, ובוחרים אילו שדות להוסיף: תאריך, שם, ת.ז. וחתימה – בסוף הטופס, או בכל מקום בתוך הטקסט.</p>
+  <label class="f" for="cuTitle">כותרת (לא חובה)</label>
+  <input type="text" id="cuTitle" autocomplete="off">
+  <label class="f" for="cuBody">תוכן הטופס</label>
+  <textarea id="cuBody" rows="12" placeholder="כתוב כאן את הטקסט, או הדבק טקסט מוכן."></textarea>
+  <div class="bar cu-ins" style="margin-top:8px">
+    <button type="button" id="cuPaste">📋 הדבק מהלוח</button>
+  </div>
+  <p class="hint" style="margin:10px 0 6px">שדה בתוך הטקסט: מציבים את הסמן במקום הרצוי ולוחצים:</p>
+  <div class="bar cu-ins">
+    <button type="button" data-cu-ins="[תאריך]">+ תאריך</button>
+    <button type="button" data-cu-ins="[חתימה]">+ חתימה</button>
+    <button type="button" data-cu-ins="[שם]">+ שם</button>
+    <button type="button" data-cu-ins="[ת.ז.]">+ ת.ז.</button>
+  </div>
+  <fieldset class="grp" style="margin-top:14px"><legend>שדות בסוף הטופס</legend><div class="opts">
+    <label><input type="checkbox" id="cuAddDate" checked> תאריך</label>
+    <label><input type="checkbox" id="cuAddName"> שם</label>
+    <label><input type="checkbox" id="cuAddTz"> ת.ז.</label>
+    <label><input type="checkbox" id="cuAddSig" checked> חתימה</label>
+  </div></fieldset>
+  <h3 class="fsub">מה ייכנס בשדות</h3>
+  <label class="f" for="cuDate">תאריך</label>
+  <input type="date" id="cuDate">
+  <div class="row2">
+    <div><label class="f" for="cuName">שם</label><input type="text" id="cuName" autocomplete="name"></div>
+    <div><label class="f" for="cuTz">ת.ז.</label><input type="text" id="cuTz" inputmode="numeric" autocomplete="off"></div>
+  </div>
+  <p class="hint">החתימה היא החתימה השמורה באפליקציה.</p>
+  <div class="bar" style="margin-top:14px">
+    <button class="primary" id="cuMake" type="button">הפק קובץ וורד</button>
+    <button id="cuShare" type="button" hidden>שתף PDF</button>
+    <a id="cuShareOpen" class="btnlink" hidden>הורד PDF</a>
+    <button id="cuDriveBtn" class="drivebtn" type="button" hidden>שמור בדרייב</button>
+    <button id="cuClear" type="button">טופס חדש</button>
+  </div>
+  <div class="status" id="cuStatus"></div>
+  <div class="status" id="cuPdf"></div>
+</section>
+
 <!-- ========== בקשת יציאה לחופש ========== -->
 <section class="step tab m-hofesh" id="h1"><span class="punch">1</span>
   <h2>בקשת יציאה לחופש</h2>
@@ -1345,6 +1397,14 @@ dialog.ck-dlg form{padding:20px 18px}
         <span class="folder-chevron">‹</span>
       </button>
       <div class="folder-body" id="fileListOutside"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
+    </div>
+    <div class="folder" id="folderCustom" data-folder="custom">
+      <button type="button" class="folder-head" aria-expanded="false">
+        <span class="folder-icon">📁</span>
+        <span class="folder-meta"><h3>טפסים בכתיבה עצמית</h3><p id="folderCustomCount">טוען…</p></span>
+        <span class="folder-chevron">‹</span>
+      </button>
+      <div class="folder-body" id="fileListCustom"><div class="folder-empty">קבצים יופיעו כאן אחרי הפקה ושמירה בענן.</div></div>
     </div>
   </div>
   <div class="status" id="filesStatus"></div>
@@ -2207,7 +2267,7 @@ async function buildPdf(kind,d){
   const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
   const {c,x}=pdfCanvas(); const extra=[];
   if(kind==="absence"){ const p2=await ABATT.pdfPage().catch(()=>null); if(p2) extra.push(p2); }
-  if(kind==="gefen") drawGefen(x,d,sig);
+  if(kind==="custom") drawCustomPdf(x,d,sig,extra); else if(kind==="gefen") drawGefen(x,d,sig);
   else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig);
   else drawWork(x,d,sig);
   return canvasToPdf(extra.length?[c,...extra]:c);
@@ -2220,14 +2280,15 @@ const PDF_UI={
   maanak:{share:"#mShare",dl:"#mShareOpen",status:"#mPdf"},
   hofesh:{share:"#hShare",dl:"#hShareOpen",status:"#hPdf"},
   absence:{share:"#abShare",dl:"#abShareOpen",status:"#abPdf"},
-  outside:{share:"#owShare",dl:"#owShareOpen",status:"#owPdf"}
+  outside:{share:"#owShare",dl:"#owShareOpen",status:"#owPdf"},
+  custom:{share:"#cuShare",dl:"#cuShareOpen",status:"#cuPdf"}
 };
 const pdfFiles={};
 /* שיתוף קבצים שעובד גם בדפדפן של סמסונג:
    סמסונג דוחה שיתוף של קובץ ששמו בעברית – אז שם הקובץ בשיתוף הוא באנגלית (בכרום נשאר השם העברי).
    אם השיתוף עדיין נכשל – הקובץ נפתח בצופה של הדפדפן, ומשם אפשר לשתף. */
 const IS_SAMSUNG = /SamsungBrowser/i.test(navigator.userAgent);
-const SHARE_PREFIX = {docs:"signed-document", rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", absence:"absence-declaration", outside:"outside-work-request", clock:"attendance-report"};
+const SHARE_PREFIX = {docs:"signed-document", rikuz:"supervision-summary", hadracha:"supervision-log", work:"attendance-card", gefen:"gefen-report", maanak:"grant-request", hofesh:"vacation-request", absence:"absence-declaration", outside:"outside-work-request", custom:"form", clock:"attendance-report"};
 function asciiFile(file,kind){
   const ext=(file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0];
   let n=file.name; HEB_MONTHS.forEach((m,i)=>{ n=n.replace(new RegExp(m+"[_ ]+(\\d{4})"),"$1-"+pad2(i+1)); });
@@ -2262,7 +2323,7 @@ async function preparePdf(kind,data,docName,pre){
     setStatus(ui.status,can?'ה-PDF מוכן. "שתף PDF" לשליחה בוואטסאפ או במייל, או "הורד PDF" לשמירה בטלפון.':'ה-PDF מוכן. לחץ "הורד PDF", ואז פתח אותו מההורדות כדי לשתף.',"ok");
   }catch(e){ console.error(e); setStatus(ui.status,"יצירת ה-PDF נכשלה ("+((e&&e.message)||"שגיאה לא ידועה")+"). קובץ הוורד תקין, אפשר להפיק שוב.","err"); }
 }
-["work","gefen","maanak","hofesh","absence","outside"].forEach(kind=>{
+["work","gefen","maanak","hofesh","absence","outside","custom"].forEach(kind=>{
   const ui=PDF_UI[kind]; if(!ui) return;
   const shareEl=$(ui.share); if(shareEl) shareEl.onclick=async()=>{
     const st=pdfFiles[kind]; if(!st) return;
@@ -2318,7 +2379,13 @@ const FORMS={
     radios:["owType","owStatus","owPayType"], checks:[], volatile:["owSigDate"], session:false,
     keep:{text:["owLast","owFirst","owTz","owStart","owUnit","owRole","owRank","owGrade","owDays","owHours","owScope","owPhone",
       "owEmployer","owPlace","owContent","owWDays","owWHours","owWeekly","owPay","owPayOther","owReasons"],radios:["owStatus","owPayType"],checks:[]},
-    core:["owEmployer","owContent","owFrom"] }
+    core:["owEmployer","owContent","owFrom"] },
+  custom:{ key:"custom_form", label:"טופס בכתיבה עצמית", base:"טופס", folder:"custom", tpl:()=>null,
+    btn:"#cuMake", status:"#cuStatus", drive:"#cuDriveBtn", clear:"#cuClear", sections:["#cu1"], last:null,
+    text:["cuTitle","cuBody","cuDate","cuName","cuTz"], radios:[], checks:["cuAddDate","cuAddName","cuAddTz","cuAddSig"],
+    volatile:["cuDate"], session:false,
+    keep:{text:["cuName","cuTz"],radios:[],checks:["cuAddDate","cuAddName","cuAddTz","cuAddSig"]},
+    core:["cuBody"] }
 };
 const KINDS=Object.keys(FORMS);
 const storeOf = F => F.session ? sessionStorage : localStorage;
@@ -2361,6 +2428,7 @@ function prefillForm(k){
   if(k==="maanak"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("mFirst",p[0]); set("mLast",p.slice(1).join(" ")); } set("mTz",tz); }
   if(k==="hofesh"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("hFirst",p[0]); set("hLast",p.slice(1).join(" ")); } set("hTz",tz); const sd=$("#hSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
   if(k==="absence"){ set("abName",name); set("abTz",tz); const sd=$("#abSigDate"); if(sd&&!sd.value) sd.value=todayISO(); if(window.ABATT) ABATT.pull(); }
+  if(k==="custom"){ set("cuName",name); set("cuTz",tz); const sd=$("#cuDate"); if(sd&&!sd.value) sd.value=todayISO(); }
   if(k==="outside"){ const p=name.split(/\s+/).filter(Boolean); if(p.length){ set("owFirst",p[0]); set("owLast",p.slice(1).join(" ")); } set("owTz",tz); const sd=$("#owSigDate"); if(sd&&!sd.value) sd.value=todayISO(); }
   syncFormUi();
 }
@@ -2368,6 +2436,7 @@ KINDS.forEach(k=>{ const F=FORMS[k]; const d=loadDraft(k); if(d) writeForm(k,d);
   const c=$(F.clear); if(c) c.onclick=()=>{ const keep=readForm(k); resetForm(k);
     F.text.filter(id=>F.keep.text.includes(id)).forEach(id=>{ $("#"+id).value=keep.v[id]; });
     F.radios.filter(n=>F.keep.radios.includes(n)).forEach(n=>document.querySelectorAll(`input[name="${n}"]`).forEach(el=>{ el.checked=(el.value===keep.r[n]); }));
+    F.checks.filter(id=>(F.keep.checks||[]).includes(id)).forEach(id=>{ const el=$("#"+id); if(el) el.checked=!!keep.c[id]; });
     F.last=null; F.editing=null; $(F.drive).hidden=true; prefillForm(k); saveDraft(k,{doneAt:0});
     setStatus(F.status,"הטופס נוקה והפרטים האישיים נשארו. אפשר להתחיל טופס חדש.","ok"); window.scrollTo({top:0}); };
 });
@@ -2426,6 +2495,93 @@ function hofeshData(s){
   return out;
 }
 FORMS.hofesh.data=hofeshData;
+/* ---- טופס בכתיבה עצמית: טקסט חופשי (מוקלד או מודבק) + שדות תאריך / שם / ת.ז. / חתימה לפי בחירה ----
+   שדה בתוך הטקסט נכתב כסימון: [תאריך] [חתימה] [שם] [ת.ז.]. שדות בסוף הטופס נבחרים בתיבות הסימון. */
+const CU_TOK=/\[(תאריך|חתימה|שם|ת\.?ז\.?)\]/g;
+const cuKey=t=>t==="תאריך"?"date":t==="חתימה"?"sig":t==="שם"?"name":"tz";
+function customData(s){
+  const v=id=>(s.v[id]||"").trim(), c=id=>!!s.c[id]; const out={error:"",warn:[]};
+  const body=(s.v.cuBody||"").replace(/\r/g,"").replace(/\s+$/,"");
+  if(!body.trim()) out.error="יש לכתוב או להדביק את תוכן הטופס.";
+  const opts={date:c("cuAddDate"),name:c("cuAddName"),tz:c("cuAddTz"),sig:c("cuAddSig")};
+  const used=new Set([...body.matchAll(CU_TOK)].map(m=>cuKey(m[1])));
+  if((opts.sig||used.has("sig")) && !store.get("att_sig")) out.warn.push("אין חתימה שמורה – במקום החתימה יופיע קו ריק.");
+  if((opts.tz||used.has("tz")) && v("cuTz") && !validIsraeliId(v("cuTz"))) out.warn.push("מספר הזהות לא עובר בדיקת תקינות.");
+  out.vals={ title:v("cuTitle"), body, date:fmtD(v("cuDate")||todayISO()), name:v("cuName"), tz:v("cuTz"), opts };
+  out.sel={}; out.who=v("cuTitle")||body.trim().split("\n")[0].slice(0,30); out.pdf=out.vals;
+  return out;
+}
+FORMS.custom.data=customData;
+
+/* ---- וורד: בונים תבנית לפי הטקסט, ואז אותו מילוי כמו בכל הטפסים ---- */
+const CUSTOM=(function(){
+  const RPR=(b,sz)=>`<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>${b?"<w:b/><w:bCs/>":""}<w:sz w:val="${sz||24}"/><w:szCs w:val="${sz||24}"/><w:rtl/></w:rPr>`;
+  const t=(s,b,sz)=>`<w:r>${RPR(b,sz)}<w:t xml:space="preserve">${xmlEsc(s)}</w:t></w:r>`;
+  const ph=(tok,b)=>`<w:r>${RPR(b)}<w:t>{{${tok}}}</w:t></w:r>`;
+  const fld=k=>k==="sig"?ph("sig:1.0|______________"):ph(`v:${k}|______________`);
+  // בפסקה מימין לשמאל ערכי היישור הם לוגיים: בלי jc = צמוד לימין
+  const P=(runs,o)=>{ o=o||{}; const jc=o.jc==="start"?"":`<w:jc w:val="${o.jc||"both"}"/>`; return `<w:p><w:pPr><w:bidi/><w:spacing w:before="${o.before||0}" w:after="${o.after==null?120:o.after}" w:line="${o.line||320}" w:lineRule="auto"/>${jc}</w:pPr>${runs}</w:p>`; };
+  function line(s){ let out="", last=0; s.replace(CU_TOK,(m,tk,i)=>{ if(i>last) out+=t(s.slice(last,i)); out+=fld(cuKey(tk)); last=i+m.length; return m; }); if(last<s.length) out+=t(s.slice(last)); return out; }
+  async function tpl(v){
+    let body="";
+    if(v.title) body+=P(t(v.title,true,30),{jc:"center",after:360});
+    v.body.split("\n").forEach(l=>{ body+=l.trim()?P(line(l)):P("",{after:0}); });
+    const LB={date:"תאריך: ",name:"שם: ",tz:"ת.ז.: ",sig:"חתימה: "}; let first=true;
+    ["date","name","tz","sig"].forEach(k=>{ if(!v.opts[k]) return; body+=P(t(LB[k])+fld(k),{jc:"start",before:first?600:120,after:120}); first=false; });
+    const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+    const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/><w:bidi/></w:sectPr></w:body></w:document>`;
+    const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="en-US" w:bidi="he-IL"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:bidi/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
+    const z=new JSZip();
+    z.file("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    z.file("_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    z.file("word/_rels/document.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    z.file("word/styles.xml",styles); z.file("word/document.xml",doc);
+    return z.generateAsync({type:"base64"});
+  }
+  const build=async(d,sig)=>fillTemplate(await tpl(d.vals),d.vals,{},sig);
+
+  /* ---- כפתורי הוספת שדה בתוך הטקסט, והדבקה מהלוח ---- */
+  function insert(txt){ const ta=$("#cuBody"); if(!ta) return; const a=ta.selectionStart??ta.value.length, b=ta.selectionEnd??a;
+    const pre=ta.value.slice(0,a), sp=(pre&&!/\s$/.test(pre))?" ":""; const ins=sp+txt;
+    ta.value=pre+ins+ta.value.slice(b); ta.focus(); const p=a+ins.length; try{ ta.setSelectionRange(p,p); }catch(e){} ta.dispatchEvent(new Event("input",{bubbles:true})); }
+  document.querySelectorAll("[data-cu-ins]").forEach(b=>b.onclick=()=>insert(b.dataset.cuIns));
+  const pb=$("#cuPaste"); if(pb) pb.onclick=async()=>{
+    try{ const tx=await navigator.clipboard.readText(); if(!tx){ setStatus("#cuStatus","הלוח ריק.","err"); return; }
+      const ta=$("#cuBody"); const a=ta.selectionStart??ta.value.length, b=ta.selectionEnd??a; ta.value=ta.value.slice(0,a)+tx+ta.value.slice(b); ta.dispatchEvent(new Event("input",{bubbles:true})); setStatus("#cuStatus","הטקסט הודבק.","ok"); }
+    catch(e){ setStatus("#cuStatus","הדפדפן לא אפשר לקרוא מהלוח. לחץ לחיצה ארוכה בתיבת הטקסט ובחר \"הדבק\".","err"); } };
+  return { tpl, build };
+})();
+FORMS.custom.build=CUSTOM.build;
+
+/* ---- PDF: אותו טקסט, עם מעבר לעמודים נוספים כשצריך ---- */
+function drawCustomPdf(x0,v,sig,extra){
+  let x=x0, y=86, stop=false; const R=A4W-76, L=76, SZ=15, LH=27, BOT=A4H-70;
+  const page=()=>{ if(!extra){ stop=true; return; } const p=pdfCanvas(); extra.push(p.c); x=p.x; y=70; };
+  const need=h=>{ if(y+h>BOT) page(); };
+  if(v.title){ wrapLines(x,v.title,R-L,21,true).forEach(l=>{ need(30); if(stop) return; ptext(x,l,A4W/2,y,{bold:true,size:21,align:"center"}); y+=30; }); y+=18; }
+  const val=k=>k==="date"?v.date:k==="name"?v.name:k==="tz"?v.tz:"";
+  // שורה אחת של הטקסט: מילים ושדות, זרימה מימין לשמאל
+  function flow(items){
+    x.font=pf(false,SZ); const sp=x.measureText(" ").width; let cx=R, lineHasSig=false, rows=[[]];
+    items.forEach(it=>{ let w; if(it.sig) w=130; else if(it.f){ const s=val(it.f); x.font=pf(false,SZ); w=s?x.measureText(s).width+6:110; } else { x.font=pf(false,SZ); w=x.measureText(it.s).width; }
+      const g=it.gap?sp:0; if(cx-g-w<L && rows[rows.length-1].length){ rows.push([]); cx=R; } else cx-=g;
+      rows[rows.length-1].push({...it,w,x1:cx}); cx-=w; });
+    rows.forEach(r=>{ lineHasSig=r.some(i=>i.sig&&sig); const h=lineHasSig?LH+16:LH; need(h); if(stop) return; if(lineHasSig) y+=16;
+      r.forEach(it=>{
+        if(it.sig){ x.save(); x.lineWidth=0.8; pline(x,it.x1-it.w,y+10,it.x1,y+10); x.restore();
+          if(sig){ try{ const hh=42, sw=Math.min(it.w,hh*sig.width/sig.height); x.drawImage(sig,it.x1-it.w/2-sw/2,y+8-hh,sw,hh); }catch(e){} } }
+        else if(it.f){ const s=val(it.f); if(s) ptext(x,s,it.x1-3,y,{size:SZ}); else { x.save(); x.lineWidth=0.8; pline(x,it.x1-it.w,y+10,it.x1,y+10); x.restore(); } }
+        else ptext(x,it.s,it.x1,y,{size:SZ});
+      }); y+=LH; });
+  }
+  function items(line){ const out=[]; let last=0, gap=false;
+    const words=s=>{ const re=/(\s*)(\S+)/g; let m; while((m=re.exec(s))){ out.push({s:m[2],gap:gap||!!m[1]}); gap=false; } gap=/\s$/.test(s); };
+    line.replace(CU_TOK,(m,tk,i)=>{ words(line.slice(last,i)); const k=cuKey(tk); out.push(k==="sig"?{sig:true,gap}:{f:k,gap}); gap=false; last=i+m.length; return m; });
+    words(line.slice(last)); return out; }
+  v.body.split("\n").forEach(l=>{ if(stop) return; if(!l.trim()){ y+=LH*0.6; return; } flow(items(l)); y+=4; });
+  const LB={date:"תאריך:",name:"שם:",tz:"ת.ז.:",sig:"חתימה:"}; const ks=["date","name","tz","sig"].filter(k=>v.opts[k]);
+  if(ks.length && !stop){ y+=26; ks.forEach(k=>{ if(stop) return; flow([{s:LB[k]},k==="sig"?{sig:true,gap:true}:{f:k,gap:true}]); y+=6; }); }
+}
 /* ---- בקשה לקבלת היתר לעסוק בעבודת חוץ (עיריית חיפה) ----
    ממלאים את קובץ ה-PDF המקורי של העירייה: רק חלק א' בעמוד 1 (עד חתימת העובד). שאר החלקים נשארים ריקים לגורמים המאשרים.
    הערכים מצוירים על שכבה שקופה בגודל העמוד (בנקודות של ה-PDF) ומונחים מעל העמוד הראשון. */
@@ -2792,7 +2948,7 @@ async function makeForm(k){
   try{
     const snap=readForm(k), d=F.data(snap); if(d.error) throw new Error(d.error);
     const sig=await sigData();
-    let blob=F.ext==="pdf"?await F.build(d):await fillTemplate(F.tpl(),d.vals,d.sel,sig);
+    let blob=F.build?await F.build(d,sig):await fillTemplate(F.tpl(),d.vals,d.sel,sig);
     if(k==="absence") blob=await ABATT.addToDocx(blob);
     const fname=`${F.base}_${slug(d.who)||"טופס"}_${todayISO()}.${F.ext||"docx"}`;
     downloadBlob(blob,fname); F.last=new File([blob],fname,{type:blob.type}); $(F.drive).hidden=!driveOn();
@@ -2813,7 +2969,7 @@ var cloudIndex=null;
 function formStates(){ return {
   work: S.rows.length ? ((S.rows.every(rowDone)&&lastFile)?"done":"pending") : "new",
   gefen: G.rows.length ? (gLast?"done":"pending") : "new",
-  maanak: formState("maanak"), hofesh: formState("hofesh"), absence: formState("absence"), outside: formState("outside") }; }
+  maanak: formState("maanak"), hofesh: formState("hofesh"), absence: formState("absence"), outside: formState("outside"), custom: formState("custom") }; }
 const BADGE={done:["done","הופק"],pending:["pending","בתהליך"],new:["new","חדש"]};
 function updateBadges(){ try{ const st=formStates();
   document.querySelectorAll("[data-badge]").forEach(b=>{ const x=BADGE[st[b.dataset.badge]]||BADGE.new; b.className="badge "+x[0]; b.textContent=x[1]; }); }catch(e){} }
@@ -2844,7 +3000,8 @@ function renderDash(){
       formOn("maanak")&&card("בקשה למענק השתלמות","📄",L&&L.maanak,()=>"","folderForms"),
       formOn("hofesh")&&card("בקשת יציאה לחופש","🏖️",L&&L.hofesh,()=>"","folderHofesh"),
       formOn("absence")&&card("הצהרה על היעדרות","🧾",L&&L.absence,()=>"","folderAbsence"),
-      formOn("outside")&&card("בקשה להיתר עבודת חוץ","💼",L&&L.outside,()=>"","folderOutside")].filter(Boolean);
+      formOn("outside")&&card("בקשה להיתר עבודת חוץ","💼",L&&L.outside,()=>"","folderOutside"),
+      formOn("custom")&&card("טופס בכתיבה עצמית","✍️",L&&L.custom,()=>"","folderCustom")].filter(Boolean);
     if(!cards.length) box.innerHTML='<div class="empty" style="grid-column:1/-1">לא נבחרו טפסים. בחרו אותם ב"הטפסים שלי" למטה.</div>';
     else box.innerHTML="";
     cards.forEach(c=>{ const b=document.createElement("button"); b.className="dcard";
@@ -2852,9 +3009,9 @@ function renderDash(){
 
     const rec=$("#recent"); if(!rec) return; rec.innerHTML="";
     const acts=[];
-    const LBL={work:"כרטיס נוכחות",gefen:'דיווח גפ"ן',maanak:"בקשה למענק",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ"};
-    const DET={work:()=>open?`${open} ימים חסרים`:`${n} ימים`, gefen:()=>`${G.rows.length} שורות`, maanak:()=>"במכשיר", hofesh:()=>"במכשיר", absence:()=>"במכשיר", outside:()=>"במכשיר"};
-    ["work","gefen","maanak","hofesh","absence","outside"].forEach(k=>{ const s=st[k]; if(s==="new"||!formOn(k)) return;
+    const LBL={work:"כרטיס נוכחות",gefen:'דיווח גפ"ן',maanak:"בקשה למענק",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ",custom:"טופס בכתיבה עצמית"};
+    const DET={work:()=>open?`${open} ימים חסרים`:`${n} ימים`, gefen:()=>`${G.rows.length} שורות`, maanak:()=>"במכשיר", hofesh:()=>"במכשיר", absence:()=>"במכשיר", outside:()=>"במכשיר", custom:()=>"במכשיר"};
+    ["work","gefen","maanak","hofesh","absence","outside","custom"].forEach(k=>{ const s=st[k]; if(s==="new"||!formOn(k)) return;
       acts.push({text:`${LBL[k]} – ${s==="done"?"הופק":"בתהליך"}`,time:s==="done"?"הופק במכשיר":DET[k](),dot:s==="done"?"ok":"warn",go:()=>setMode(k)}); });
     if(cloudIndex){
       if(formOn("work")) Object.entries(cloudIndex.work||{}).forEach(([ym,m])=>{ if(m.report) acts.push({text:"כרטיס נוכחות · "+monthLabel(ym),time:"בענן",dot:"ok",go:()=>setMode("files")}); });
@@ -2875,12 +3032,12 @@ $("#month").addEventListener("input",renderDash);
 $("#gMonth").addEventListener("input",renderDash);
 
 /* mode tabs */
-const FORM_MODES=["work","gefen","maanak","hofesh","absence","outside","clock","hadracha","rikuz","docsign"];
+const FORM_MODES=["work","gefen","maanak","hofesh","absence","outside","custom","clock","hadracha","rikuz","docsign"];
 function setMode(m){
   const mainTab=FORM_MODES.includes(m)?"forms":m;
   document.body.dataset.mode=m; store.set("att_mode",m,true); window.scrollTo({top:0});
   document.querySelectorAll(".modes button").forEach(b=>{ if(b.dataset.mode===mainTab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-  if(m==="maanak"||m==="hofesh"||m==="absence"||m==="outside") prefillForm(m);
+  if(m==="maanak"||m==="hofesh"||m==="absence"||m==="outside"||m==="custom") prefillForm(m);
   if(m==="hofesh"&&window.SGN) SGN.enter();
   if((m==="clock"||m==="dash")&&window.CK) CK.enter();
   if(m==="hadracha"&&window.HDF) HDF.enter();
@@ -2893,7 +3050,7 @@ document.querySelectorAll(".form-card-btn").forEach(btn=>{ btn.onclick=()=>setMo
 $("#backToForms").onclick=()=>setMode("forms");
 document.querySelectorAll(".status").forEach(el=>el.setAttribute("aria-live","polite"));
 
-const validModes=["dash","forms","files","work","gefen","maanak","hofesh","absence","outside","clock","hadracha","rikuz","docsign"];
+const validModes=["dash","forms","files","work","gefen","maanak","hofesh","absence","outside","custom","clock","hadracha","rikuz","docsign"];
 syncFormUi(); updateBadges();
 setMode("dash");   // תמיד נפתח בלוח הבקרה, עם כרטיס השעון למעלה
 
@@ -2931,6 +3088,7 @@ function driveFolderName(kind){
   if(kind==="hofesh") return "בקשות יציאה לחופש";
   if(kind==="absence") return "הצהרות על היעדרות";
   if(kind==="outside") return "בקשות לעבודת חוץ";
+  if(kind==="custom") return "טפסים בכתיבה עצמית";
   if(kind==="hadracha") return "תיעוד הדרכות";
   if(kind==="rikuz") return "ריכוז הדרכות";
   if(kind==="docs") return "מסמכים חתומים";
@@ -2987,6 +3145,7 @@ driveButton("#mDriveBtn","#mStatus",()=>FORMS.maanak.last,"maanak");
 driveButton("#hDriveBtn","#hStatus",()=>FORMS.hofesh.last,"hofesh");
 driveButton("#abDriveBtn","#abStatus",()=>FORMS.absence.last,"absence");
 driveButton("#owDriveBtn","#owStatus",()=>FORMS.outside.last,"outside");
+driveButton("#cuDriveBtn","#cuStatus",()=>FORMS.custom.last,"custom");
 
 
 /* ================= cloud (Supabase) ================= */
@@ -3144,7 +3303,7 @@ async function cloudLoadSnap(kind,m,ym){
 async function listDir(dir){ const {data,error}=await cloud.sb.storage.from(BUCKET).list(P(dir),{limit:1000,sortBy:{column:"name",order:"desc"}}); return error?[]:(data||[]).filter(f=>f.id); }
 async function renderFiles(){
   if(!cloud.user) return;
-  const [wr,ws,lr,ls,gr,gs,fm,fh,fa,fo]=await Promise.all(["work/reports","work/sources","reports","sources","gefen/reports","gefen/sources","forms/maanak","forms/hofesh","forms/absence","forms/outside"].map(listDir));
+  const [wr,ws,lr,ls,gr,gs,fm,fh,fa,fo,fc]=await Promise.all(["work/reports","work/sources","reports","sources","gefen/reports","gefen/sources","forms/maanak","forms/hofesh","forms/absence","forms/outside","forms/custom"].map(listDir));
   const work={}, gef={};
   const put=(map,ym,k,v)=>{ (map[ym]=map[ym]||{})[k]=v; };
   [[lr,"reports"],[wr,"work/reports"]].forEach(([fs,d])=>fs.forEach(f=>{ const m=f.name.match(/^(\d{4}-\d{2})\.(docx|json)$/); if(m) put(work,m[1],m[2]==="json"?"snap":"report",d+"/"+f.name); }));
@@ -3177,7 +3336,7 @@ async function renderFiles(){
     const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6])); return {d,label:d.toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"})}; };
   const setCount=(id,n,empty)=>{ const el=document.getElementById(id); if(el) el.textContent=n?(n===1?"קובץ אחד":`${n} קבצים`):(empty||"ריק"); };
   const cntFiles=m=>Object.values(m).reduce((a,x)=>a+Object.keys(x).filter(k=>k!=="snap").length,0);
-  [["maanak",fm,"#fileListForms","folderFormsCount"],["hofesh",fh,"#fileListHofesh","folderHofeshCount"],["absence",fa,"#fileListAbsence","folderAbsenceCount"],["outside",fo,"#fileListOutside","folderOutsideCount"]].forEach(([k,files,boxSel,countId])=>{
+  [["maanak",fm,"#fileListForms","folderFormsCount"],["hofesh",fh,"#fileListHofesh","folderHofeshCount"],["absence",fa,"#fileListAbsence","folderAbsenceCount"],["outside",fo,"#fileListOutside","folderOutsideCount"],["custom",fc,"#fileListCustom","folderCustomCount"]].forEach(([k,files,boxSel,countId])=>{
     const box=$(boxSel); files=files||[]; const names=new Set(files.map(f=>f.name)); const ext=FORMS[k].ext||"docx", EXT=new RegExp("\\."+ext+"$","i");
     const items=files.filter(f=>EXT.test(f.name)).map(f=>{ const stamp=f.name.replace(EXT,""), w=when(stamp);
       return {k,stamp,path:"forms/"+FORMS[k].folder+"/"+f.name,hasJson:names.has(stamp+".json"),label:FORMS[k].label,when:w?w.label:f.name,t:w?+w.d:0,
@@ -3196,7 +3355,7 @@ async function renderFiles(){
   });
   const lastOf=(files,re)=>(files||[]).filter(f=>re.test(f.name)).map(f=>({name:f.name,t:Date.parse(f.updated_at||f.created_at||"")||0})).sort((a,b)=>b.t-a.t)[0]||null;
   const RE=/^\d{4}-\d{2}\.docx$/i, DOCX=/\.docx$/i;
-  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,docs:(window.lastReports||{}).docs||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX),absence:lastOf(fa,DOCX),outside:lastOf(fo,/\.pdf$/i)};
+  window.lastReports={hadracha:(window.lastReports||{}).hadracha||null,rikuz:(window.lastReports||{}).rikuz||null,docs:(window.lastReports||{}).docs||null,work:lastOf([...wr,...lr],RE),gef:lastOf(gr,RE),maanak:lastOf(fm,DOCX),hofesh:lastOf(fh,DOCX),absence:lastOf(fa,DOCX),outside:lastOf(fo,/\.pdf$/i),custom:lastOf(fc,DOCX)};
   const wc=cntFiles(work), gc=cntFiles(gef);
   setCount("folderWorkCount",wc,"ריק – עדיין אין קבצים");
   setCount("folderGefenCount",gc,"ריק – עדיין אין קבצים");
@@ -3257,7 +3416,8 @@ const MY_FORMS=[
   {k:"maanak", label:"📄 בקשה למענק השתלמות", card:"maanak", folder:"folderForms"},
   {k:"hofesh", label:"🏖️ בקשת יציאה לחופש", card:"hofesh", folder:"folderHofesh"},
   {k:"absence", label:"🧾 הצהרה על היעדרות (טופס א-1)", card:"absence", folder:"folderAbsence"},
-  {k:"outside", label:"💼 בקשה להיתר עבודת חוץ", card:"outside", folder:"folderOutside"}];
+  {k:"outside", label:"💼 בקשה להיתר עבודת חוץ", card:"outside", folder:"folderOutside"},
+  {k:"custom", label:"✍️ טופס בכתיבה עצמית", card:"custom", folder:"folderCustom"}];
 function myForms(){ try{ const v=JSON.parse(localStorage.getItem("my_forms")||"null"); if(Array.isArray(v)) return v; }catch(e){} return []; }   // משתמש חדש: עוד לא נבחר אף טופס
 function formOn(k){ return myForms().includes(k); }
 function applyMyForms(){
@@ -5259,7 +5419,7 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
     const s=store.get("att_sig"); const sig=s?await loadImg(s).catch(()=>null):null;
     const logo=kind==="hofesh"?await loadImg("data:image/png;base64,"+HAIFA_LOGO_B64).catch(()=>null):null;
     const {c,x}=pdfCanvas();
-    if(kind==="gefen") drawGefen(x,d,sig); else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig); else drawWork(x,d,sig);
+    if(kind==="custom") drawCustomPdf(x,d,sig,null); else if(kind==="gefen") drawGefen(x,d,sig); else if(kind==="hofesh") drawHofeshPdf(x,d,sig,logo); else if(kind==="absence") drawAbsencePdf(x,d,sig); else if(kind==="maanak") drawFormPdf(x,d,sig); else drawWork(x,d,sig);
     return c;
   }
   const DATA={
@@ -5270,9 +5430,10 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
     maanak:()=>{ const d=FORMS.maanak.data(readForm("maanak")); if(d.error) throw new Error(d.error); return d.pdf; },
     hofesh:()=>{ const d=FORMS.hofesh.data(readForm("hofesh")); if(d.error) throw new Error(d.error); return d.pdf; },
     absence:()=>{ const d=FORMS.absence.data(readForm("absence")); if(d.error) throw new Error(d.error); return d.pdf; },
-    outside:()=>{ const d=FORMS.outside.data(readForm("outside")); if(d.error) throw new Error(d.error); return d.pdf; }
+    outside:()=>{ const d=FORMS.outside.data(readForm("outside")); if(d.error) throw new Error(d.error); return d.pdf; },
+    custom:()=>{ const d=FORMS.custom.data(readForm("custom")); if(d.error) throw new Error(d.error); return d.pdf; }
   };
-  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ",hadracha:"תיעוד הדרכה",rikuz:"דף ריכוז הדרכות"};
+  const TITLE={work:"כרטיס נוכחות",gefen:'דוח גפ"ן',maanak:"בקשה למענק השתלמות",hofesh:"בקשת יציאה לחופש",absence:"הצהרה על היעדרות",outside:"בקשה להיתר עבודת חוץ",custom:"טופס בכתיבה עצמית",hadracha:"תיעוד הדרכה",rikuz:"דף ריכוז הדרכות"};
   async function show(kind,statusSel){
     const body=$("#pvBody"); $("#pvTitle").textContent="תצוגה מקדימה · "+TITLE[kind];
     try{
@@ -5282,7 +5443,7 @@ window.addEventListener("pagehide", () => { if(pushTimer){ clearTimeout(pushTime
       dlg.showModal(); zoom=1; applyZoom(); body.scrollTop=0;
     }catch(e){ setStatus(statusSel,(e&&e.message)||"אי אפשר להציג תצוגה מקדימה.","err"); }
   }
-  [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["absence","#abMake","#abStatus"],["outside","#owMake","#owStatus"],["hadracha","#hdMake","#hdStatus"],["rikuz","#rkMake","#rkStatus"]].forEach(([k,btn,st])=>{
+  [["work","#make","#s5status"],["gefen","#gMake","#gMakeStatus"],["maanak","#mMake","#mStatus"],["hofesh","#hMake","#hStatus"],["absence","#abMake","#abStatus"],["outside","#owMake","#owStatus"],["custom","#cuMake","#cuStatus"],["hadracha","#hdMake","#hdStatus"],["rikuz","#rkMake","#rkStatus"]].forEach(([k,btn,st])=>{
     const b=$(btn); if(!b) return;
     const p=document.createElement("button"); p.type="button"; p.className="pvbtn"; p.textContent="👁 תצוגה מקדימה"; p.onclick=()=>show(k,st);
     b.after(p);
@@ -6059,7 +6220,7 @@ const stampTxt = s => `${+s.slice(6,8)}.${+s.slice(4,6)}.${s.slice(2,4)}, ${s.sl
 // טפסים חודשיים: קובץ אחד לכל חודש. אפשר לשמור את הקודם כגרסה לפני שמעדכנים.
 const MONTHLY = { work: ["#make", "כרטיס הנוכחות"], gefen: ["#gMake", "דוח גפ\"ן"], hadracha: ["#hdMake", "תיעוד ההדרכה"] };
 // טפסים חד-פעמיים: כשטוענים טופס לעריכה – לעדכן אותו או לשמור כטופס חדש
-const ONEOFF = { maanak: "#mMake", hofesh: "#hMake", absence: "#abMake", outside: "#owMake" };
+const ONEOFF = { maanak: "#mMake", hofesh: "#hMake", absence: "#abMake", outside: "#owMake", custom: "#cuMake" };
 
 function addChoice(btnSel, k, html){
   const btn = $(btnSel); if(!btn) return; const bar = btn.closest(".bar");
